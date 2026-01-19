@@ -20,7 +20,7 @@ TensorDict: typing.TypeAlias = typing.Mapping[str, 'torch.Tensor']
 # components collection
 @typing.runtime_checkable
 class TrainerComponentsLike(typing.Protocol):
-    model: MultiHeadTrainable
+    model: MultiheadModelLike
     dataloaders: DataLoadersLike
     headspecs: HeadSpecsLike
     headlosses: HeadLossesLike
@@ -28,9 +28,9 @@ class TrainerComponentsLike(typing.Protocol):
     optimization: OptimizationLike
     callbacks: CallBacksLike
 
-# trainer component - trainable model
+# trainer component - trainable and checkpointable model
 @typing.runtime_checkable
-class MultiHeadTrainable(typing.Protocol):
+class MultiheadModelLike(typing.Protocol):
     def __call__(self, x: 'torch.Tensor', **kwargs) -> TensorDict: ...
     def forward(self, x: 'torch.Tensor', **kwargs) -> TensorDict: ...
     def parameters(self) -> typing.Iterable['torch.nn.Parameter']: ...
@@ -40,6 +40,8 @@ class MultiHeadTrainable(typing.Protocol):
     def set_active_heads(self, active_heads: list[str] | None) -> None: ...
     def set_frozen_heads(self, frozen_heads: list[str] | None) -> None: ...
     def reset_heads(self) -> None: ...
+    def state_dict(self) -> typing.Mapping[str, 'torch.Tensor']: ...
+    def load_state_dict(self, state_dict: typing.Mapping[str, typing.Any]) -> typing.Any: ...
 
 # trainer component - dataloaders
 @typing.runtime_checkable

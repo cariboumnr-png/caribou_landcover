@@ -26,22 +26,18 @@ def main(config: omegaconf.DictConfig):
 
     # data preparation
     data_summary = src.dataset.prepare_data(config.dataset)
-    print(data_summary)
 
     # setup multihead model
     model = src.models.multihead_unet(data_summary, config.models)
 
     # setup trainer
     trainer = src.training.factory.build_trainer(model, data_summary, config.trainer)
-    trainer.set_head_state()
-    trainer.train_one_epoch(1)
-    print(trainer.state)
 
-    # # setup curriculum
-    # controller = src.training.factory.build_controller(trainer, config.curriculum)
+    # setup curriculum
+    controller = src.training.factory.build_controller(trainer, config.curriculum)
 
-    # # train
-    # controller.fit()
+    # train
+    controller.fit()
 #
 if __name__ == '__main__':
     # test() # pylint: disable=no-value-for-parameter

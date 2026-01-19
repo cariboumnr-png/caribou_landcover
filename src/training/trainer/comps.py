@@ -9,7 +9,7 @@ import training.common
 @dataclasses.dataclass
 class TrainerComponents:
     '''Trainer components protocol.'''
-    model: training.common.MultiHeadTrainable
+    model: training.common.MultiheadModelLike
     dataloaders: training.common.DataLoadersLike
     headspecs: training.common.HeadSpecsLike
     headlosses: training.common.HeadLossesLike

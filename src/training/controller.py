@@ -6,8 +6,8 @@ import typing
 # third-party imports
 import omegaconf
 # local imports
-import training.trainer.trainer
-import training.trainer.ckpts
+import training.common
+import training.trainer
 import utils.logger
 
 log = utils.logger.Logger(name='phase')
@@ -38,7 +38,7 @@ class Controller:
     '''doc'''
     def __init__(
             self,
-            trainer: training.trainer.trainer.MultiHeadTrainer,
+            trainer: training.trainer.MultiHeadTrainer,
             config: omegaconf.DictConfig
         ):
         '''Initialization'''
@@ -80,11 +80,11 @@ class Controller:
                 frozen_heads=phase.frozen_heads,
                 excluded_cls=phase.masked_classes
             )
-            _ = self.trainer.fit_epoch(epoch)
-            log.log(
-                'INFO',
-                f'Current Best Value: {self.trainer.state.best_value:.4f}'
-            )
+            _ = self.trainer.train_one_epoch(epoch)
+            # validate at set interval
+            if self.trainer.config.schedule.eval_interval is not None and \
+                epoch % self.trainer.config.schedule.eval_interval == 0:
+                _ = self.trainer.validate()
 
     def _next_phase(self) -> None:
         '''doc'''
@@ -101,14 +101,19 @@ class Controller:
         '''Save at the end of each phase.'''
 
         fpath = f'{self.config.ckpt_dpath}/{self.current_phase.name}.pt'
-        log.log('INFO', f'Phase {self.current_phase.name} saved to {fpath}')
-        training.trainer.ckpts.save(
-            model=self.trainer.model,
-            optimizer=self.trainer.optimizer,
-            scheduler=self.trainer.scheduler,
-            best_value=self.trainer.state.best_value,
+        ckpt_meta: training.common.CheckpointMetaLike = {
+            'best_value': self.trainer.state.metrics.best_value,
+            'epoch': self.trainer.state.metrics.best_epoch,
+            'step': self.trainer.state.progress.global_step
+        }
+        training.trainer.save(
+            model=self.trainer.comps.model,
+            ckpt_meta=ckpt_meta,
+            optimizer=self.trainer.comps.optimization.optimizer,
+            scheduler=self.trainer.comps.optimization.scheduler,
             fpath=fpath
         )
+        log.log('INFO', f'Phase {self.current_phase.name} saved to {fpath}')
 
     @staticmethod
     def _generate_phases(config: omegaconf.DictConfig) -> list[Phase]:

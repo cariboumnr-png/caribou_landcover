@@ -100,7 +100,7 @@ class MultiHeadTrainer:
         self._emit('on_validation_begin')
 
         # iterate through validation dataset
-        for bidx, batch in enumerate(self.dataloaders.val):
+        for bidx, batch in enumerate(self.dataloaders.val, start=1):
 
             # batch start
             # - get new batch and parse into x, y_dict and domain
@@ -139,13 +139,15 @@ class MultiHeadTrainer:
 
         # set active heads at model
         self.model.set_active_heads(active_heads)
-        # set active heads at trainer components
+        # set active heads specs
         self.state.heads.active_hspecs = {
             k: copy.deepcopy(self.headspecs[k]) for k in active_heads
         }
+        # set loss module for active heads
         self.state.heads.active_hloss = {
             k: copy.deepcopy(self.headlosses[k]) for k in active_heads
         }
+        # set metric module for active heads
         self.state.heads.active_hmetrics = {
             k: copy.deepcopy(self.headmetrics[k]) for k in active_heads
         }

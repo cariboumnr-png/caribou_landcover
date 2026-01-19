@@ -21,6 +21,7 @@ __all__ = [
 
 # for static check
 if typing.TYPE_CHECKING:
+    from .ckpts import load, save
     from .comps import TrainerComponents
     from .config import RuntimeConfig
     from .state import RuntimeState
@@ -29,6 +30,8 @@ if typing.TYPE_CHECKING:
 
 def __getattr__(name: str):
 
+    if name in ['load', 'save']:
+        return getattr(importlib.import_module('.ckpts', __package__), name)
     if name == 'TrainerComponents':
         return importlib.import_module('.comps', __package__).TrainerComponents
     if name == 'RuntimeConfig':

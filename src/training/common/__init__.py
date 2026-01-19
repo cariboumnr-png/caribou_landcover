@@ -4,10 +4,13 @@ from .data import DataSummaryFull
 from .data import DataSummaryHeads
 from .data import DataSummaryLoader
 
-from .trainer import TrainerLike
+from .checkpoint import CheckpointMetaLike
+from .trainer import (
+    TrainerLike
+)
 from .trainer_comps import (
     TrainerComponentsLike,
-    MultiHeadTrainable,
+    MultiheadModelLike,
     DataLoadersLike,
     HeadSpecsLike,
     SpecLike,
@@ -34,10 +37,12 @@ from .trainer_state import RuntimeStateLike
 
 __all__ = [
     #
+    'CheckpointMetaLike',
+    #
     'TrainerLike',
     #
     'TrainerComponentsLike',
-    'MultiHeadTrainable',
+    'MultiheadModelLike',
     'DataLoadersLike',
     'HeadSpecsLike',
     'SpecLike',

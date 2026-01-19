@@ -159,7 +159,7 @@ class ConfusionMatrix:
     def reset(self, device: str) -> None:
         '''Zero out the confusion matrix.'''
 
-        self.cm.zero_().to(device)
+        self.cm = self.cm.zero_().to(device)
 
     @property
     def metrics_dict(self) -> dict[str, typing.Any]:

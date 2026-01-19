@@ -15,7 +15,7 @@ import training.trainer
 import training.controller
 
 def collect_trainer_comps(
-        model: training.common.MultiHeadTrainable,
+        model: training.common.MultiheadModelLike,
         data_summary: training.common.DataSummaryFull,
         config: omegaconf.DictConfig
     ) -> training.trainer.TrainerComponents:
@@ -110,7 +110,7 @@ def generate_config(config: omegaconf.DictConfig) -> training.trainer.RuntimeCon
     return running_config
 
 def build_trainer(
-        model: training.common.MultiHeadTrainable,
+        model: training.common.MultiheadModelLike,
         data_summary: training.common.DataSummaryFull,
         config: omegaconf.DictConfig
     ) -> training.trainer.MultiHeadTrainer:

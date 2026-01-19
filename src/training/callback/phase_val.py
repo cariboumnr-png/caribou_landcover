@@ -13,8 +13,9 @@ class ValCallback(training.callback.Callback):
     def on_validation_begin(self) -> None:
         # set model to validation mode
         self.trainer.comps.model.eval()
-        # reset per-head confusion matrix
-        for metrics_mod in self.trainer.comps.headmetrics.as_dict().values():
+        # reset per-head confusion matrix from active heads
+        assert self.trainer.state.heads.active_hmetrics is not None
+        for metrics_mod in self.trainer.state.heads.active_hmetrics.values():
             metrics_mod.reset(self.trainer.device)
         # reset validation loss and logs
         self.state.epoch_sum.val_loss = 0.0 # currently not in use
