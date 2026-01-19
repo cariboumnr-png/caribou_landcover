@@ -1,5 +1,0 @@
-{
-    "python.analysis.autoImportCompletions": false,
-    "python.REPL.enableREPLSmartSend": false,
-    "git.ignoreLimitWarning": true
-}
