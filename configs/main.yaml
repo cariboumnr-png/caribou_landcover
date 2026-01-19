@@ -1,0 +1,17 @@
+# conf/main.yaml
+
+# the defaults list
+defaults:
+  - dataset: dataprep
+  - models: multihead
+  - trainer: trainer_config
+  - curriculum: control
+  - _self_
+
+# top-level and overrides
+seed: 42
+test:
+  # if not zero randomly select n training blocks and n/5 validation blocks
+  rand_sample_n: 100
+skip:
+  dataprep: False

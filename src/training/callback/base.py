@@ -1,0 +1,58 @@
+# pylint: disable=missing-function-docstring
+# pylint: disable=too-many-public-methods
+# pylint: disable=unused-argument
+'''Base class for callbacks.'''
+
+# local imports
+import training.common
+import utils.logger
+
+log = utils.logger.Logger(name='callb')
+
+class Callback:
+    '''Base class for callbacks. Subclass to implement behaviors'''
+
+    def __init__(self) -> None:
+        self._trainer: training.common.TrainerLike | None = None
+
+    def setup(self, trainer: training.common.TrainerLike) -> None:
+        if self._trainer is not None:
+            raise RuntimeError("Callback.setup() called twice.")
+        self._trainer = trainer
+
+    def log(self, message: str, level: str='INFO' ) -> None:
+        '''Centralized callback logging'''
+        log.log(level, message)
+
+    # -----------------------------training phase-----------------------------
+    def on_train_epoch_begin(self, epoch: int) -> None: ...
+    def on_train_batch_begin(self, bidx: int, batch: tuple) -> None: ...
+    def on_train_batch_forward(self) -> None: ...
+    def on_train_batch_compute_loss(self) -> None: ...
+    def on_train_backward(self) -> None: ...
+    def on_train_before_optimizer_step(self) -> None: ...
+    def on_train_optimizer_step(self) -> None: ...
+    def on_train_batch_end(self) -> None: ...
+    def on_train_epoch_end(self) -> None: ...
+
+    # ----------------------------validation phase----------------------------
+    def on_validation_begin(self) -> None: ...
+    def on_validation_batch_begin(self, bidx: int, batch: tuple) -> None: ...
+    def on_validation_batch_forward(self) -> None: ...
+    def on_validation_batch_end(self) -> None: ...
+    def on_validation_end(self) -> None: ...
+
+    # -------------------------convenience properties-------------------------
+    @property
+    def trainer(self):
+        if self._trainer is None:
+            raise RuntimeError('Trainer accessed before setup.')
+        return self._trainer
+
+    @property
+    def config(self):
+        return self.trainer.config
+
+    @property
+    def state(self):
+        return self.trainer.state
