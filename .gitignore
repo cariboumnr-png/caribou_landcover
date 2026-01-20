@@ -1,23 +1,19 @@
 # Ignore common files
 *.log
-*.tmp
-*.bak
-*.swp
-*.DS_Store
-
-# Ignore node_modules for JavaScript projects
-node_modules/
 
 # Ignore Python cache files
 __pycache__/
 *.pyc
 
-# Ignore the data folder
+# Ignore the folders
+.vscode/
 /cache/*
 !/cache/
 /data/*
 !/data/
 /logs/*
 !/logs/
+/misc/*
+!/misc/
 /outputs/*
 !/outputs/
