@@ -19,19 +19,19 @@ class Phase:
     num_epochs: int
     active_heads: list[str]
     frozen_heads: list[str] | None = None
-    masked_classes: dict[str, tuple[int, ...]] | None = None
+    excluded_cls: dict[str, tuple[int, ...]] | None = None
     lr_scale: float = 1.0
 
     def __repr__(self) -> str:
         indent: int=2
         s = ' ' * indent
         return f'\n{s}'.join([
-            f'- Phase Name: {self.name}',
-            f'- Maximum Number of Epochs: {self.num_epochs}',
-            f'- Active Heads: {self.active_heads}',
-            f'- Frozen Heads: {self.frozen_heads}',
-            f'- Masked Classes: {self.masked_classes}',
-            f'- Learning Rater Scale: {self.lr_scale}'
+            f'- Phase Name:\t{self.name}',
+            f'- Max Epochs:\t{self.num_epochs}',
+            f'- Active Heads:\t{self.active_heads}',
+            f'- Frozen Heads:\t{self.frozen_heads}',
+            f'- Excld. Class:\t{self.excluded_cls}',
+            f'- LR Scale:\t{self.lr_scale}'
         ])
 
 class Controller:
@@ -53,32 +53,38 @@ class Controller:
         '''Main entry.'''
 
         for phase in self.phases:
-            print('---------------------------\n', phase)
+            print('__Phase details__')
+            print(phase)
+            print(f'__Phase [{phase.name}] started__')
             self._train_phase()
+            print(f'__Phase [{phase.name}] finished__')
             self._save_phase()
             self._next_phase()
             if self.done:
+                print('__Experiment Complete__')
                 log.log('INFO', 'All training phases finished')
                 break
             if isinstance(stopat, str) and stopat == phase.name:
+                print('__Experiment Complete__')
                 log.log('INFO', f'Training stopped at: {stopat}')
                 break
             if isinstance(stopat, int) and stopat == self.current_phase_idx:
+                print('__Experiment Complete__')
                 log.log('INFO', f'Training stopped at: Phase_{stopat + 1}')
                 break
 
     def _train_phase(self) -> None:
-        '''doc'''
+        '''Train the current phase.'''
 
         num_epoch = self.current_phase.num_epochs
         phase = self.current_phase
         # train
         for epoch in range(1, num_epoch + 1):
-            print(f'Epoch: {epoch}/{num_epoch}')
+            print(f'__Epoch: {epoch}/{num_epoch}__')
             self.trainer.set_head_state(
                 active_heads=phase.active_heads,
                 frozen_heads=phase.frozen_heads,
-                excluded_cls=phase.masked_classes
+                excluded_cls=phase.excluded_cls
             )
             _ = self.trainer.train_one_epoch(epoch)
             # validate at set interval
@@ -87,7 +93,7 @@ class Controller:
                 _ = self.trainer.validate()
 
     def _next_phase(self) -> None:
-        '''doc'''
+        '''Move on to the next phase.'''
 
         # advance phase idx
         self.current_phase_idx += 1
@@ -98,7 +104,7 @@ class Controller:
         self.trainer.reset_head_state()
 
     def _save_phase(self) -> None:
-        '''Save at the end of each phase.'''
+        '''Save at the current phase.'''
 
         fpath = f'{self.config.ckpt_dpath}/{self.current_phase.name}.pt'
         ckpt_meta: training.common.CheckpointMetaLike = {
@@ -132,7 +138,7 @@ class Controller:
                     num_epochs=p['num_epochs'],
                     active_heads=p['active_heads'],
                     frozen_heads=p['frozen_heads'],
-                    masked_classes=p['masked_classes'],
+                    excluded_cls=p['masked_classes'],
                     lr_scale=p['lr_scale']
                 )
             )

@@ -25,8 +25,8 @@ class LoggingCallback(training.callback.Callback):
         epoch = self.state.progress.epoch
         bidx=self.state.batch_cxt.bidx
         self.trainer._update_train_logs(bidx=bidx, flush=True)
-        self.log('INFO', f'Epoch_{epoch:03d} training finished')
         self.log('INFO', self.state.epoch_sum.train_logs_text)
+        self.log('INFO', f'Epoch_{epoch:03d} training finished')
 
     def on_validation_begin(self) -> None:
         epoch = self.state.progress.epoch
@@ -38,6 +38,6 @@ class LoggingCallback(training.callback.Callback):
     def on_validation_end(self) -> None:
         epoch = self.state.progress.epoch
         target_head = self.config.monitor.head
-        self.log('INFO', f'Epoch_{epoch:03d} validation finished')
         for t in self.state.epoch_sum.val_logs_text[target_head]:
             self.log('INFO', t)
+        self.log('INFO', f'Epoch_{epoch:03d} validation finished')
