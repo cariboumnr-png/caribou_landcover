@@ -74,7 +74,7 @@ class _BatchCtx:
             if v is not None:
                 out.append(f'{k}: {v.shape}')
         if out:
-            return '\n'.join(out)
+            return '|'.join(out)
         return 'N/A'
 
     # clear the old batch
@@ -138,19 +138,24 @@ class _Epoch:
 @dataclasses.dataclass
 class _Metrics:
     '''Experiment level metrics'''
-    last_value: float | None = None
+    last_value: float = -float('inf')
+    curr_value: float = -float('inf')
     best_value: float = -float('inf')
     best_epoch: int = -1
+    patience_n: int = 0
 
     def __str__(self) -> str:
-        _lastv = self.last_value if self.last_value is not None else 'N/A'
+        _lastv = self.last_value if self.last_value != -float('inf') else 'N/A'
+        _currv = self.curr_value if self.last_value != -float('inf') else 'N/A'
         _bestv = self.best_value if self.best_value != -float('inf') else 'N/A'
         _epoch = self.best_epoch if self.best_epoch != -1 else 'N/A'
         return '\n'.join([
             'Experimental Metrics:',
             f'\tLast Value: {_lastv}',
+            f'\tCurr Value: {_currv}',
             f'\tBest Value: {_bestv}',
-            f'\tBest Epoch: {_epoch}'
+            f'\tBest Epoch: {_epoch}',
+            f'\tPatience: {self.patience_n}'
         ])
 
 @dataclasses.dataclass

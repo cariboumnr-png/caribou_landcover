@@ -53,13 +53,13 @@ class Controller:
         '''Main entry.'''
 
         for phase in self.phases:
+
             print('__Phase details__')
             print(phase)
-            print(f'__Phase [{phase.name}] started__')
+
             self._train_phase()
-            print(f'__Phase [{phase.name}] finished__')
-            self._save_phase()
             self._next_phase()
+
             if self.done:
                 print('__Experiment Complete__')
                 log.log('INFO', 'All training phases finished')
@@ -73,24 +73,47 @@ class Controller:
                 log.log('INFO', f'Training stopped at: Phase_{stopat + 1}')
                 break
 
-    def _train_phase(self) -> None:
+    def _train_phase(self) -> tuple[dict, dict]:
         '''Train the current phase.'''
 
-        num_epoch = self.current_phase.num_epochs
+        # context for current phase
         phase = self.current_phase
+        num_epoch = self.current_phase.num_epochs
+        t_logs = {}
+        v_logs = {}
+
+        # align trainer config with phase specs
+        self.trainer.config.schedule.max_epoch = num_epoch
+
         # train
+        print(f'__Phase [{phase.name}] started__')
         for epoch in range(1, num_epoch + 1):
             print(f'__Epoch: {epoch}/{num_epoch}__')
+            # early stop check - patience can be None = no early stop
+            patience = self.trainer.config.schedule.patience_epochs
+            if patience and self.trainer.state.metrics.patience_n >= patience:
+                break
+            # set trainer heads
             self.trainer.set_head_state(
                 active_heads=phase.active_heads,
                 frozen_heads=phase.frozen_heads,
                 excluded_cls=phase.excluded_cls
             )
-            _ = self.trainer.train_one_epoch(epoch)
+            t_logs = self.trainer.train_one_epoch(epoch)
             # validate at set interval
             if self.trainer.config.schedule.eval_interval is not None and \
                 epoch % self.trainer.config.schedule.eval_interval == 0:
-                _ = self.trainer.validate()
+                v_logs = self.trainer.validate()
+            # save progress
+            if epoch == self.trainer.state.metrics.best_epoch:
+                fpath = f'{self.config.ckpt_dpath}/{phase.name}_best.pt'
+            else:
+                fpath = f'{self.config.ckpt_dpath}/{phase.name}_last.pt'
+            self._save_progress(fpath)
+        print(f'__Phase [{phase.name}] finished__')
+
+        # return training and validation logs
+        return t_logs, v_logs
 
     def _next_phase(self) -> None:
         '''Move on to the next phase.'''
@@ -103,13 +126,12 @@ class Controller:
         # else reset trainer state and continue
         self.trainer.reset_head_state()
 
-    def _save_phase(self) -> None:
+    def _save_progress(self, fpath: str) -> None:
         '''Save at the current phase.'''
 
-        fpath = f'{self.config.ckpt_dpath}/{self.current_phase.name}.pt'
         ckpt_meta: training.common.CheckpointMetaLike = {
-            'best_value': self.trainer.state.metrics.best_value,
-            'epoch': self.trainer.state.metrics.best_epoch,
+            'metric': self.trainer.state.metrics.curr_value,
+            'epoch': self.trainer.state.progress.epoch,
             'step': self.trainer.state.progress.global_step
         }
         training.trainer.save(
@@ -119,7 +141,7 @@ class Controller:
             scheduler=self.trainer.comps.optimization.scheduler,
             fpath=fpath
         )
-        log.log('INFO', f'Phase {self.current_phase.name} saved to {fpath}')
+        log.log('INFO', f'Checkpoint saved: {fpath}')
 
     @staticmethod
     def _generate_phases(config: omegaconf.DictConfig) -> list[Phase]:

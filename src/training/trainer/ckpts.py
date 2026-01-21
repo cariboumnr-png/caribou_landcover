@@ -11,10 +11,9 @@ import training.common
 # checkpoint metadata
 class CheckpointMetaLike(typing.TypedDict):
     '''Checkpont metadata'''
-    best_value: float
+    metric: float
     epoch: int
     step: int
-
 
 # publich functions
 def save(
@@ -33,7 +32,7 @@ def save(
         'model': model.state_dict(),
         'optimizer': optimizer.state_dict(),
         'scheduler': scheduler.state_dict() if scheduler is not None else None,
-        'best_value': ckpt_meta['best_value'],
+        'metric': ckpt_meta['metric'],
         'epoch': ckpt_meta['epoch'],
         'step': ckpt_meta['step']
     }
@@ -65,7 +64,7 @@ def load(
 
     # return meta dict
     return {
-        'best_value': checkpoint.get('best_value', -float('inf')),
+        'metric': checkpoint.get('metric', -float('inf')),
         'epoch': checkpoint.get('epoch', 0),
         'step': checkpoint.get('step', 0)
     }

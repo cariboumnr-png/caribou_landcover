@@ -9,6 +9,8 @@ __pycache__/
 .vscode/
 /cache/*
 !/cache/
+/checkpoints/*
+!/checkpoints/
 /data/*
 !/data/
 /logs/*

@@ -24,7 +24,7 @@ class _Schedule:
 class _Monitor:
     enabled: tuple[str, ...] = tuple('iou') # e.g., ('iou', ...)
     metric: str = 'iou'                     # e.g., 'iou'
-    head: str = ''                          # e.g., 'layer1' (as the parent layer)
+    head: str = ''                          # e.g., 'layer1' (the parent layer)
     mode: str = 'max'                       # e.g., 'max'
 
 @dataclasses.dataclass

@@ -14,7 +14,7 @@ import training.trainer
 
 import training.controller
 
-def collect_trainer_comps(
+def get_components(
         model: training.common.MultiheadModelLike,
         data_summary: training.common.DataSummaryFull,
         config: omegaconf.DictConfig
@@ -82,7 +82,7 @@ def collect_trainer_comps(
     )
     return components
 
-def generate_config(config: omegaconf.DictConfig) -> training.trainer.RuntimeConfig:
+def get_config(config: omegaconf.DictConfig) -> training.trainer.RuntimeConfig:
     '''Generate trainer runtime config from hydra.'''
 
     running_config = training.trainer.RuntimeConfig()
@@ -94,9 +94,9 @@ def generate_config(config: omegaconf.DictConfig) -> training.trainer.RuntimeCon
     running_config.schedule.max_step=config.schedule.max_step
     running_config.schedule.logging_interval=config.schedule.log_every
     running_config.schedule.eval_interval=config.schedule.val_every
-    running_config.schedule.checkpoint_interval=5
-    running_config.schedule.patience_epochs=5
-    running_config.schedule.min_delta=0.01
+    running_config.schedule.checkpoint_interval=config.schedule.ckpt_every
+    running_config.schedule.patience_epochs=config.schedule.patience
+    running_config.schedule.min_delta=config.schedule.min_delta
     # assign monitoring config
     running_config.monitor.enabled=('iou',)
     running_config.monitor.metric=config.monitor.metric_name
@@ -117,9 +117,9 @@ def build_trainer(
     '''Builder trainer.'''
 
     # collect componenets
-    trainer_comps = collect_trainer_comps(model, data_summary, config)
+    trainer_comps = get_components(model, data_summary, config)
     # generate runtime config
-    runtime_config = generate_config(config=config.config)
+    runtime_config = get_config(config=config.config)
 
     # build and return a trainer class
     return training.trainer.MultiHeadTrainer(

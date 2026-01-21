@@ -9,6 +9,6 @@ import typing
 # checkpoint metadata
 class CheckpointMetaLike(typing.TypedDict):
     '''Checkpont metadata'''
-    best_value: float
+    metric: float
     epoch: int
     step: int

@@ -44,4 +44,7 @@ class ValCallback(training.callback.Callback):
         self.trainer._update_conf_matrix()
 
     def on_validation_end(self) -> None:
+        # compute iou
         self.trainer._compute_iou()
+        # update experimental level metrics
+        self.trainer._track_metrics()

@@ -522,6 +522,36 @@ class MultiHeadTrainer:
         self.state.epoch_sum.val_logs = val_logs
         self.state.epoch_sum.val_logs_text = val_logs_text
 
+    def _track_metrics(self) -> None:
+        '''doc'''
+
+        # get metric from validation metrics dictionary
+        track_head = self.config.monitor.head
+        val_met = self.state.epoch_sum.val_logs[track_head]
+        met = val_met['ac_mean'] if 'ac_mean' in val_met else val_met['mean']
+
+        # at the end of the first epoch
+        if self.state.progress.epoch == 1:
+            self.state.metrics.last_value = 0.0
+            self.state.metrics.curr_value = met
+        else:
+            self.state.metrics.last_value = self.state.metrics.curr_value
+            self.state.metrics.curr_value = met
+
+        # determine the best metrics
+        delta = self.config.schedule.min_delta or 0.0 # None -> 0.0 (no delta)
+        assert delta >= 0.0 # sanity
+        # maximize tracking metrics
+        if self.config.monitor.mode == 'max':
+            # update tracking numbers
+            if met >= self.state.metrics.best_value + delta:
+                self.state.metrics.best_value = met
+                self.state.metrics.best_epoch = self.state.progress.epoch
+                self.state.metrics.patience_n = 0 # reset patience
+            # otherwise increment patience counter
+            else:
+                self.state.metrics.patience_n += 1
+
     # -------------------------convenience properties-------------------------
     @property
     def model(self):

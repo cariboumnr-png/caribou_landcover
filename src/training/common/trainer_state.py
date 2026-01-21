@@ -62,9 +62,11 @@ class Epoch(typing.Protocol):
     val_logs_text: dict[str, list[str]]
 
 class Metrics(typing.Protocol):
-    last_value: float | None
+    last_value: float
+    curr_value: float
     best_value: float
     best_epoch: int
+    patience_n: int
 
 class OptimState(typing.Protocol):
     scaler: 'torch.GradScaler'
