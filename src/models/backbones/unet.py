@@ -1,5 +1,5 @@
 '''
-Standard UNet architecture.
+Standard UNet architecture with long skip connections.
 
 A compact yet extensible implementation of the U-Net architecture for
 dense, per-pixel prediction tasks (e.g., semantic segmentation, binary
@@ -13,7 +13,7 @@ recovering fine details using skip connections from matching encoder
 stages. This topology enables accurate localization with modest data
 requirements.
 
-**Key design points in this module**
+**Design points**
 - Encoder (contracting path): stacks of convolutional blocks followed by
   downsampling to progressively increase receptive field.
 - Bottleneck: deepest representation capturing global context.
@@ -69,17 +69,15 @@ class UNet(models.backbones.Backbone):
     - Skip connections are concatenated along the channel dimension.
     - Convolution weights are Kaiming-initialized (fan-out, ReLU).
     - The backbone's `out_channels` = `base_ch` (decoder's final width).
-
-    See `__init__` for construction details and configuration options.
     '''
 
+    # module aliases
+    DC = models.backbones.DoubleConv
+    DS = models.backbones.Downsample
+    US = models.backbones.Upsample
+
     # core UNet body
-    def __init__(
-            self,
-            in_ch: int,
-            base_ch: int,
-            **kwargs
-        ):
+    def __init__(self, in_ch: int, base_ch: int, **kwargs):
         '''
         Construct UNet body with configurable normalization and dropout.
 
@@ -114,28 +112,26 @@ class UNet(models.backbones.Backbone):
         '''
 
         super().__init__()
-         # conforming to base class
-        self._out_channels = base_ch
+        self._out_channels = base_ch # conforming to base class
+        ch = base_ch # alias base_ch -> ch
 
-        # convolution layers (alias base_ch -> ch)
-        ch = base_ch
         # initial convolution block with no norm
-        self.inc = models.backbones.DoubleConv(in_ch, ch, norm=None, **kwargs)
+        self.inc = self.DC(in_ch, ch, norm=None, **kwargs)
         # 4 downs
         self.downs = torch.nn.ModuleList([
-            models.backbones.Downsample(ch,   ch*2,  **kwargs),
-            models.backbones.Downsample(ch*2, ch*4,  **kwargs),
-            models.backbones.Downsample(ch*4, ch*8,  **kwargs),
-            models.backbones.Downsample(ch*8, ch*16, **kwargs),
+            self.DS(ch,   ch*2,  **kwargs),
+            self.DS(ch*2, ch*4,  **kwargs),
+            self.DS(ch*4, ch*8,  **kwargs),
+            self.DS(ch*8, ch*16, **kwargs),
         ])
         # bottleneck
-        self.bottleneck = models.backbones.DoubleConv(ch*16, ch*16, **kwargs)
+        self.bottleneck = self.DC(ch*16, ch*16, **kwargs)
         # 4 ups
         self.ups = torch.nn.ModuleList([
-            models.backbones.Upsample(ch*16 + ch*8, ch*8, **kwargs),
-            models.backbones.Upsample(ch*8  + ch*4, ch*4, **kwargs),
-            models.backbones.Upsample(ch*4  + ch*2, ch*2, **kwargs),
-            models.backbones.Upsample(ch*2  + ch,   ch,   **kwargs)
+            self.US(ch*16 + ch*8, ch*8, **kwargs),
+            self.US(ch*8  + ch*4, ch*4, **kwargs),
+            self.US(ch*4  + ch*2, ch*2, **kwargs),
+            self.US(ch*2  + ch,   ch,   **kwargs)
         ])
 
         # Kaiming weight initialization
