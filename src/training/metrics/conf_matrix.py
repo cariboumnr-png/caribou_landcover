@@ -41,6 +41,7 @@ class ConfusionMatrix:
             'mean': 0.0,
             'ious': {},
             'support': {},
+            'has_active': False,
             'ac_mean': 0.0,
             'ac_ious': {},
             'ac_support': {}
@@ -138,6 +139,8 @@ class ConfusionMatrix:
             activ = set(range(len(iou))) - set(x - 1 for x in excld) # 0-based
         else:
             activ = ()
+        # give metric dict a flag
+        self._metrics['has_active'] = bool(activ)
 
         # iterate ious and split into groups
         activ_sum = 0.0
@@ -196,6 +199,7 @@ class _Metrics(typing.TypedDict):
     mean: float
     ious: dict[str, float]
     support: dict[str, int]
+    has_active: bool
     ac_mean: float
     ac_ious: dict[str, float]
     ac_support: dict[str, int]

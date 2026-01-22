@@ -97,7 +97,8 @@ def _parse_raster_blocks(
         name, arr, uniques = r
         parsed_blocks.append(DomainRasterBlock(name, arr, nodata))
         unique_values.update(uniques)
-    unique_values.remove(nodata) # remove nodata from unique values
+    if nodata in unique_values:
+        unique_values.remove(nodata) # remove nodata if present
 
     # global mapping: raw 1..K  ->  0..K-1 ----
     # If global raws are continuous 1..K, K is simply max(unique_values)

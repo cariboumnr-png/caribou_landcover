@@ -11,7 +11,7 @@ phases:
     num_epochs: 100
     active_heads: [layer1]
     masked_classes:
-      layer1: [3, 4, 5, 6]
+      layer1: [4, 6]
     frozen_heads: null
     lr_scale: 1.0
 

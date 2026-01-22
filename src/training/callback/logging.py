@@ -38,6 +38,9 @@ class LoggingCallback(training.callback.Callback):
     def on_validation_end(self) -> None:
         epoch = self.state.progress.epoch
         target_head = self.config.monitor.head
+        best_v = self.trainer.state.metrics.best_value
+        best_e = self.trainer.state.metrics.best_epoch
         for t in self.state.epoch_sum.val_logs_text[target_head]:
             self.log('INFO', t)
+        self.log('INFO', f'Current best metric/epoch:\t{best_v:.4f}|{best_e}')
         self.log('INFO', f'Epoch_{epoch:03d} validation finished')

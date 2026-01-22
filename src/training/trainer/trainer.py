@@ -523,12 +523,12 @@ class MultiHeadTrainer:
         self.state.epoch_sum.val_logs_text = val_logs_text
 
     def _track_metrics(self) -> None:
-        '''doc'''
+        '''Track the best metric and count patience epochs.'''
 
         # get metric from validation metrics dictionary
         track_head = self.config.monitor.head
-        val_met = self.state.epoch_sum.val_logs[track_head]
-        met = val_met['ac_mean'] if 'ac_mean' in val_met else val_met['mean']
+        val = self.state.epoch_sum.val_logs[track_head]
+        met = val['ac_mean'] if val['has_active'] in val else val['mean']
 
         # at the end of the first epoch
         if self.state.progress.epoch == 1:

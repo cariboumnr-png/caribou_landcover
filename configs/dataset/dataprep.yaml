@@ -6,7 +6,7 @@ skip_dataprep: ${skip.dataprep}
 
 paths:
   # root directory for general cache artifacts
-  cache: ./cache
+  cache: ./cache/demo
   # Path to block scheme file (.pkl)
   blkscheme: ${.cache}/blocks_all_${..blocks.size}_${..blocks.overlap}.pkl
   # Directory where individual block NPZ files are stored
@@ -30,20 +30,20 @@ paths:
 
 inputs:
   # Source imagery (raster) input
-  image: ./data/image_landsat_dem.tif
+  image: ./data/demo/image.tif
   # Source label raster or vector-derived raster
-  label: ./data/label_15cls.tif
+  label: ./data/demo/label.tif
   # Label raster metadata (e.g., index, geometry, band info)
-  meta: ./data/label_15cls_meta.json
+  meta: ./data/demo/label_meta.json
   # if any domain knowledge provided
   domain:
     # raster with id via most frequent in each block
-    - path: ./data/domain_ecodistrict.tif
+    - path: ./data/demo/domain_ecodistrict.tif
       name: ecodist
       treat: majority
       type: int
     # raster with ids to convert via pca
-    - path: ./data/domain_geology.tif
+    - path: ./data/demo/domain_geology.tif
       name: geology
       treat: pca
       axes: 4 # output first n axes
@@ -53,7 +53,7 @@ blocks:
   # Block/window size in pixels (height, width)
   size: 256
   # Overlap in pixels between neighboring blocks (y, x)
-  overlap: 10
+  overlap: 0
   # If true, randomly sample a subset of test blocks (implementation-specific)
   randtest: false
 
@@ -61,7 +61,7 @@ filters:
   # Pixel ratio threshold used to validate blocks (e.g., min non-nodata ratio)
   pxthres: 0.75
   # Water threshold (e.g., max allowed water fraction per block)
-  watthres: 0.2
+  watthres: 1.0
 
 overwrite:
   # Overwrite the block scheme file if it exists

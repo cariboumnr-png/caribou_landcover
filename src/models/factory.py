@@ -16,13 +16,13 @@ def build_multihead_unet(
 
     # general config
     model_config = models.multihead.config.ModelConfig(
+        in_ch=data_summary.meta.img_ch_num,
         base_ch=config.channels.base_ch,
+        heads_w_counts=data_summary.heads.class_counts,
         enable_logit_adjust=config.logits_adjustment.enable,
+        logit_adjust=data_summary.heads.logits_adjust,
         enable_clamp=config.clamp.enable,
         clamp_range=tuple(config.clamp.range),
-        in_ch=data_summary.meta.img_ch_num,
-        heads_w_counts=data_summary.heads.class_counts,
-        logit_adjust=data_summary.heads.logits_adjust,
     )
 
     # conditioning config

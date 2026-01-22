@@ -14,6 +14,6 @@ class PrimitiveLoss(torch.nn.Module, metaclass=abc.ABCMeta):
             logits: torch.Tensor,
             targets: torch.Tensor,
             *,
-            mask: torch.Tensor | None = None,
+            masks: dict[float, torch.Tensor] | None,
         ) -> torch.Tensor:
         '''Forward.'''

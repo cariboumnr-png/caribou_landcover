@@ -38,7 +38,7 @@ def multihead_loss(
         if parent_name is not None:
             parent_tensor = multihead_targets[parent_name]
         # prep target and optional mask tensors per head
-        targets_0b, mask = _prep_loss_compute(
+        targets_0b, masks = _prep_loss_compute(
             head_target=multihead_targets[head_name],
             head_spec=headspecs[head_name],
             head_loss=headlosses[head_name],
@@ -47,7 +47,7 @@ def multihead_loss(
         # sanity check
         assert head_pred.shape[-2:] == multihead_targets[head_name].shape[-2:]
         # calculate loss
-        loss = headlosses[head_name].forward(head_pred, targets_0b, mask=mask)
+        loss = headlosses[head_name].forward(head_pred, targets_0b, masks=masks)
         total += headspecs[head_name].weight * loss
         # per_head losses are detached scalars for logging only
         per_head[head_name] = float(loss.item())
@@ -61,13 +61,12 @@ def _prep_loss_compute(
         head_spec: training.common.SpecLike,
         head_loss: training.common.CompositeLossLike,
         parent_tensor: torch.Tensor | None,
-    ):
+    ) -> tuple[torch.Tensor, dict[float, torch.Tensor] | None]:
     '''doc'''
 
     # get mask while raw and parent tensor is still 1-based
-    valid_mask = _get_valid_mask(
+    masks = _get_masks(
         raw=head_target,
-        ignore_idx=head_loss.ignore_index,      # by ignore index
         masked_cls=head_spec.exclude_cls,       # optional at runtime
         parent_tensor=parent_tensor,            # optional parent-child gating
         parent_cls_1b=head_spec.parent_cls      # 1-based parent class
@@ -75,24 +74,29 @@ def _prep_loss_compute(
     # shift batch to 0-based and calc losses
     target_0 = _shift_1_to_0(head_target, head_loss.ignore_index)
     # return
-    return target_0, valid_mask
+    return target_0, masks
 
-def _get_valid_mask(
+def _get_masks(
         raw: torch.Tensor,
-        ignore_idx: int,
         masked_cls: tuple[int, ...] | None=None,
         parent_tensor: torch.Tensor | None=None,
         parent_cls_1b: int | None=None
-    ) -> torch.Tensor:
+    ) -> dict[float, torch.Tensor] | None:
     '''Build valid mask with support of parent class gating.'''
 
-    mask = raw != ignore_idx
+    # masks
+    masks: dict[float, torch.Tensor] = {}
+    # mask for exclusion classes
     if masked_cls is not None:
-        masked_cls_tensor = torch.tensor(masked_cls, device=mask.device)
-        mask = mask & ~torch.isin(raw, masked_cls_tensor)
+        masked_cls_tensor = torch.tensor(masked_cls, device=raw.device)
+        exclusion_mask = torch.isin(raw, masked_cls_tensor)
+        masks[0.05] = exclusion_mask
+    # mask for parent-child gating
     if parent_tensor is not None and parent_cls_1b is not None:
-        mask = mask & (parent_tensor == parent_cls_1b)
-    return mask
+        parent_mask = parent_tensor != parent_cls_1b
+        masks[0.0] = parent_mask
+    # return with default weight
+    return masks if masks else None
 
 def _shift_1_to_0(
         target_1: torch.Tensor,

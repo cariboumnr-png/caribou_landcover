@@ -253,7 +253,7 @@ def get_valid_block_fpaths(
     valid_criteria = {
         'block_size': block_size,
         'pixel_threshold': ratio_t,
-        'wat_threshold': wat_thres
+        'water_threshold': wat_thres
     }
     jobs = [(_is_valid_block, (f, valid_criteria,), {}) for f in block_fpaths]
     rs: list[dict] = utils.multip.ParallelExecutor().run(jobs)

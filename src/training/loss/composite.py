@@ -73,10 +73,10 @@ class CompositeLoss(torch.nn.Module):
         '''Compute combined loss with NaN/Inf check before output.'''
 
         # get mask
-        mask = kwargs.get('mask', None)
+        masks = kwargs.get('masks', None)
         # accumulate included losses
         total_loss = p.new_zeros(())
         for loss_fn, weight in zip(self.losses, self.weights):
-            loss_val = loss_fn(p, t, mask=mask)
+            loss_val = loss_fn(p, t, masks=masks)
             total_loss += weight * loss_val
         return total_loss
