@@ -1,5 +1,6 @@
 '''Simple top-level namesapce for utilities.'''
 
+from .cfg_access import ConfigAccess
 from .funcs import(
     get_fpaths_from_dir,
     get_timestamp,
@@ -13,6 +14,7 @@ from .multip import ParallelExecutor
 from .pca import pca_transform
 
 __all__ = [
+    'ConfigAccess',
     'Logger',
     'ParallelExecutor',
     'get_fpaths_from_dir',

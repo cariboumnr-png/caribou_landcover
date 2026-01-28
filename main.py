@@ -16,19 +16,22 @@ import src.utils
 #  - convert decimals to percentages
 omegaconf.OmegaConf.register_new_resolver('c', lambda x: int(x * 100))
 
-# create a centralized logger file named by current time stamp
-timestamp = src.utils.get_timestamp()
-logger = src.utils.Logger(name='main', log_file=f'./logs/{timestamp}.log')
 
 # main process
 @hydra.main(config_path='./configs', config_name='main', version_base='1.3')
 def main(config: omegaconf.DictConfig) -> None:
     '''doc'''
 
+    # create a centralized logger file named by current time stamp
+    timestamp = src.utils.get_timestamp()
+    logger = src.utils.Logger(name='main', log_file=f'./logs/{timestamp}.log')
+
     # data preparation
     data_summary = src.dataset.prepare_data(
+        dataset_name='demo',
         config=config.dataset,
-        logger=logger
+        logger=logger,
+        skip=config.skip.dataprep
     )
     print(data_summary)
 
@@ -61,6 +64,5 @@ if __name__ == '__main__':
     try:
         sys.exit(main()) # no args needed for hydra
     except KeyboardInterrupt:
-        logger.log_sep()
-        logger.log('INFO', 'Experiment interrupted, exiting...')
+        print('\nExperiment interrupted, exiting...')
         sys.exit(130)

@@ -16,17 +16,16 @@ __all__ = [
     'DataBlock',
     # functions
     'build_data_cache',
-    'parse_block_name',
     # typing
-    'BlockMetaDict',
+    'BlockCreationOptions',
 ]
 
 # for static check
 if typing.TYPE_CHECKING:
     from .cache import RasterBlockCache, build_data_cache
     from .block import DataBlock
-    from .layout import RasterBlockLayout, parse_block_name
-    from .typing import BlockMetaDict
+    from .layout import RasterBlockLayout
+    from .typing import BlockCreationOptions
 
 def __getattr__(name: str):
 
@@ -34,9 +33,9 @@ def __getattr__(name: str):
         return getattr(importlib.import_module('.cache', __package__), name)
     if name == 'DataBlock':
         return importlib.import_module('.block', __package__).DataBlock
-    if name in ['RasterBlockLayout', 'parse_block_name']:
-        return getattr(importlib.import_module('.layout', __package__), name)
-    if name in ['BlockMetaDict']:
+    if name in ['RasterBlockLayout']:
+        return importlib.import_module('.layout', __package__).RasterBlockLayout
+    if name in ['BlockCreationOptions']:
         return getattr(importlib.import_module('.typing', __package__), name)
 
     raise AttributeError(name)

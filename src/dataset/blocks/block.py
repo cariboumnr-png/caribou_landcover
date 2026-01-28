@@ -52,7 +52,7 @@ class DataBlock:
         # init with empty block data
         self.data = _Data()
         # meta dict with default foo values
-        self.meta: dataset.blocks.BlockMetaDict = {
+        self.meta: dataset.blocks.BlockCreationOptions = {
             'block_name': '',
             'block_shape': (0, 0),
             'valid_pixel_ratio': {},
@@ -80,7 +80,7 @@ class DataBlock:
             img_arr: numpy.ndarray,
             lbl_arr: numpy.ndarray | None,
             padded_dem: numpy.ndarray,
-            meta: dataset.blocks.BlockMetaDict
+            meta: dataset.blocks.BlockCreationOptions
         ) -> 'DataBlock':
         '''
         Create a new block instance from raw input raster(s).

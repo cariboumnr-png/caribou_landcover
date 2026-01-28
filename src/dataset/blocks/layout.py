@@ -7,7 +7,6 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import math
-import re
 import typing
 # third-party imports
 import numpy
@@ -46,7 +45,7 @@ class RasterBlockLayout:
         # assign attributes
         self.blk_size = blk_size
         self.overlap = overlap
-        self.logger = logger.get_child('layou')
+        self.logger = logger
 
         # sanity
         assert blk_size > overlap, 'Overlap must be smaller than block size.'
@@ -71,6 +70,10 @@ class RasterBlockLayout:
             # assign attrs
             self.img = img
             self.lbl = lbl
+            if self.lbl is None:
+                self.meta['has_label'] = False
+            else:
+                self.meta['has_label'] = True
             # check if both rasters have the same projection system
             self._check_raster_proj()
             # check if both rasters have the same squared pixels
@@ -392,17 +395,18 @@ class _BlockName:
         self.colrow = (self.col, self.row)
         self.name = f'col_{self.col}_row_{self.row}'
 
-def parse_block_name(input_str: str) -> _BlockName:
-    '''Retrieve block naming info from a given string.'''
+# import re
+# def parse_block_name(input_str: str) -> _BlockName:
+#     '''Retrieve block naming info from a given string.'''
 
-    # find pattern from string
-    pattern = r'col_(\d+)_row_(\d+)'
-    matched = re.search(pattern, input_str)
-    # there should be just one match
-    if not matched:
-        raise ValueError(f'Block naming pattern {pattern} not found')
-    # get col and row
-    col = int(matched.group(1))
-    row = int(matched.group(2))
-    # return
-    return _BlockName(col, row)
+#     # find pattern from string
+#     pattern = r'col_(\d+)_row_(\d+)'
+#     matched = re.search(pattern, input_str)
+#     # there should be just one match
+#     if not matched:
+#         raise ValueError(f'Block naming pattern {pattern} not found')
+#     # get col and row
+#     col = int(matched.group(1))
+#     row = int(matched.group(2))
+#     # return
+#     return _BlockName(col, row)

@@ -32,5 +32,5 @@ class BlockImageMeta(typing.TypedDict):
     topo_metrics_added: list[str]
     block_image_stats: dict[str, dict[str, int | float]]
 
-class BlockMetaDict(BlockGeneralMeta, BlockImageMeta, BlockLabelMeta):
+class BlockCreationOptions(BlockGeneralMeta, BlockImageMeta, BlockLabelMeta):
     '''Simple composite for the shape of a block meta dictionary.'''

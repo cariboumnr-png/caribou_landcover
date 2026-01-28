@@ -92,27 +92,35 @@ def validate_config(config: omegaconf.DictConfig):
     return dom, score, val
 
 def run(
+        dataset_name: str,
         config: omegaconf.DictConfig,
-        logger: utils.Logger
+        logger: utils.Logger,
+        *,
+        skip: bool = False
     ) -> dataset.summary.DataSummary:
     '''Data preparation pipeline.'''
 
-    domain_config, score_params, valselect = validate_config(config)
+    # domain_config, score_params, valselect = validate_config(config)
 
     # if to run the whole process
-    if not config.skip_dataprep:
+    if not skip:
 
         # get all valid blocks
-        dataset.blocks.build_data_cache(config, logger)
+        dataset.blocks.build_data_cache(
+            dataset_name=dataset_name,
+            input_config=config.input,
+            cache_config=config.cache,
+            logger=logger
+        )
 
-        # parse domain knowledge if provided
-        dataset.domain.parse(config, domain_config, logger)
+        # # parse domain knowledge if provided
+        # dataset.domain.parse(config, domain_config, logger)
 
-        # get training blocks
-        split_datasets(config, score_params, valselect, logger)
+        # # get training blocks
+        # split_datasets(config, score_params, valselect, logger)
 
-        # use stats from training blocks to normalize all valid blocks
-        normalize_datasets(config, logger)
+        # # use stats from training blocks to normalize all valid blocks
+        # normalize_datasets(config, logger)
 
     # return blocks metadata
     return dataset.summary.generate(

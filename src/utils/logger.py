@@ -100,8 +100,8 @@ class Logger():
         # check if the logger already has handlers to avoid duplication
         if not self.logger.hasHandlers():
 
-            # create a file handler
-            file_handler = logging.FileHandler(log_file)
+            # create a file handler - delay=True to create file upon first log
+            file_handler = logging.FileHandler(log_file, delay=True)
             file_handler.setLevel(log_lvl)
             # create a formatter and set it for the file handler
             formatter = logging.Formatter(

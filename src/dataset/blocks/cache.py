@@ -12,7 +12,6 @@ import zipfile
 import zlib
 # third-party imports
 import numpy
-import omegaconf
 import rasterio
 import rasterio.io
 import rasterio.windows
@@ -27,7 +26,7 @@ DatasetReader: typing.TypeAlias = rasterio.io.DatasetReader
 Window: typing.TypeAlias = rasterio.windows.Window
 # from local
 BlockLayout: typing.TypeAlias = dataset.blocks.RasterBlockLayout
-BlockMetaDict: typing.TypeAlias = dataset.blocks.BlockMetaDict
+BlockCreationOptions: typing.TypeAlias = dataset.blocks.BlockCreationOptions
 
 class RasterBlockCache:
     '''doc'''
@@ -41,41 +40,50 @@ class RasterBlockCache:
 
         # parse arguments
         self.cfg = config
-        self.logger = logger.get_child('cache') # get a child logger
+        self.logger = logger
 
         # init attributes
-        self.layout: BlockLayout | None = None
+        self.layout_dict: dict[str, Window] = {}
+        self.layout_meta: dict[str, typing.Any] = {}
         self.valid_blks: dict[str, str] = {}
 
-    def process(self, **kwargs) -> None:
+    def process(self, **kwargs) -> 'RasterBlockCache':
         '''doc'''
         # run sequence
         self.get_layout(overwrite=kwargs.get('overwrite_layout', False))
         self.check_cache(skip=kwargs.get('check_npz_files', False))
         self.create_cache(overwrite=kwargs.get('overwrite_cache', False))
         self.validate_cache(overwrite=kwargs.get('validate_cache', False))
+        return self # for possible chaining
 
     def get_layout(self, overwrite: bool):
         '''Check cache component: layout.'''
 
-        layout_fpath = self.cfg.output.blk_layout
+        layout_dict = self.cfg.output.layout_dict
+        layout_meta = self.cfg.output.layout_meta
         image_fpath = self.cfg.data.image_fpath
         label_fpath = self.cfg.data.label_fpath
         # get from cache
-        if os.path.exists(layout_fpath) and not overwrite:
-            self.logger.log('INFO', f'Use existing block scheme: {layout_fpath}')
-            self.layout = utils.load_pickle(layout_fpath)
+        if os.path.exists(layout_dict) and not overwrite:
+            self.layout_dict = utils.load_pickle(layout_dict)
+            self.layout_meta = utils.load_pickle(layout_meta)
+            self.logger.log('INFO', f'Existing layout from: {layout_dict}')
+            self.logger.log('INFO', f'Layout meta from: {layout_meta}')
         # get layout from input raster(s)
         else:
-            self.logger.log('INFO', f'Creating/re-writing scheme: {layout_fpath}')
-            self.layout = BlockLayout(
+            self.logger.log('INFO', f'Creating/re-writing layout: {layout_dict}')
+            layout = BlockLayout(
                 blk_size=self.cfg.block.blk_size,
                 overlap=self.cfg.block.overlap,
                 logger=self.logger
             )
-            self.layout.ingest(image_fpath, label_fpath)
-            self.logger.log('INFO', f'New block scheme save at: {layout_fpath}')
-            utils.write_pickle(layout_fpath, self.layout)
+            layout.ingest(image_fpath, label_fpath)
+            self.layout_dict = layout.blks
+            self.layout_meta = layout.meta
+            utils.write_pickle(layout_dict, layout.blks)
+            utils.write_pickle(layout_meta, layout.meta)
+            self.logger.log('INFO', f'New layout saved at: {layout_dict}')
+            self.logger.log('INFO', f'Layout meta saved at: {layout_meta}')
 
     def check_cache(self, skip: bool) -> None:
         '''Check block cache (.npz) files.'''
@@ -84,7 +92,7 @@ class RasterBlockCache:
         if not skip:
             self.logger.log('INFO', 'Checking block .npz files')
             # parallel processing
-            jobs = [(_valid_npz, (f,), {}) for f in self.blk_fpath_dict.values()]
+            jobs = [(_valid_npz, (f,), {}) for f in self.square_blocks.values()]
             results: list[dict[str, str]] = utils.ParallelExecutor().run(jobs)
             # parse results
             invalid = []
@@ -99,8 +107,8 @@ class RasterBlockCache:
             for fpath in to_remove:
                 os.remove(fpath)
             # log checking results
-            self.logger.log('INFO', f'Found {len(invalid)} invalid block files')
-            self.logger.log('INFO', f'{len(to_remove)} damaged files removed')
+            self.logger.log('INFO', f'Found {len(invalid)} missing/damaged block files')
+            self.logger.log('INFO', f'Removed {len(to_remove)} damaged files')
         # skip checking
         else:
             self.logger.log('INFO', 'Skipping checking block files')
@@ -109,14 +117,14 @@ class RasterBlockCache:
         '''Create cached blocks as npz files.'''
 
         # self.layout needs to be initiated
-        assert self.layout is not None
+        assert self.layout_dict
 
         # determine block files that need to be created
         todo: dict[str, Window] = {}
         if overwrite:
-            todo = self.layout.blks # all blocks in layout
-        elif self.missing_blk_files:
-            todo = {k: self.layout.blks[k] for k in self.missing_blk_files}
+            todo = self.layout_dict # all blocks in layout
+        elif self.missing_blks:
+            todo = {k: self.layout_dict[k] for k in self.missing_blks}
         else:
             todo = {}
         if not todo:
@@ -127,9 +135,9 @@ class RasterBlockCache:
         # prep block creation arguments
         img = self.cfg.data.image_fpath
         lbl = self.cfg.data.label_fpath
-        meta: BlockMetaDict = utils.load_json(self.cfg.data.meta_fpath)
-        lookup = self.blk_fpath_dict
-        jobs = [(_do_a_blk, (b, img, lbl, meta, lookup,), {}) for b in todo.items()]
+        config: BlockConfig = utils.load_json(self.cfg.data.config_fpath)
+        lookup = self.square_blocks
+        jobs = [(_do_a_blk, (b, img, lbl, config, lookup,), {}) for b in todo.items()]
         # parallel processing through all raster windows
         results = utils.ParallelExecutor().run(jobs)
 
@@ -139,11 +147,26 @@ class RasterBlockCache:
                 for s in msgs:
                     self.logger.log('WARNING', f'{s}')
 
+        # write an artifect: square block list
+        utils.write_json(self.cfg.output.square_blks, self.square_blocks)
+
     def validate_cache(self, overwrite: bool) -> None:
         '''Get a list of file paths of the valid block with given thres.'''
 
+        # self.layout needs to be initiated
+        assert self.layout_meta
+
+        # early exit if no validation needed, e.g., for inference blocks
+        if not self.layout_meta.get('has_label'):
+            self.logger.log('INFO', 'No block validation needed, skipping...')
+            # all square blocks are valid
+            self.cfg.output.valid_blks = self.cfg.output.square_blks
+            return
+
+        # proceed with sanity check
+        assert self.cfg.thres is not None
         # output json fpath
-        valid_blks = self.cfg.output.blks_valid
+        valid_blks = self.cfg.output.valid_blks
 
         # read and exit if list already pickled to file and not overwrite
         if os.path.exists(valid_blks) and not overwrite:
@@ -156,11 +179,11 @@ class RasterBlockCache:
         # prep block validation arguments
         val_px = self.cfg.thres.valid_px_ratio
         kw = {'water_px_ratio': self.cfg.thres.water_px_ratio}
-        jobs = [(_valid_block, (b, val_px,), kw) for b in self.blk_fpath_dict.items()]
+        jobs = [(_valid_block, (b, val_px,), kw) for b in self.square_blocks.items()]
         # parallel processing through all blocks
         results: list[dict] = utils.ParallelExecutor().run(jobs)
         self.valid_blks = {
-            r['valid']: self.blk_fpath_dict[r['valid']]
+            r['valid']: self.square_blocks[r['valid']]
             for r in results if 'valid' in r
         }
 
@@ -171,21 +194,21 @@ class RasterBlockCache:
 
     # -------------------------------properties-------------------------------
     @property
-    def blk_fpath_dict(self) -> dict[str, str]:
-        '''Expected block file list from layout.'''
-        if self.layout is not None:
+    def square_blocks(self) -> dict[str, str]:
+        '''Expected block (square) file list from layout.'''
+        if self.layout_dict is not None:
             return {
                 k: f'{self.cfg.output.blks_dpath}/{k}.npz'
-                for k in self.layout.blks.keys()
+                for k in self.layout_dict.keys()
             }
         raise ValueError('self.layout not initiated')
 
     @property
-    def missing_blk_files(self) -> dict[str, str]:
+    def missing_blks(self) -> dict[str, str]:
         '''Blocks in `block_fpath_list` but in cache dir.'''
         existing = set(os.listdir(self.cfg.output.blks_dpath)) # filenames
         return{
-            name: path for name, path in self.blk_fpath_dict.items()
+            name: path for name, path in self.square_blocks.items()
             if os.path.basename(path) not in existing # also filenames
         }
 
@@ -223,7 +246,7 @@ def _do_a_blk(
         block: tuple[str, Window],
         image_fpath: str,
         label_fpath: str | None,
-        meta: BlockMetaDict,
+        config: BlockCreationOptions,
         fpath_lookup: dict[str, str]
     ) -> list[str]:
     '''Create new a block from input rasters (read by given Window).'''
@@ -231,8 +254,8 @@ def _do_a_blk(
     # parse arguments
     blk_name, blk_window = block
 
-    # deep copy a meata dict to avoid cross-contanimation
-    meta = copy.deepcopy(meta)
+    # block meta takes options from general creation options
+    meta = copy.deepcopy(config)
     # add general block meta
     meta['block_name'] = blk_name
     meta['block_shape'] = (blk_window.width, blk_window.height)
@@ -357,21 +380,23 @@ class BlockCacheConfig:
     data: DataPaths
     output: OutputPaths
     block: BlockConfig
-    thres: ValidThresholds
+    thres: ValidThresholds | None # none for inference blocks
 
 @dataclasses.dataclass
 class DataPaths:
     '''Collection of file paths to raw data.'''
     image_fpath: str            # path to raw image data (.tiff)
     label_fpath: str | None     # path to raw label data (.tiff)
-    meta_fpath: str             # path to raw metadata (.json)
+    config_fpath: str             # path to raw metadata (.json)
 
 @dataclasses.dataclass
 class OutputPaths:
     '''Collection of cache file paths.'''
     blks_dpath: str     # dirpath to save block files
-    blk_layout: str     # filepath (.pkl) to save the block layout
-    blks_valid: str     # filepath (.json) to save a dict of valid block files
+    layout_dict: str    # filepath (.pkl) to save the block layout
+    layout_meta: str    # filepath (.json) to save the block layout metadata
+    square_blks: str    # filepath (.json) to save dict of square block files
+    valid_blks: str     # filepath (.json) to save a dict of valid block files
 
 @dataclasses.dataclass
 class BlockConfig:
@@ -385,51 +410,142 @@ class ValidThresholds:
     valid_px_ratio: float
     water_px_ratio: float
 
-# ----------------------------factory-like function----------------------------
+# ---------------------------factory-like functions---------------------------
+def _get_block_cache_config(
+        mode: str,
+        cache_dpath: str,
+        dataset_name: str,
+        input_config: typing.Mapping[str, typing.Any],
+        cache_config: typing.Mapping[str, typing.Any],
+    ) -> BlockCacheConfig:
+    '''Factory function to create BlockCacheConfig from config mappings.'''
+
+    # cache root dir
+    _dir = f'{cache_dpath}/{mode}'
+
+    # accessors
+    input_cfg = utils.ConfigAccess(input_config)
+    cache_cfg = utils.ConfigAccess(cache_config)
+
+    # compose cache config conomponents
+    # data paths
+    if mode == 'training':
+        data_cfg = DataPaths(
+            image_fpath=input_cfg.get_asset(mode, 'images', dataset_name),
+            label_fpath=input_cfg.get_asset(mode, 'labels', dataset_name),
+            config_fpath=input_cfg.get_option('config')
+        )
+    else: # inference
+        data_cfg = DataPaths(
+            image_fpath=input_cfg.get_asset(mode, 'images', dataset_name),
+            label_fpath=None,
+            config_fpath=input_cfg.get_option('config')
+        )
+
+    # output paths
+    output_cfg = OutputPaths(
+        f'{_dir}/blocks',
+        f'{_dir}/{cache_cfg.get_asset('artifacts', 'blocks', 'layout_dict')}',
+        f'{_dir}/{cache_cfg.get_asset('artifacts', 'blocks', 'layout_meta')}',
+        f'{_dir}/{cache_cfg.get_asset('artifacts', 'blocks', 'square')}',
+        f'{_dir}/{cache_cfg.get_asset('artifacts', 'blocks', 'valid')}'
+    )
+
+    # block config
+    block_cfg = BlockConfig(
+        cache_cfg.get_option('blocks', 'size'),
+        cache_cfg.get_option('blocks','overlap')
+    )
+
+    # validation thresholds
+    thres = ValidThresholds(
+        cache_cfg.get_option('filters', 'valid_px_thres'),
+        cache_cfg.get_option('filters', 'water_px_thres')
+    )
+    if mode == 'inference':
+        thres = None # no validation for inference blocks
+
+    # make dirs if not exist
+    os.makedirs(_dir, exist_ok=True)
+    os.makedirs(f'{_dir}/blocks', exist_ok=True)
+
+    # return composite config
+    return BlockCacheConfig(data_cfg, output_cfg, block_cfg, thres)
+
+def _get_cache_creation_options(
+        mode: str,
+        cache_config: typing.Mapping[str, typing.Any]
+    ) -> dict[str, bool]:
+    '''Get block cache creation options from config mappings.'''
+
+    # accessors alisa
+    _get_option = utils.ConfigAccess(cache_config).get_option
+
+    if mode == 'training':
+        return {
+            'overwrite_layout': _get_option('flags', 'overwrite_layout'),
+            'check_npz_files': _get_option('flags', 'clean_npz'),
+            'overwrite_cache': _get_option('flags', 'overwrite_cache'),
+            'validate_cache': _get_option('flags', 'validate_cache')
+        }
+    return {
+        'overwrite_layout': _get_option('flags', 'overwrite_layout'),
+        'check_npz_files': _get_option('flags', 'clean_npz'),
+        'overwrite_cache': _get_option('flags', 'overwrite_cache'),
+        'validate_cache': False # no validation for inference blocks
+    }
+
 def build_data_cache(
-        config: omegaconf.DictConfig,
+        dataset_name: str,
+        input_config: typing.Mapping[str, typing.Any],
+        cache_config: typing.Mapping[str, typing.Any],
         logger: utils.Logger,
     ) -> None:
     '''Create cache blocks from scratch'''
 
-    # create cache dirs
-    os.makedirs(config.paths.cache, exist_ok=True)
-    os.makedirs(config.paths.blksdpath, exist_ok=True)
+    # get a child logger
+    _logger = logger.get_child('cache')
 
-    # init cache config dataclass
-    cache_config = BlockCacheConfig(
-        # set input data paths
-        data=DataPaths(
-            image_fpath=config.inputs.image,
-            label_fpath=config.inputs.label,
-            meta_fpath=config.inputs.meta
-        ),
-        # set output paths
-        output=OutputPaths(
-            blks_dpath=config.paths.blksdpath,
-            blk_layout=config.paths.blklayout,
-            blks_valid=config.paths.blkvalid
-        ),
-        # set block ocnfig
-        block=BlockConfig(
-            blk_size=config.blocks.size,
-            overlap=config.blocks.overlap
-        ),
-        # set validation thresholds
-        thres=ValidThresholds(
-            valid_px_ratio=config.filters.pxthres,
-            water_px_ratio=config.filters.watthres
-        )
+    # make root path if not exist
+    cache_dir = f'./data/{dataset_name}/cache'
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # training mode
+    # get config for RasterBlockCache
+    _logger.log('INFO', 'Building training block cache')
+    cache_cfg = _get_block_cache_config(
+        mode='training',
+        cache_dpath=cache_dir,
+        dataset_name=dataset_name,
+        input_config=input_config,
+        cache_config=cache_config
     )
+    # get creation options
+    options = _get_cache_creation_options(
+        mode='training',
+        cache_config=cache_config
+    )
+    # process
+    _ = RasterBlockCache(cache_cfg, _logger).process(**options)
+    _logger.log('INFO', 'Training cache building completed')
+    _logger.log_sep()
 
-    # get execution options
-    options: dict[str, bool] = {
-        'overwrite_layout': config.overwrite.layout,
-        'check_npz_files': config.flags.clean_npz,
-        'overwrite_cache': config.overwrite.cache,
-        'validate_cache': config.overwrite.valid
-    }
-
-    # process block caching procedures
-    block_cache = dataset.blocks.RasterBlockCache(cache_config, logger)
-    block_cache.process(**options)
+    # inference mode
+    # get config for RasterBlockCache
+    _logger.log('INFO', 'Building inference block cache')
+    cache_cfg = _get_block_cache_config(
+        mode='inference',
+        cache_dpath=cache_dir,
+        dataset_name=dataset_name,
+        input_config=input_config,
+        cache_config=cache_config
+    )
+    # get creation options
+    options = _get_cache_creation_options(
+        mode='inference',
+        cache_config=cache_config
+    )
+    # process
+    _ = RasterBlockCache(cache_cfg, _logger).process(**options)
+    _logger.log('INFO', 'Inference cache building completed')
+    _logger.log_sep()

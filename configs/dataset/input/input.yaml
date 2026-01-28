@@ -1,0 +1,21 @@
+# training data
+training:
+  images:
+    - name: demo
+      path: ./data/demo/data/training/image.tif
+  labels:
+    - name: demo
+      path: ./data/demo/data/training/label.tif
+# inference data
+inference:
+  images:
+    - name: demo
+      path: ./data/demo/data/inference/image.tif
+# domain data
+domain:
+  - name: ecodist
+    path: ./data/demo/data/domain_ecodistrict.tif
+  - name: geology
+    path: ./data/demo/data/domain_geology.tif
+# shared data configuration
+config: ./data/demo/config.json
