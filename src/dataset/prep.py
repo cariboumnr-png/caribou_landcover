@@ -113,8 +113,13 @@ def run(
             logger=logger
         )
 
-        # # parse domain knowledge if provided
-        # dataset.domain.parse(config, domain_config, logger)
+        # parse domain knowledge if provided
+        dataset.domain.build_domains(
+            dataset_name=dataset_name,
+            input_config=config.input,
+            cache_config=config.cache,
+            logger=logger
+        )
 
         # # get training blocks
         # split_datasets(config, score_params, valselect, logger)

@@ -13,9 +13,11 @@ inference:
       path: ./data/demo/data/inference/image.tif
 # domain data
 domain:
-  - name: ecodist
-    path: ./data/demo/data/domain_ecodistrict.tif
-  - name: geology
-    path: ./data/demo/data/domain_geology.tif
+  disc:
+    - name: ecodist
+      path: ./data/demo/data/domain/ecodistrict.tif
+    - name: geology
+      path: ./data/demo/data/domain/geology.tif
+  cont: null
 # shared data configuration
 config: ./data/demo/config.json

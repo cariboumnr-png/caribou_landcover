@@ -1,18 +1,222 @@
 '''Incoorperating domain knowledge rasters.'''
 
+from __future__ import annotations
 # standard imports
 import dataclasses
 import os
+import typing
 # third-party imports
 import numpy
-import omegaconf
 import rasterio
-import rasterio.io
 # local imports
+import _types
 import utils
 
+class DomainBlocks:
+    '''doc'''
+
+    def __init__(
+            self,
+            domain_name: str,
+            domain_fpath: str,
+            domain_config: _types.ConfigType,
+        ):
+        '''doc'''
+
+        #
+        self.domain_name = domain_name
+        self.domain_fpath = domain_fpath
+        self.domain_config = domain_config['domain_config'][domain_name]
+        #
+        self.parsed_blks: list[_DomainRasterBlock] = []
+        self.domain_list: list[dict[str, typing.Any]] = []
+
+    def process(
+            self,
+            valid_blks: dict[str, str],
+            blks_layout: dict[str, _types.RasterWindow],
+        ) -> list[str]:
+        '''doc'''
+
+        self.parse_raster_blocks(valid_blks, blks_layout)
+        proc = _DomainConversion(self.parsed_blks)
+        cfg = self.domain_config
+        _name = self.domain_name
+
+        if cfg.get('treat') == 'majority':
+            self.domain_list = proc.majority(_name)
+            return [
+                f'Domain {_name} added from {self.domain_fpath}',
+                'Treatment: Majority class in block'
+            ]
+        if cfg.get('treat') == 'pca':
+            assert isinstance(cfg['axes'], int), \
+                'PCA treatment requires specifying number of axes'
+            axes = cfg['axes']
+            self.domain_list, var_exp = proc.pca_vectorize(axes, _name)
+            return [
+                f'Domain {_name} added from {self.domain_fpath}',
+                f'Treatment: PCA vectorized with the first {axes} axes',
+                f'Total variance explained: {var_exp:.2f}%'
+            ]
+        raise ValueError(f'Unsupported treatment {cfg.get("treat")}')
+
+    def parse_raster_blocks(
+            self,
+            valid_blks: dict[str, str],
+            blks_layout: dict[str, _types.RasterWindow],
+        ) -> None:
+        '''Parse raster blocks via parallel processing.'''
+
+        # read through all raster blocks
+        jobs = [
+            (self._read_window, (blk, blks_layout, self.domain_fpath), {})
+            for blk in valid_blks
+        ]
+        results = utils.ParallelExecutor().run(jobs)
+
+        # fetch results from reading the blocks
+        unique_values = set()
+        for (name, arr) in results:
+            self.parsed_blks.append(_DomainRasterBlock(name, arr, self.nodata))
+            unique_values.update(numpy.unique(arr))
+        if self.nodata in unique_values:
+            unique_values.remove(self.nodata) # remove nodata if present
+
+        # global mapping: raw 1..K  ->  0..K-1 ----
+        # If global raws are continuous 1..K, K is simply max(unique_values)
+        # but safer to compute via the set to allow future gaps.
+        remap = numpy.array(sorted(unique_values), dtype=numpy.int64)
+        kmax = remap.size
+        if kmax == 0:
+            # no valid class pixels at all; keep arrays as-is,
+            # but define a trivial space
+            for b in self.parsed_blks:
+                b.mmin, b.mmax = 0, -1  # empty category space
+            return
+
+        # Map each block: valid raw -> index in [0..K-1], nodata -> -1
+        for b in self.parsed_blks:
+            arr = b.array
+            mask_valid = arr != self.nodata
+            # Initialize with -1 (nodata)
+            mapped = numpy.full_like(arr, fill_value=-1, dtype=numpy.int64)
+            # searchsorted assumes remap_sorted is sorted (it is)
+            mapped[mask_valid] = numpy.searchsorted(remap, arr[mask_valid])
+            b.array = mapped  # 0-based indices
+            b.nodata = -1 # nodata is now -1
+            # global index space for downstream consumers (fixed)
+            b.mmin = 0
+            b.mmax = kmax - 1
+
+    @staticmethod
+    def _read_window(
+            window_name: str,
+            window_dict: dict[str, _types.RasterWindow],
+            raster_fpath: str
+        ) -> tuple[str, numpy.ndarray]:
+        '''Read raster from a raster via a window.'''
+
+        # use block name to retrieve raster read window from scheme
+        block_window = window_dict[window_name]
+
+        # read raster at window
+        with rasterio.open(raster_fpath, 'r') as src:
+            arr = src.read(1, window=block_window) # [C, H, W] always 3 dims
+
+        # return array with name
+        return window_name, arr
+
+    @property
+    def nodata(self) -> int:
+        '''Nodata of the domain raster.'''
+        with rasterio.open(self.domain_fpath) as src:
+            nodata = src.nodata
+        if nodata is None:
+            nodata = -1
+        else:
+            assert abs(nodata - round(nodata)) < 1e-9 # nodata is a round number
+        return int(nodata)
+
+class _DomainConversion:
+    '''doc'''
+
+    def __init__(
+            self,
+            blk_list: list[_DomainRasterBlock]
+        ):
+        '''doc'''
+
+        self.blk_list = blk_list
+
+    def majority(
+            self,
+            domain_name: str
+        ) -> list[dict[str, str | int]]:
+        '''Get the most frequent class from the array.'''
+
+        results: list[dict[str, str | int]] = []
+        for b in self.blk_list:
+            arr = b.array[b.array !=  b.nodata]
+            values, counts = numpy.unique(arr, return_counts=True)
+            results.append({
+                'block_name': b.name,
+                domain_name: values[numpy.argmax(counts)].item() # serializable
+            })
+        return results
+
+    def pca_vectorize(
+            self,
+            out_axes: int,
+            domain_name: str
+        ) -> tuple[list[dict[str, str | list[float]]], float]:
+        '''Perform PCA and output top axes'''
+
+        results: list[dict[str, str | list[float]]] = []
+        names: list[str] = []
+        frequencies: list[numpy.ndarray] = []
+
+        for blk in self.blk_list:
+            freq = self._norm_freq(blk.array, (blk.mmin, blk.mmax), blk.nodata)
+            names.append(blk.name)
+            frequencies.append(freq)
+        #
+        freq_stack = numpy.stack(frequencies)
+        pca_arr, var_explained = utils.pca_transform(freq_stack, out_axes)
+        # iterate rows
+        for i, row in enumerate(pca_arr):
+            results.append({
+                'block_name': names[i],
+                domain_name: [float(x) for x in row]
+            })
+
+        return results, float(var_explained * 100)
+
+    @staticmethod
+    def _norm_freq(
+            ras_array: numpy.ndarray,
+            index_range: tuple[int, int],
+            nodata_index: int
+        ) -> numpy.ndarray:
+        '''Get a normalized class frequency vector from the array.'''
+
+        # remove nodata values
+        valid = ras_array[ras_array != nodata_index]
+        # sanity if array is all invalid
+        if valid.size == 0:
+            return numpy.zeros(index_range[1] - index_range[0] + 1)
+        # get frequencies of valid elements
+        values, counts = numpy.unique(valid, return_counts=True)
+        frequencies = counts / counts.sum()
+        # map class value to frequency
+        freq_map = dict(zip(values, frequencies))
+        # 1-based, inclusive
+        i, j = index_range
+        # return
+        return numpy.array([freq_map.get(idx, 0.0) for idx in range(i, j + 1)])
+
 @dataclasses.dataclass
-class DomainRasterBlock:
+class _DomainRasterBlock:
     '''doc'''
     name: str
     array: numpy.ndarray
@@ -20,207 +224,120 @@ class DomainRasterBlock:
     mmin: int  = dataclasses.field(init=False)
     mmax: int  = dataclasses.field(init=False)
 
-def parse(
-        config: omegaconf.DictConfig,
-        domain_config: list[dict] | None,
-        logger: utils.Logger,
-    ) -> list[dict] | None:
-    '''Inspect domain knowledge config and take actions accordingly.'''
+@dataclasses.dataclass
+class _DomainProcessingContext:
+    '''doc'''
+    disc_domains: list[dict]
+    cont_domains: list[dict]
+    blks_dict: dict[str, str]
+    layout_dict: dict[str, _types.RasterWindow]
+    cfg: _types.ConfigType
+    overwrite: bool
 
-    # parse config
-    scheme_fpath = config.paths.blklayout
-    valid_fpath = config.paths.blkvalid
-    domain_fpath = config.paths.domain
+def build_domains(
+        dataset_name: str,
+        input_config: _types.ConfigType,
+        cache_config: _types.ConfigType,
+        logger: utils.Logger,
+    ):
+    '''Inspect domain knowledge config and take actions accordingly.'''
 
     # get a child logger
     logger=logger.get_child('domkw')
 
+    # cache root directory
+    cache_dir = f'./data/{dataset_name}/cache'
+
+    # config accessors
+    input_cfg = utils.ConfigAccess(input_config)
+    cache_cfg = utils.ConfigAccess(cache_config)
+
     # get overwrite option
-    overwrite = omegaconf.OmegaConf.select(config, 'overwrite.domain', default=False)
+    overwrite = cache_cfg.get_option('flags', 'overwrite_domain')
+
+    # get input files
+    disc_domains: list[dict] = input_cfg.get_option('domain', 'disc') or []
+    cont_domains: list[dict] = input_cfg.get_option('domain', 'cont') or []
+    domain_cfg = input_cfg.get_option('config')
+
+    # get artifacts names
+    blks_layout = cache_cfg.get_asset('artifacts', 'blocks', 'layout_dict')
+    valid_blks = cache_cfg.get_asset('artifacts', 'blocks', 'valid')
+    domain_dict = cache_cfg.get_asset('artifacts', 'domain', 'by_block')
+
+    # mode selection
+    # training mode
+    mode = 'training'
+    logger.log('INFO', 'Adding domain to training blocks')
+    _parse(
+        contxt=_DomainProcessingContext(
+            disc_domains=disc_domains,
+            cont_domains=cont_domains,
+            blks_dict=utils.load_json(f'{cache_dir}/{mode}/{valid_blks}'),
+            layout_dict=utils.load_pickle(f'{cache_dir}/{mode}/{blks_layout}'),
+            cfg=utils.load_json(domain_cfg),
+            overwrite=overwrite
+        ),
+        domain_fpath=f'{cache_dir}/{mode}/{domain_dict}',
+        logger=logger
+    )
+
+    # inference mode
+    mode = 'inference'
+    logger.log('INFO', 'Adding domain to inference blocks')
+    _parse(
+        contxt=_DomainProcessingContext(
+            disc_domains=disc_domains,
+            cont_domains=cont_domains,
+            blks_dict=utils.load_json(f'{cache_dir}/{mode}/{valid_blks}'),
+            layout_dict=utils.load_pickle(f'{cache_dir}/{mode}/{blks_layout}'),
+            cfg=utils.load_json(domain_cfg),
+            overwrite=overwrite
+        ),
+        domain_fpath=f'{cache_dir}/{mode}/{domain_dict}',
+        logger=logger
+    )
+    logger.log('INFO', 'Domain knowlage parsed')
+    logger.log_sep()
+
+def _parse(
+        contxt: _DomainProcessingContext,
+        domain_fpath: str,
+        logger: utils.Logger
+    ):
+    '''doc'''
 
     # check if already generated
-    if os.path.exists(domain_fpath) and not overwrite:
+    if os.path.exists(domain_fpath) and not contxt.overwrite:
         logger.log('INFO', f'Existing domain knowledge at: {domain_fpath}')
         return utils.load_json(domain_fpath)
 
-    # get valid blocks and block window scheme
-    valid_blks: dict[str, str] = utils.load_json(valid_fpath)
-    layout = utils.load_pickle(scheme_fpath)
-
     # setup
-    treated: list[dict] = []
     domains: list[dict] = []
 
-    # iterate through provided domain rasters
-    if domain_config is None:
-        logger.log('INFO', 'No domain knowledge provided')
-        return None
-    for item in domain_config:
-        # list of domain raster blocks
-        bb = _parse_raster_blocks(valid_blks, layout.blks, item['path'])
-        # domain assignment according to configured treatment
-        if item['treat'] == 'majority':
-            treated = _majority(bb, item['name'])
-            domains.append({dom['block_name']: dom for dom in treated})
-            logger.log('INFO', f"Domain {item['name']} added from {item['path']} "
-                            f'as the majority class at each block')
-        if item['treat'] == 'pca':
-            treated, var_exp = _pca_vectorize(bb, item['axes'], item['name'])
-            domains.append({dom['block_name']: dom for dom in treated})
-            logger.log('INFO', f"Domain {item['name']} added from {item['path']} "
-                            f"as the first {item['axes']} PCA axes explaining "
-                            f"{var_exp:.2f}% of the total variance")
+    # iterate through provided domain rasters (discrete)
+    logger.log('INFO', f'{len(contxt.disc_domains)} discrete domains provided')
+    for dom in contxt.disc_domains:
+        domain_blks = DomainBlocks(dom['name'], dom['path'], contxt.cfg)
+        msgs = domain_blks.process(contxt.blks_dict, contxt.layout_dict)
+        for m in msgs:
+            logger.log('INFO', m)
+        domains.append({d['block_name']: d for d in domain_blks.domain_list})
+
+    # iterate through provided domain rasters (continuous)
+    logger.log('INFO', f'{len(contxt.cont_domains)} continuous domains provided')
+    for dom in contxt.cont_domains:
+        domain_blks = DomainBlocks(dom['name'], dom['path'], contxt.cfg)
+        msgs = domain_blks.process(contxt.blks_dict, contxt.layout_dict)
+        for m in msgs:
+            logger.log('INFO', m)
+        domains.append({d['block_name']: d for d in domain_blks.domain_list})
 
     # merge domains and write to csv
     merged = _merge_domain(domains)
     utils.write_json(domain_fpath, merged)
     logger.log('INFO', f'Domain knowledge saved to: {domain_fpath}')
     return merged
-
-def _parse_raster_blocks(
-        valid_blks: dict[str, str],
-        layout: dict[str, rasterio.io.DatasetReader],
-        domain_fpath: str,
-    ) -> list[DomainRasterBlock]:
-    '''Parse raster blocks via parallel processing.'''
-
-    # get nodata of the domain
-    nodata = _get_nodata(domain_fpath)
-
-    # read through all raster blocks
-    jobs = [(_read_ras_window, (b, layout, domain_fpath), {}) for b in valid_blks]
-    results = utils.ParallelExecutor().run(jobs)
-
-    # fetch results from reading the blocks
-    parsed_blocks: list[DomainRasterBlock] = []
-    unique_values = set()
-    for r in results:
-        name, arr, uniques = r
-        parsed_blocks.append(DomainRasterBlock(name, arr, nodata))
-        unique_values.update(uniques)
-    if nodata in unique_values:
-        unique_values.remove(nodata) # remove nodata if present
-
-    # global mapping: raw 1..K  ->  0..K-1 ----
-    # If global raws are continuous 1..K, K is simply max(unique_values)
-    # but safer to compute via the set to allow future gaps.
-    remap_sorted = numpy.array(sorted(unique_values), dtype=numpy.int64)
-    kmax = remap_sorted.size
-    if kmax == 0:
-        # no valid class pixels at all; keep arrays as-is, but define a trivial space
-        for b in parsed_blocks:
-            b.mmin, b.mmax = 0, -1  # empty category space
-        return parsed_blocks
-
-    # Map each block: valid raw -> index in [0..K-1], nodata -> -1
-    for b in parsed_blocks:
-        arr = b.array
-        mask_valid = arr != nodata
-        # Initialize with -1 (nodata)
-        mapped = numpy.full_like(arr, fill_value=-1, dtype=numpy.int64)
-        # searchsorted assumes remap_sorted is sorted (it is)
-        mapped[mask_valid] = numpy.searchsorted(remap_sorted, arr[mask_valid])
-        b.array = mapped  # 0-based indices
-        b.nodata = -1 # nodata is now -1
-        # global index space for downstream consumers (fixed)
-        b.mmin = 0
-        b.mmax = kmax - 1
-
-    # return
-    return parsed_blocks
-
-def _get_nodata(ras_fpath: str) -> int:
-    '''Get nodata of an integer raster.'''
-
-    with rasterio.open(ras_fpath) as src:
-        nodata = src.nodata
-    if nodata is None:
-        nodata = -1
-    else:
-        assert abs(nodata - round(nodata)) < 1e-9 # nodata is a round number
-    return int(nodata)
-
-def _read_ras_window(
-        block_name: str,
-        blocklayout: dict[str, rasterio.io.DatasetReader],
-        domain_ras_fpath: str
-    ) -> tuple[str, numpy.ndarray, numpy.ndarray]:
-    '''Get the `rasterio.windows.Window` from a given block fpath'''
-
-    # use block name to retrieve raster read window from scheme
-    block_window = blocklayout[block_name]
-
-    # read domain raster
-    with rasterio.open(domain_ras_fpath, 'r') as src:
-        arr = src.read(1, window=block_window) # [C, H, W] always 3 dims
-
-    # return block name, raster as an array, and unique values
-    return block_name, arr, numpy.unique(arr)
-
-def _majority(
-        blk_list: list[DomainRasterBlock],
-        domain_name: str
-    ) -> list[dict[str, str | int]]:
-    '''Get the most frequent class from the array.'''
-
-    results: list[dict[str, str | int]] = []
-    for b in blk_list:
-        arr = b.array[b.array !=  b.nodata]
-        values, counts = numpy.unique(arr, return_counts=True)
-        results.append({
-            'block_name': b.name,
-            domain_name: values[numpy.argmax(counts)].item() # serializable
-        })
-    return results
-
-def _pca_vectorize(
-        blk_list: list[DomainRasterBlock],
-        out_axes: int,
-        domain_name: str
-    ) -> tuple[list[dict[str, str | list[float]]], float]:
-    '''Perform PCA and output top axes'''
-
-    results: list[dict[str, str | list[float]]] = []
-    names: list[str] = []
-    frequencies: list[numpy.ndarray] = []
-
-    for blk in blk_list:
-        freq = _normal_frequency(blk.array, (blk.mmin, blk.mmax), blk.nodata)
-        names.append(blk.name)
-        frequencies.append(freq)
-    #
-    freq_stack = numpy.stack(frequencies)
-    pca_arr, var_explained = utils.pca_transform(freq_stack, out_axes)
-    # iterate rows
-    for i, row in enumerate(pca_arr):
-        results.append({
-            'block_name': names[i],
-            domain_name: [float(x) for x in row]
-        })
-
-    return results, float(var_explained * 100)
-
-def _normal_frequency(
-        ras_array: numpy.ndarray,
-        index_range: tuple[int, int],
-        nodata_index: int
-    ) -> numpy.ndarray:
-    '''Get a normalized class frequency vector from the array.'''
-
-    # remove nodata values
-    valid = ras_array[ras_array != nodata_index]
-    # sanity if array is all invalid
-    if valid.size == 0:
-        return numpy.zeros(index_range[1] - index_range[0] + 1)
-    # get frequencies of valid elements
-    values, counts = numpy.unique(valid, return_counts=True)
-    frequencies = counts / counts.sum()
-    # map class value to frequency
-    freq_map = dict(zip(values, frequencies))
-    # 1-based, inclusive
-    i, j = index_range
-    # return
-    return numpy.array([freq_map.get(idx, 0.0) for idx in range(i, j + 1)])
 
 def _merge_domain(list_domains: list[dict]) -> list[dict]:
     '''doc.'''

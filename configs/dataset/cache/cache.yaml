@@ -58,6 +58,7 @@ flags:
   check_npz: true
   overwrite_cache: false
   validate_cache: false
+  overwrite_domain: false
 
 # block scoring parameters
 scoring:

@@ -11,31 +11,30 @@ import typing
 
 __all__ = [
     # classes
-    'RasterBlockCache',
-    'RasterBlockLayout',
+    'BlockCache',
+    'BlockLayout',
     'DataBlock',
+    'BlockCreationOptions',
     # functions
     'build_data_cache',
-    # typing
-    'BlockCreationOptions',
 ]
 
 # for static check
 if typing.TYPE_CHECKING:
-    from .cache import RasterBlockCache, build_data_cache
+    from ._types import BlockCreationOptions
     from .block import DataBlock
-    from .layout import RasterBlockLayout
-    from .typing import BlockCreationOptions
+    from .cache import BlockCache, build_data_cache
+    from .layout import BlockLayout
 
 def __getattr__(name: str):
 
-    if name in ['RasterBlockCache', 'build_data_cache']:
-        return getattr(importlib.import_module('.cache', __package__), name)
+    if name == 'BlockCreationOptions':
+        return importlib.import_module('._types', __package__).BlockCreationOptions
     if name == 'DataBlock':
         return importlib.import_module('.block', __package__).DataBlock
-    if name in ['RasterBlockLayout']:
-        return importlib.import_module('.layout', __package__).RasterBlockLayout
-    if name in ['BlockCreationOptions']:
-        return getattr(importlib.import_module('.typing', __package__), name)
+    if name in ['BlockCache', 'build_data_cache']:
+        return getattr(importlib.import_module('.cache', __package__), name)
+    if name == 'BlockLayout':
+        return importlib.import_module('.layout', __package__).BlockLayout
 
     raise AttributeError(name)

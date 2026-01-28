@@ -1,6 +1,7 @@
 '''Simple top-level namesapce for utilities.'''
 
 from .cfg_access import ConfigAccess
+from .contxt import open_rasters
 from .funcs import(
     get_fpaths_from_dir,
     get_timestamp,
@@ -21,6 +22,7 @@ __all__ = [
     'get_timestamp',
     'load_json',
     'load_pickle',
+    'open_rasters',
     'pca_transform',
     'with_child_logger',
     'write_json',

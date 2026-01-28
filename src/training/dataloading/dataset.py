@@ -321,11 +321,11 @@ class _BlockDataset(torch.utils.data.Dataset):
         self.logger = logger
 
         # load data from npz
-        data = dataset.blocks.DataBlock().load(block_fpath).data
-        self.meta = data.meta # get metadata of the block for later
+        bb = dataset.blocks.DataBlock().load(block_fpath)
+        self.meta = bb.meta # get metadata of the block for later
         try:
-            self.imgs = self._get_patches(data.image_normalized)
-            self.lbls = self._get_patches(data.label_masked)
+            self.imgs = self._get_patches(bb.data.image_normalized)
+            self.lbls = self._get_patches(bb.data.label_masked)
         except ValueError:
             self.logger.log('ERROR', f'Bad patch at {block_fpath}')
             self.logger.log('ERROR', f'Meta:\n{self.meta}')

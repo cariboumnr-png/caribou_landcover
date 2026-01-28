@@ -4,7 +4,6 @@ Public Class:
 '''
 from __future__ import annotations
 # standard imports
-import contextlib
 import dataclasses
 import math
 import typing
@@ -12,17 +11,12 @@ import typing
 import numpy
 import rasterio
 import rasterio.coords
-import rasterio.io
 import rasterio.transform
-import rasterio.windows
 # local imports
+import _types
 import utils
 
-# typing aliases
-DatasetReader: typing.TypeAlias = rasterio.io.DatasetReader
-Window: typing.TypeAlias = rasterio.windows.Window
-
-class RasterBlockLayout:
+class BlockLayout:
     '''
     Ingest image and/or label rasters and create a tiling scheme.
     '''
@@ -51,9 +45,9 @@ class RasterBlockLayout:
         assert blk_size > overlap, 'Overlap must be smaller than block size.'
 
         # init attributes
-        self.img: DatasetReader | None = None
-        self.lbl: DatasetReader | None = None
-        self.blks: dict[str, Window] = {}
+        self.img: _types.RasterReader | None = None
+        self.lbl: _types.RasterReader | None = None
+        self.blks: dict[str, _types.RasterWindow] = {}
         self.meta: dict[str, typing.Any] = {}
 
     # -----------------------------public methods-----------------------------
@@ -66,7 +60,7 @@ class RasterBlockLayout:
         Ingest data.
         '''
 
-        with self._open_rasters(image_fpath, label_fpath) as (img, lbl):
+        with utils.open_rasters(image_fpath, label_fpath) as (img, lbl):
             # assign attrs
             self.img = img
             self.lbl = lbl
@@ -98,24 +92,6 @@ class RasterBlockLayout:
         self.meta.clear()
 
     # ----------------------------internal methods----------------------------
-    @staticmethod
-    @contextlib.contextmanager
-    def _open_rasters(
-            image_fpath: str,
-            label_fpath: str | None
-        ) -> typing.Iterator[tuple[DatasetReader, DatasetReader | None]]:
-        '''Return open raster context.'''
-
-        # if both image and label are provided - typically for training
-        if label_fpath is not None:
-            with rasterio.open(image_fpath) as img, \
-                rasterio.open(label_fpath) as lbl:
-                yield img, lbl
-        # else if only image is provided - this is for inference
-        else:
-            with rasterio.open(image_fpath) as img:
-                yield img, None
-
     def _check_raster_proj(self) -> None:
         '''
         Check if the input rasters have the same projection.
@@ -333,7 +309,7 @@ class RasterBlockLayout:
                 blk_h = min(self.blk_size, h - i) # at the last row
                 blk_w = min(self.blk_size, w - j) # at the last col
                 # set up the window and update the result dict
-                read_window = Window(j, i, blk_w, blk_h) # type: ignore
+                read_window = _types.RasterWindow(j, i, blk_w, blk_h) # type: ignore
                 if self.__check_valid(read_window):
                     self.blks[idx] =  read_window
 
@@ -358,7 +334,7 @@ class RasterBlockLayout:
         self.meta['reg_blks'] = self.meta['reg_rows'] * self.meta['reg_cols']
         self.meta['valid_blks'] = len(self.blks)
 
-    def __check_valid(self, window: Window) -> bool:
+    def __check_valid(self, window: _types.RasterWindow) -> bool:
         '''Crude check if a `Window` yields valid data from rasters.'''
 
         # read the rasters at the current block

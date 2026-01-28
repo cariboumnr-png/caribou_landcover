@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 # standard imports
-import contextlib
 import copy
 import dataclasses
 import os
@@ -12,23 +11,12 @@ import zipfile
 import zlib
 # third-party imports
 import numpy
-import rasterio
-import rasterio.io
-import rasterio.windows
 # local imports
+import _types
 import dataset
-import dataset.blocks
 import utils
 
-# typing aliases
-# from rasterio
-DatasetReader: typing.TypeAlias = rasterio.io.DatasetReader
-Window: typing.TypeAlias = rasterio.windows.Window
-# from local
-BlockLayout: typing.TypeAlias = dataset.blocks.RasterBlockLayout
-BlockCreationOptions: typing.TypeAlias = dataset.blocks.BlockCreationOptions
-
-class RasterBlockCache:
+class BlockCache:
     '''doc'''
 
     def __init__(
@@ -43,11 +31,11 @@ class RasterBlockCache:
         self.logger = logger
 
         # init attributes
-        self.layout_dict: dict[str, Window] = {}
+        self.layout_dict: dict[str, _types.RasterWindow] = {}
         self.layout_meta: dict[str, typing.Any] = {}
         self.valid_blks: dict[str, str] = {}
 
-    def process(self, **kwargs) -> 'RasterBlockCache':
+    def process(self, **kwargs) -> 'BlockCache':
         '''doc'''
         # run sequence
         self.get_layout(overwrite=kwargs.get('overwrite_layout', False))
@@ -72,7 +60,7 @@ class RasterBlockCache:
         # get layout from input raster(s)
         else:
             self.logger.log('INFO', f'Creating/re-writing layout: {layout_dict}')
-            layout = BlockLayout(
+            layout = dataset.BlockLayout(
                 blk_size=self.cfg.block.blk_size,
                 overlap=self.cfg.block.overlap,
                 logger=self.logger
@@ -120,7 +108,7 @@ class RasterBlockCache:
         assert self.layout_dict
 
         # determine block files that need to be created
-        todo: dict[str, Window] = {}
+        todo: dict[str, _types.RasterWindow] = {}
         if overwrite:
             todo = self.layout_dict # all blocks in layout
         elif self.missing_blks:
@@ -158,9 +146,10 @@ class RasterBlockCache:
 
         # early exit if no validation needed, e.g., for inference blocks
         if not self.layout_meta.get('has_label'):
-            self.logger.log('INFO', 'No block validation needed, skipping...')
-            # all square blocks are valid
-            self.cfg.output.valid_blks = self.cfg.output.square_blks
+            valid_blks = self.cfg.output.valid_blks # all square blocks valid
+            self.logger.log('INFO', 'All square blocks are valid')
+            self.logger.log('INFO', f'List file saved to {valid_blks}')
+            utils.write_json(valid_blks, self.square_blocks)
             return
 
         # proceed with sanity check
@@ -225,28 +214,11 @@ def _valid_npz(blk_fpath: str) -> dict[str, str]:
     except (FileNotFoundError, zipfile.error, zlib.error):
         return {'invalid': blk_fpath}
 
-@contextlib.contextmanager
-def _open_rasters(
-        image_fpath: str,
-        label_fpath: str | None
-    ) -> typing.Iterator[tuple[DatasetReader, DatasetReader | None]]:
-    '''Return open raster context.'''
-
-    # if both image and label are provided - typically for training
-    if label_fpath is not None:
-        with rasterio.open(image_fpath) as img, \
-            rasterio.open(label_fpath) as lbl:
-            yield img, lbl
-    # else if only image is provided - this is for inference
-    else:
-        with rasterio.open(image_fpath) as img:
-            yield img, None
-
 def _do_a_blk(
-        block: tuple[str, Window],
+        block: tuple[str, _types.RasterWindow],
         image_fpath: str,
         label_fpath: str | None,
-        config: BlockCreationOptions,
+        config: dataset.BlockCreationOptions,
         fpath_lookup: dict[str, str]
     ) -> list[str]:
     '''Create new a block from input rasters (read by given Window).'''
@@ -264,9 +236,10 @@ def _do_a_blk(
     # customize warnings context
     with warnings.catch_warnings(record=True) as captured_warnings:
         warnings.simplefilter("always", category=RuntimeWarning)
-        with _open_rasters(image_fpath, label_fpath) as (img, lbl):
+        with utils.open_rasters(image_fpath, label_fpath) as (img, lbl):
 
             # read image array
+            assert img is not None
             img_arr = img.read(window=blk_window)
             meta['image_nodata'] = img.nodata
             # get padded dem array from image
@@ -307,8 +280,8 @@ def _do_a_blk(
         ]
 
 def _pad_dem(
-        img: DatasetReader,
-        window: Window,
+        img: _types.RasterReader,
+        window: _types.RasterWindow,
         dem_band: int,
         pad: int
     ) -> numpy.ndarray:
@@ -319,7 +292,7 @@ def _pad_dem(
     nw_y = max(window.row_off - pad, 0)
     se_x = min(window.col_off + window.width + pad, img.width)
     se_y = min(window.row_off + window.height + pad, img.height)
-    _window = Window(nw_x, nw_y, se_x - nw_x, se_y - nw_y) # type: ignore
+    _window = _types.RasterWindow(nw_x, nw_y, se_x - nw_x, se_y - nw_y) # type: ignore
 
     # get expanded array using the new window
     # band number in rasterio.read is 1-based
@@ -415,8 +388,8 @@ def _get_block_cache_config(
         mode: str,
         cache_dpath: str,
         dataset_name: str,
-        input_config: typing.Mapping[str, typing.Any],
-        cache_config: typing.Mapping[str, typing.Any],
+        input_config: _types.ConfigType,
+        cache_config: _types.ConfigType,
     ) -> BlockCacheConfig:
     '''Factory function to create BlockCacheConfig from config mappings.'''
 
@@ -474,7 +447,7 @@ def _get_block_cache_config(
 
 def _get_cache_creation_options(
         mode: str,
-        cache_config: typing.Mapping[str, typing.Any]
+        cache_config: _types.ConfigType
     ) -> dict[str, bool]:
     '''Get block cache creation options from config mappings.'''
 
@@ -497,8 +470,8 @@ def _get_cache_creation_options(
 
 def build_data_cache(
         dataset_name: str,
-        input_config: typing.Mapping[str, typing.Any],
-        cache_config: typing.Mapping[str, typing.Any],
+        input_config: _types.ConfigType,
+        cache_config: _types.ConfigType,
         logger: utils.Logger,
     ) -> None:
     '''Create cache blocks from scratch'''
@@ -526,7 +499,7 @@ def build_data_cache(
         cache_config=cache_config
     )
     # process
-    _ = RasterBlockCache(cache_cfg, _logger).process(**options)
+    _ = BlockCache(cache_cfg, _logger).process(**options)
     _logger.log('INFO', 'Training cache building completed')
     _logger.log_sep()
 
@@ -546,6 +519,6 @@ def build_data_cache(
         cache_config=cache_config
     )
     # process
-    _ = RasterBlockCache(cache_cfg, _logger).process(**options)
+    _ = BlockCache(cache_cfg, _logger).process(**options)
     _logger.log('INFO', 'Inference cache building completed')
     _logger.log_sep()
