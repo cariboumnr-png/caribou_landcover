@@ -45,7 +45,6 @@ import landseg.session.engine.runtime.optim as optim
 import landseg.session.engine.runtime.tasks as tasks
 import landseg.session.engine.runtime as runtime
 import landseg.session.instrumentation as instrument
-import landseg.utils as utils
 
 # --------------------------------priavte  type--------------------------------
 class _EpochEngineConfigShape(typing.Protocol):
@@ -75,7 +74,7 @@ class EpochEngineContext:
     model: core.MultiheadModelLike
     dispatcher: instrument.CallbackDispatcher
     device: str
-    logger: utils.Logger
+    logger: common.SessionLogger | None = None
 
 # -------------------------------Public Function-------------------------------
 def build_epoch_engine(

@@ -92,10 +92,6 @@ class _MockDataLoaders:
     test: list = dataclasses.field(default_factory=list)
 
 
-class _MockLogger:
-    console_lvl = 'INFO'
-
-
 @dataclasses.dataclass
 class _MockSessionPaths:
     logs: str = 'dummy_logs_dir'
@@ -105,11 +101,6 @@ class _MockSessionPaths:
 @pytest.fixture
 def mock_dataloaders():
     return _MockDataLoaders()
-
-
-@pytest.fixture
-def mock_logger():
-    return _MockLogger()
 
 
 @pytest.fixture

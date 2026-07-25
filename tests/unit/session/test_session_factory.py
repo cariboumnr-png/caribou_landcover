@@ -32,7 +32,6 @@ def test_build_overfit_session(
     session_config,
     dataspecs,
     mock_model,
-    mock_logger,
     mock_dataloaders,
     monkeypatch
 ):
@@ -52,7 +51,6 @@ def test_build_overfit_session(
         model=mock_model,
         config=session_config,
         context=context,
-        logger=mock_logger  # type: ignore
     )
 
     assert isinstance(engine_session, epoch_mod.EpochEngine)
@@ -63,7 +61,6 @@ def test_build_evaluate_session(
     session_config,
     dataspecs,
     mock_model,
-    mock_logger,
     mock_dataloaders,
     monkeypatch
 ):
@@ -83,7 +80,6 @@ def test_build_evaluate_session(
         model=mock_model,
         config=session_config,
         context=context,
-        logger=mock_logger  # type: ignore
     )
 
     assert isinstance(engine_session, epoch_mod.EpochEngine)
@@ -94,7 +90,6 @@ def test_build_continuous_training_session(
     session_config,
     dataspecs,
     mock_model,
-    mock_logger,
     mock_dataloaders,
     mock_session_paths,
     monkeypatch
@@ -119,7 +114,6 @@ def test_build_continuous_training_session(
         model=mock_model,
         config=session_config,
         context=context,
-        logger=mock_logger  # type: ignore
     )
 
     assert isinstance(runner, orchestration_mod.ContinuousRunner)

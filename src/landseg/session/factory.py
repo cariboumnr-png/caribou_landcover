@@ -58,7 +58,6 @@ import landseg.session.data as data
 import landseg.session.engine as engine
 import landseg.session.instrumentation as instrument
 import landseg.session.orchestration as orchestration
-import landseg.utils as utils
 
 # ---------------------------------Public Type---------------------------------
 class SessionConfigShape(typing.Protocol):
@@ -98,7 +97,7 @@ def build_overfit_session(
     model: core.MultiheadModelLike,
     config: SessionConfigShape,
     context: SessionBuildContext,
-    logger: utils.Logger
+    logger: common.SessionLogger | None = None
 ) -> engine.EpochEngine:
     '''Build an epoch engine for overfit training with evaluation.'''
 
@@ -128,7 +127,7 @@ def build_evaluate_session(
     model: core.MultiheadModelLike,
     config: SessionConfigShape,
     context: SessionBuildContext,
-    logger: utils.Logger
+    logger: common.SessionLogger | None = None
 ) -> engine.EpochEngine:
     '''Build an epoch engine for evaluation-only execution.'''
 
@@ -158,7 +157,7 @@ def build_continous_training_session(
     model: core.MultiheadModelLike,
     config: SessionConfigShape,
     context: SessionBuildContext,
-    logger: utils.Logger
+    logger: common.SessionLogger | None = None
 ) -> orchestration.ContinuousRunner:
     '''Build a continuous training runner orchestrator.'''
 
@@ -213,7 +212,7 @@ def build_curriculum_training_session(
     model: core.MultiheadModelLike,
     config: SessionConfigShape,
     context: SessionBuildContext,
-    logger: utils.Logger
+    logger: common.SessionLogger | None = None
 ) -> orchestration.CurriculumRunner:
     '''Build a multiphase training runner orchestrator.'''
 
