@@ -73,15 +73,20 @@ class DataLoaders:
 
 @dataclasses.dataclass
 class _DataLoadersMeta:
-    '''Data loaders' metadata.'''
     batch_size: int
     patch_size: int
+    patch_count: _PatchCount
     preview_context: _PreviewContext | None
+
+
+class _PatchCount(typing.TypedDict):
+    train: int
+    val: int
+    test: int
 
 
 @dataclasses.dataclass
 class _PreviewContext:
-    '''Inference assembly context for block-wise stitching.'''
     patch_per_blk: int
     patch_per_dim: int
     block_columns: int
@@ -90,7 +95,6 @@ class _PreviewContext:
 
 @dataclasses.dataclass
 class _MemoryFlags:
-    '''Dataset memory preload and caching strategy flags.'''
     preload_train: bool
     cache_train: int
     preload_val: bool
@@ -134,138 +138,84 @@ def build_dataloaders(
         - Returned loaders are aligned with dataset structure and
           orchestration requirements.
     '''
-    # meta to be shipped
-    h_w = data_specs.meta.image_specs.height_width
-    assert h_w % config.patch_size == 0
-
-    # return dataloaders container by mode
     match data_specs.mode:
 
-        # if single block mode (for overfit test)
-        case 'single':
-            single_loader = _load('single', data_specs, config, logger=logger)
-            # pass the same as val dataloader for minimal disturbance downstream
+        case 'default':
             return DataLoaders(
-                train=single_loader,
-                val=single_loader,
-                test=None,
-                meta=_DataLoadersMeta(
-                    config.batch_size,
-                    config.patch_size,
-                    preview_context=None
-                )
+                train=_load('train', data_specs, config, logger=logger),
+                val=_load('val', data_specs, config, logger=logger),
+                test=_load('test', data_specs, config, logger=logger),
+                meta=_get_loaders_meta(data_specs, config)
             )
 
-        # val only mode
         case 'val_only':
-            val_loader = _load('val', data_specs, config, logger=logger)
             return DataLoaders(
                 train=None,
-                val=val_loader,
+                val=_load('val', data_specs, config, logger=logger),
                 test=None,
-                meta=_DataLoadersMeta(
-                    config.batch_size,
-                    config.patch_size,
-                    preview_context=None
-                )
+                meta=_get_loaders_meta(data_specs, config)
             )
 
-        # test only mode
         case 'test_only':
-            test_loader = _load('test', data_specs, config, logger=logger)
             return DataLoaders(
                 train=None,
                 val=None,
-                test=test_loader,
-                meta=_DataLoadersMeta(
-                    config.batch_size,
-                    config.patch_size,
-                    preview_context=None
-                )
+                test=_load('test', data_specs, config, logger=logger),
+                meta=_get_loaders_meta(data_specs, config)
             )
 
-        # default normal experiment
-        case 'default':
-            train = _load('train', data_specs, config, logger=logger)
-            val = _load('val', data_specs, config, logger=logger)
-            test = _load('test', data_specs, config, logger=logger)
-            if test is not None:
-                preview_context = _generate_preview_context(
-                    per_blk=int(h_w / config.patch_size) ** 2,
-                    test_blks_grid=data_specs.meta.test_blks_grid
-                )
-            else:
-                preview_context = None
-            return DataLoaders(
-                train=train,
-                val=val,
-                test=test,
-                meta=_DataLoadersMeta(
-                    config.batch_size,
-                    config.patch_size,
-                    preview_context=preview_context
-                )
-            )
+        case _: raise ValueError('Invalid build mode')
 
 
 # ----- helper functions
-@typing.overload
-def _load(
-    mode: typing.Literal['single'],
-    data_specs: core.DataSpecs,
-    config: DataLoaderConfig,
-    *,
-    logger: common.SessionLogger | None = None,
-) -> torch.utils.data.DataLoader: ...
-
-
-@typing.overload
 def _load(
     mode: typing.Literal['train', 'val', 'test'],
     data_specs: core.DataSpecs,
     config: DataLoaderConfig,
     *,
     logger: common.SessionLogger | None = None,
-) -> torch.utils.data.DataLoader | None: ...
-
-
-def _load(
-    mode: typing.Literal['train', 'val', 'test', 'single'],
-    data_specs: core.DataSpecs,
-    config: DataLoaderConfig,
-    *,
-    logger: common.SessionLogger | None = None,
 ) -> torch.utils.data.DataLoader | None:
     '''Get a specific dataloader by mode.'''
-    data_blocks = {
-        'train': data_specs.splits.train,
-        'val': data_specs.splits.val,
-        'test': data_specs.splits.test,
-        'single': data_specs.splits.train
-    }[mode] # fetch data blocks by mode
+    match mode:
+        case 'train':
+            datablocks = data_specs.splits.train
+            domains = data_specs.domains.train
+        case 'val':
+            datablocks = data_specs.splits.val
+            domains = data_specs.domains.val
+        case 'test':
+            datablocks = data_specs.splits.test
+            domains = data_specs.domains.test
 
-    # early exit if no data blocks are available, e.g., no test dataset
-    if not data_blocks:
+    if not datablocks:
         return None
 
-    # dataset configuration
-    dataset_config = _config_by_mode(mode, data_specs, config.patch_size)
-
-    # preload/cache config
-    flags = _infer_memory_flags(data_specs)
-    preload = getattr(flags, f'preload_{mode}', False)
-    cache_num = getattr(flags, f'cache_{mode}', 0)
-
-    # get multiblock dataset
-    dataset = data.MultiBlockDataset(
-        data_blocks,
-        dataset_config,
-        preload=preload,
-        augment_flip=bool(mode == 'train'),
-        blk_cache_num=cache_num
+    dataset_config = data.BlockDatasetContext(
+        block_src=datablocks,
+        block_size=data_specs.meta.image_specs.height_width,
+        patch_size=config.patch_size,
+        image_key=data_specs.meta.image_specs.array_key,
+        label_key=data_specs.meta.label_specs.array_key,
+        ids_domain=domains['ids_domain'],
+        vec_domain=domains['vec_domain']
     )
 
-    # log dataloading info if logger is present
+    mem_strategy = _get_memeory_strategy(data_specs)
+
+    dataset = data.MultiBlockDataset(
+        dataset_config,
+        augment_flip=bool(mode == 'train'),
+        preload=getattr(mem_strategy, f'preload_{mode}', False),
+        blk_cache_num=getattr(mem_strategy, f'cache_{mode}', 0)
+    )
+
+    dataloader = torch.utils.data.DataLoader(
+        dataset=dataset,
+        batch_size=config.batch_size,
+        shuffle=(mode == 'train'),
+        collate_fn=_collate_multi_block
+    ) # no drop last so ragged batch is allowed
+
     if logger is not None:
         logger.set_inputs({
             mode: {
@@ -280,49 +230,16 @@ def _load(
             f'Cached {dataset.n_cached} blocks'
         )
 
-    # torch dataloader arguments dict
-    dataloader_args = {
-        'batch_size': 1 if mode == 'single' else config.batch_size,
-        'shuffle': mode == 'train',
-        'collate_fn': _collate_multi_block
-    }
-    return torch.utils.data.DataLoader(dataset, **dataloader_args)
+    return dataloader
 
 
-def _config_by_mode(
-    mode: str,
-    data_specs: core.DataSpecs,
-    patch_size: int,
-) -> data.BlockConfig:
-    '''Return a `BlockConfig` object by dataloading mode.'''
-    if mode == 'single':
-        patch_size = data_specs.meta.image_specs.height_width # single block
-
-    domain = {
-        'train': data_specs.domains.train,
-        'val': data_specs.domains.val,
-        'test': data_specs.domains.test,
-        'single': None
-    }[mode] # fetch domain by mode
-
-    return data.BlockConfig(
-        block_size=data_specs.meta.image_specs.height_width,
-        patch_size=patch_size,
-        image_key=data_specs.meta.image_specs.array_key,
-        label_key=data_specs.meta.label_specs.array_key,
-        ids_domain=domain['ids_domain'] if domain else None,
-        vec_domain=domain['vec_domain'] if domain else None
-    )
-
-
-def _infer_memory_flags(
+def _get_memeory_strategy(
     data_specs: core.DataSpecs,
     available_bytes: int | None = None
 ) -> _MemoryFlags:
     '''Infer dataset preload and caching strategy flags based on RAM.'''
     fbytes = data_specs.meta.blk_bytes
-    # early exit for single block test (fbytes = 0)
-    if not fbytes:
+    if not fbytes: # can be set to 0 in `DataSpecs` to disable strategy
         return _MemoryFlags(
             preload_train=True,
             cache_train=0,
@@ -330,7 +247,7 @@ def _infer_memory_flags(
             cache_val=0,
             preload_test=True,
             cache_test=0
-        )
+        ) # all preload
 
     # get dataset sizes
     train_bytes = len(data_specs.splits.train or {}) * fbytes
@@ -414,14 +331,58 @@ def _collate_multi_block(batch: alias.DatasetBatch) -> alias.DatasetItem:
     return xs_out, ys_out, dom_out
 
 
+def _get_loaders_meta(
+    data_specs: core.DataSpecs,
+    config: DataLoaderConfig
+) -> _DataLoadersMeta:
+    '''Parse `_DatalodersMeta`.'''
+    h_w = data_specs.meta.image_specs.height_width
+    if h_w % config.patch_size != 0:
+        raise ValueError(
+            f'Data block dimention H/W ({h_w}) not divisible '
+            f'by patch size ({config.patch_size})'
+        )
+    pb = int(h_w / config.patch_size) ** 2
+
+    match data_specs.mode:
+        case 'default':
+            n_train = len(data_specs.splits.train) * pb
+            n_val = len(data_specs.splits.val) * pb
+            n_test = len(data_specs.splits.test) * pb
+
+        case 'val_only':
+            n_train = 0
+            n_val = len(data_specs.splits.val) * pb
+            n_test = 0
+
+        case 'test_only':
+            n_train = 0
+            n_val = 0
+            n_test = len(data_specs.splits.test) * pb
+
+        case _: raise ValueError(f'Invalid `DataSpec` mode: {data_specs.mode}')
+
+    if len(data_specs.splits.test) > 0:
+        preview = _generate_preview_context(pb, data_specs.meta.test_blks_grid)
+    else:
+        preview = None
+
+    return _DataLoadersMeta(
+        batch_size=config.batch_size,
+        patch_size=config.patch_size,
+        patch_count={'train': n_train, 'val': n_val, 'test': n_test},
+        preview_context=preview
+    )
+
+
 def _generate_preview_context(
-    per_blk: int,
+    patch_per_blk: int,
     test_blks_grid: tuple[int, int]
 ) -> _PreviewContext:
     '''Resolve patch-block layout for preview context.'''
     # resolve patch-block layout
-    per_dim = int(per_blk ** 0.5)
-    assert per_dim * per_dim == per_blk, 'patch_per_blk must be square'
+    per_dim = int(patch_per_blk ** 0.5)
+    assert per_dim * per_dim == patch_per_blk, 'patch_per_blk must be square'
 
     # resolve block col/row numbers
     blk_col, blk_row = test_blks_grid
@@ -430,7 +391,7 @@ def _generate_preview_context(
     pch_col, pch_row = (blk_col * per_dim, blk_row * per_dim)
 
     return _PreviewContext(
-        patch_per_blk=per_blk,
+        patch_per_blk=patch_per_blk,
         patch_per_dim=per_dim,
         block_columns=blk_col,
         patch_grid_shape=(pch_col, pch_row)

@@ -39,7 +39,8 @@ def test_block_config_properties():
     Then: Successfully access `patch_per_dim` and `patch_per_blk`.
     '''
 
-    cfg = dataset.BlockConfig(
+    cfg = dataset.BlockDatasetContext(
+        block_src={},
         block_size=256,
         patch_size=128,
         image_key='image',
@@ -58,7 +59,8 @@ def test_block_config_invalid_sizes():
     '''
 
     with pytest.raises(ValueError, match='Data block size must > '):
-        _ = dataset.BlockConfig(
+        _ = dataset.BlockDatasetContext(
+            block_src={},
             block_size=128,
             patch_size=256,
             image_key='image',
@@ -66,7 +68,8 @@ def test_block_config_invalid_sizes():
         )
 
     with pytest.raises(ValueError, match='Data block size must be divisible '):
-        _ = dataset.BlockConfig(
+        _ = dataset.BlockDatasetContext(
+            block_src={},
             block_size=256,
             patch_size=127,
             image_key='image',
@@ -383,17 +386,14 @@ def test_multiblock_dataset_getitem_no_label(tmp_path):
     label = numpy.array([1]) # placeholder label
     numpy.savez(fpath, image=image, label=label)
 
-    config = dataset.BlockConfig(
+    context = dataset.BlockDatasetContext(
+        block_src={'unlbl': fpath},
         block_size=2,
         patch_size=2,
         image_key='image',
         label_key='label'
     )
-    dt = dataset.MultiBlockDataset(
-        {'unlbl': fpath},
-        config,
-        preload=False
-    )
+    dt = dataset.MultiBlockDataset(context, preload=False)
     _, y, _ = dt[0]
 
     assert y.numel() == 0
@@ -406,7 +406,8 @@ def test_multiblock_dataset_domain_features(tmp_path):
     Then: Correctly populate domain dictionary with formatted tensors.
     '''
     _ = _test_block_dataset(tmp_path, aug_flip=False, name='blk1.npz')
-    config = dataset.BlockConfig(
+    context = dataset.BlockDatasetContext(
+        block_src={'blk1': str(tmp_path / 'blk1.npz')},
         block_size=4,
         patch_size=2,
         image_key='image',
@@ -414,11 +415,7 @@ def test_multiblock_dataset_domain_features(tmp_path):
         ids_domain={'blk1': 42},
         vec_domain={'blk1': [0.5, 0.75]}
     )
-    dt = dataset.MultiBlockDataset(
-        {'blk1': str(tmp_path / 'blk1.npz')},
-        config,
-        preload=True
-    )
+    dt = dataset.MultiBlockDataset(context, preload=True)
     _, _, dom = dt[0]
 
     assert torch.equal(dom['ids'], torch.tensor(42, dtype=torch.long))
@@ -471,7 +468,8 @@ def _test_block_dataset(tmp_path, *, aug_flip: bool, **kwargs):
     )
 
     numpy.savez(fpath, image=image, label=label)
-    config = dataset.BlockConfig(
+    context = dataset.BlockDatasetContext(
+        block_src={},
         block_size=4,
         patch_size=2,
         image_key='image',
@@ -481,7 +479,7 @@ def _test_block_dataset(tmp_path, *, aug_flip: bool, **kwargs):
         'domain_1': 10,             # catagorical integer domain
         'domain_2': [0.1, 0.2, 0.3] # continuous vector domain
     }
-    return dataset._BlockDataset(fpath, config, domains, augment_flip=aug_flip)
+    return dataset._BlockDataset(fpath, context, domains, augment_flip=aug_flip)
 
 
 def _test_multiblock_dataset(tmp_path, preload: bool, cache_size: int = 16):
@@ -511,7 +509,11 @@ def _test_multiblock_dataset(tmp_path, preload: bool, cache_size: int = 16):
         ]])
     )
     # config (same as single block)
-    config = dataset.BlockConfig(
+    context = dataset.BlockDatasetContext(
+        block_src={
+            'blk1': str(tmp_path / 'blk1.npz'),
+            'blk2': str(tmp_path / 'blk2.npz'),
+        },
         block_size=4,
         patch_size=2,
         image_key='image',
@@ -519,11 +521,7 @@ def _test_multiblock_dataset(tmp_path, preload: bool, cache_size: int = 16):
     )
     # return instance
     return dataset.MultiBlockDataset(
-        {
-            'blk1': str(tmp_path / 'blk1.npz'),
-            'blk2': str(tmp_path / 'blk2.npz'),
-        },
-        config,
+        context,
         preload=preload,
         blk_cache_num=cache_size
     )

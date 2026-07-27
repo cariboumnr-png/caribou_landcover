@@ -52,7 +52,14 @@ class _DataLoadersMeta(typing.Protocol):
     @property
     def patch_size(self) -> int: ...
     @property
+    def patch_count(self) -> _PatchCount: ...
+    @property
     def preview_context(self) -> '_PreviewContext | None': ...
+
+class _PatchCount(typing.TypedDict):
+    train: int
+    val: int
+    test: int
 
 class _PreviewContext(typing.Protocol):
     patch_per_blk: int

@@ -23,10 +23,6 @@
 
 '''Unit tests for dataloader construction module (loader.py).'''
 
-# standard imports
-import dataclasses
-# third-party imports
-import numpy
 import pytest
 import torch
 # local imports
@@ -126,15 +122,15 @@ def test_collate_multi_block_mixed_labeled_unlabeled():
         _ = loader._collate_multi_block([sample1, sample2])
 
 
-# ----- `_infer_memory_flags` tests
-def test_infer_memory_flags_single_mode(dataspecs):
+# ----- `_get_memory_stratege` tests
+def test_get_memory_stratege_no_ops(dataspecs):
     '''
     Given: Dataset specs with block byte size equal to 0.
-    When: `_infer_memory_flags` is called.
+    When: `_get_memory_stratege` is called.
     Then: Return memory flags configured for full preloading.
     '''
     dataspecs.meta.blk_bytes = 0
-    flags = loader._infer_memory_flags(dataspecs)
+    flags = loader._get_memeory_strategy(dataspecs)
 
     assert flags.preload_train is True
     assert flags.cache_train == 0
@@ -142,30 +138,30 @@ def test_infer_memory_flags_single_mode(dataspecs):
     assert flags.cache_val == 0
 
 
-def test_infer_memory_flags_high_memory(dataspecs):
+def test_get_memory_stratege_high_memory(dataspecs):
     '''
     Given: Abundant system RAM relative to dataset size.
-    When: `_infer_memory_flags` is called with high available bytes.
+    When: `_get_memory_stratege` is called with high available bytes.
     Then: Return flags configuring preloading for both train and val splits.
     '''
     dataspecs.meta.blk_bytes = 100_000_000 # 100MB per block
     # available RAM: 10GB
-    flags = loader._infer_memory_flags(dataspecs, available_bytes=10_000_000_000)
+    flags = loader._get_memeory_strategy(dataspecs, available_bytes=10_000_000_000)
 
     assert flags.preload_val is True
     assert flags.preload_train is True
 
 
-def test_infer_memory_flags_low_memory(dataspecs):
+def test_get_memory_stratege_low_memory(dataspecs):
     '''
     Given: Constrained system RAM relative to validation split size.
-    When: `_infer_memory_flags` is called with low available bytes.
+    When: `_get_memory_stratege` is called with low available bytes.
     Then: Fall back to streaming cache mode without preloading.
     '''
     dataspecs.meta.blk_bytes = 100_000_000 # 100MB per block
     dataspecs.splits.val = {f'b{i}': f'path{i}' for i in range(7)} # 700MB val bytes
     # available RAM: 1GB (val_bytes 700MB > 0.6 * 1GB)
-    flags = loader._infer_memory_flags(dataspecs, available_bytes=1_000_000_000)
+    flags = loader._get_memeory_strategy(dataspecs, available_bytes=1_000_000_000)
 
     assert flags.preload_val is False
     assert flags.preload_train is False
@@ -180,7 +176,7 @@ def test_generate_preview_context_valid():
     When: `_generate_preview_context` is called.
     Then: Correctly return `_PreviewContext` dataclass instance.
     '''
-    ctx = loader._generate_preview_context(per_blk=4, test_blks_grid=(2, 3))
+    ctx = loader._generate_preview_context(patch_per_blk=4, test_blks_grid=(2, 3))
 
     assert ctx.patch_per_blk == 4
     assert ctx.patch_per_dim == 2
@@ -195,105 +191,90 @@ def test_generate_preview_context_non_square():
     Then: Raise `AssertionError`.
     '''
     with pytest.raises(AssertionError, match='patch_per_blk must be square'):
-        _ = loader._generate_preview_context(per_blk=5, test_blks_grid=(2, 2))
+        _ = loader._generate_preview_context(patch_per_blk=5, test_blks_grid=(2, 2))
 
 
-# ----- `build_dataloaders` tests
-@dataclasses.dataclass
-class _DummyLoaderConfig:
-    batch_size: int = 2
-    patch_size: int = 128
 
-
-def test_build_dataloaders_default_mode(dataspecs, tmp_path):
+def test_build_dataloaders_default_mode(dataspecs, session_config):
     '''
     Given: Dataset specs configured for default mode with valid temp blocks.
     When: `build_dataloaders` is called without logger.
     Then: Return `DataLoaders` container with train, val, and test dataloaders.
     '''
-    f1 = _create_dummy_npz(tmp_path / 'block_1.npz')
-    f2 = _create_dummy_npz(tmp_path / 'block_2.npz')
-    f3 = _create_dummy_npz(tmp_path / 'block_3.npz')
-
     dataspecs.mode = 'default'
-    dataspecs.splits.train = {'block_1': f1}
-    dataspecs.splits.val = {'block_2': f2}
-    dataspecs.splits.test = {'block_3': f3}
 
-    cfg = _DummyLoaderConfig(batch_size=2, patch_size=128)
+    cfg = session_config.data_loader
     loaders = loader.build_dataloaders(dataspecs, cfg)
 
     assert loaders.train is not None
     assert loaders.val is not None
     assert loaders.test is not None
-    assert loaders.meta.batch_size == 2
-    assert loaders.meta.patch_size == 128
+    assert loaders.meta.patch_count == {'train': 4, 'val': 4, 'test': 4}
     assert loaders.meta.preview_context is not None
+    assert loaders.meta.preview_context.patch_per_blk == 4
+    assert loaders.meta.preview_context.patch_per_dim == 2
+    assert loaders.meta.preview_context.block_columns == 1
+    assert loaders.meta.preview_context.patch_grid_shape == (2, 2)
 
 
-def test_build_dataloaders_single_mode(dataspecs, tmp_path):
+def test_build_dataloaders_default_mode_no_test(dataspecs, session_config):
     '''
-    Given: Dataset specs configured for single block mode.
-    When: `build_dataloaders` is called.
-    Then: Return `DataLoaders` container reusing single block loader for train and val.
+    Given: Dataset specs configured for default mode without test blocks.
+    When: `build_dataloaders` is called without logger.
+    Then: Return `DataLoaders` container with train, and val dataloaders.
     '''
-    f1 = _create_dummy_npz(tmp_path / 'block_1.npz')
+    dataspecs.mode = 'default'
+    dataspecs.splits.test.clear()
 
-    dataspecs.mode = 'single'
-    dataspecs.splits.train = {'block_1': f1}
-
-    cfg = _DummyLoaderConfig(batch_size=2, patch_size=128)
+    cfg = session_config.data_loader
     loaders = loader.build_dataloaders(dataspecs, cfg)
 
     assert loaders.train is not None
-    assert loaders.val is loaders.train
+    assert loaders.val is not None
     assert loaders.test is None
+    assert loaders.meta.patch_count == {'train': 4, 'val': 4, 'test': 0}
     assert loaders.meta.preview_context is None
 
 
-def test_build_dataloaders_val_only_mode(dataspecs, tmp_path):
+def test_build_dataloaders_val_only_mode(dataspecs, session_config):
     '''
     Given: Dataset specs configured for val_only mode.
     When: `build_dataloaders` is called.
     Then: Return `DataLoaders` with only validation dataloader populated.
     '''
-    f2 = _create_dummy_npz(tmp_path / 'block_2.npz')
-
     dataspecs.mode = 'val_only'
-    dataspecs.splits.val = {'block_2': f2}
+    dataspecs.splits.train.clear()
+    dataspecs.splits.test.clear()
 
-    cfg = _DummyLoaderConfig(batch_size=2, patch_size=128)
+    cfg = session_config.data_loader
     loaders = loader.build_dataloaders(dataspecs, cfg)
 
     assert loaders.train is None
     assert loaders.val is not None
     assert loaders.test is None
+    assert loaders.meta.patch_count == {'train': 0, 'val': 4, 'test': 0}
+    assert loaders.meta.preview_context is None
 
 
-def test_build_dataloaders_test_only_mode(dataspecs, tmp_path):
+def test_build_dataloaders_test_only_mode(dataspecs, session_config):
     '''
     Given: Dataset specs configured for test_only mode.
     When: `build_dataloaders` is called.
     Then: Return `DataLoaders` with only test dataloader populated.
     '''
-    f3 = _create_dummy_npz(tmp_path / 'block_3.npz')
-
     dataspecs.mode = 'test_only'
-    dataspecs.splits.test = {'block_3': f3}
+    dataspecs.splits.train.clear()
+    dataspecs.splits.val.clear()
 
-    cfg = _DummyLoaderConfig(batch_size=2, patch_size=128)
+    cfg = session_config.data_loader
     loaders = loader.build_dataloaders(dataspecs, cfg)
 
     assert loaders.train is None
     assert loaders.val is None
     assert loaders.test is not None
-
-
-# ----- helper functions
-def _create_dummy_npz(path) -> str:
-    '''Create a small valid `.npz` block for dataset tests.'''
-    fpath = str(path)
-    image = numpy.ones((4, 256, 256), dtype=numpy.float32)
-    label = numpy.ones((1, 256, 256), dtype=numpy.int64)
-    numpy.savez(fpath, image=image, label=label)
-    return fpath
+    assert loaders.meta.patch_count == {'train': 0, 'val': 0, 'test': 4}
+    assert loaders.meta.preview_context is not None
+    assert loaders.meta.preview_context.patch_per_blk == 4
+    assert loaders.meta.preview_context.patch_per_dim == 2
+    assert loaders.meta.preview_context.block_columns == 1
+    assert loaders.meta.preview_context.patch_grid_shape == (2, 2)

@@ -103,14 +103,12 @@ class EpochEngine:
         self.evaluator: policy.MultiHeadEvaluator | None = evaluator
 
     @property
-    def total_train_batch(self) -> int:
-        '''Return total number of training batches of the epoch.'''
+    def training_sample_size(self) -> int:
+        '''Returns total number of training samples of the epoch.'''
         if not self.trainer:
             return 0
-        assert self.trainer.dataloaders.train, 'Training dataloader not present'
-        loader = self.trainer.dataloaders
-        batch_size = loader.meta.batch_size
-        return batch_size * len(self.trainer.dataloaders.train)
+        return self.trainer.dataloaders.meta.patch_count['train']
+
 
     def run_epoch(self, epoch: int) -> core.SessionStepResults:
         '''
