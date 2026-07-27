@@ -76,12 +76,15 @@ def test_engine_base_set_head_state_default(
 
     engine_base.set_head_state(active_heads=None, frozen_heads=['head_2'])
 
-    assert engine_base.state.heads.active_heads == ['head_1']
+    assert engine_base.state.heads.active_heads == ['head_1', 'head_2']
     assert engine_base.state.heads.frozen_heads == ['head_2']
+    assert engine_base.state.heads.active_hspecs is not None
     assert 'head_1' in engine_base.state.heads.active_hspecs
+    assert engine_base.state.heads.active_hloss is not None
     assert 'head_1' in engine_base.state.heads.active_hloss
+    assert engine_base.state.heads.active_hmetrics is not None
     assert 'head_1' in engine_base.state.heads.active_hmetrics
-    assert engine_base.state.heads.multihead_metrics is None
+    assert engine_base.state.heads.multihead_metrics is not None
 
 
 def test_engine_base_reset_head_state(

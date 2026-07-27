@@ -74,8 +74,8 @@ def test_trainer_train_one_epoch(
     results = trainer.train_one_epoch(epoch=1)
 
     assert isinstance(results, core.TrainStepResults)
-    assert trainer.state.progress.epoch == 1
-    assert trainer.state.progress.global_step == 2
+    assert trainer.state.progress.epoch == 1        # started from 0
+    assert trainer.state.progress.global_step == 1  # started from 0
     assert 'on_train_policy_begin' in mock_dispatcher.events
     assert 'on_train_policy_end' in mock_dispatcher.events
     assert 'on_train_batch_end' in mock_dispatcher.events
@@ -121,7 +121,7 @@ def test_trainer_update_training_stats_interval(
         device='cpu'
     )
     trainer._objective = 2.0
-    trainer._head_losses = {'head_1': 2.0}
+    trainer._head_losses = {'head_1': 1.0, 'head_2': 1.0}
     trainer._regularization = {}
 
     trainer.state.batch_cxt.bidx = 1

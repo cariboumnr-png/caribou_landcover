@@ -74,8 +74,8 @@ def test_batch_engine_parse_batch_labeled(mock_model, session_config):
         use_amp=False,
         device='cpu'
     )
-    x = torch.randn(2, 3, 16, 16)
-    y = torch.ones(2, 1, 16, 16, dtype=torch.long)
+    x = torch.randn(2, 3, 256, 256)
+    y = torch.ones(2, 1, 256, 256, dtype=torch.long)
     domain = {'ids': torch.tensor([0, 1])}
 
     state.batch_cxt.refresh(bidx=1, batch=(x, y, domain))
@@ -88,9 +88,9 @@ def test_batch_engine_parse_batch_labeled(mock_model, session_config):
     )
     engine._parse_batch()
 
-    assert engine.state.batch_cxt.x.shape == (2, 3, 16, 16)
+    assert engine.state.batch_cxt.x.shape == (2, 3, 256, 256)
     assert 'head_1' in engine.state.batch_cxt.y_dict
-    assert engine.state.batch_cxt.y_dict['head_1'].shape == (2, 16, 16)
+    assert engine.state.batch_cxt.y_dict['head_1'].shape == (2, 256, 256)
     assert 'ids_domain' in engine.state.batch_cxt.domain
 
 
@@ -107,8 +107,8 @@ def test_batch_engine_parse_batch_invalid_active_head_raises(mock_model, session
         device='cpu'
     )
     state.heads.active_heads = ['head_unknown']
-    x = torch.randn(2, 3, 16, 16)
-    y = torch.ones(2, 1, 16, 16, dtype=torch.long)
+    x = torch.randn(2, 3, 256, 256)
+    y = torch.ones(2, 1, 256, 256, dtype=torch.long)
 
     state.batch_cxt.refresh(bidx=1, batch=(x, y, {}))
 
@@ -144,8 +144,8 @@ def test_run_train_batch(
     state.heads.active_hspecs = {'head_1': mock_hspecs['head_1']}
     state.heads.active_hloss = {'head_1': mock_hlosses['head_1']}
 
-    x = torch.randn(2, 3, 16, 16)
-    y = torch.ones(2, 1, 16, 16, dtype=torch.long)
+    x = torch.randn(2, 4, 256, 256)
+    y = torch.ones(2, 1, 256, 256, dtype=torch.long)
     state.batch_cxt.refresh(bidx=1, batch=(x, y, {}))
 
     engine = executor.BatchEngine(
@@ -154,6 +154,7 @@ def test_run_train_batch(
         config=session_config.engine_exec,
         context=_get_context()
     )
+    engine.model.set_active_heads(['head_1'])
 
     engine.run_train_batch()
 
@@ -181,8 +182,8 @@ def test_run_validate_batch(
     )
     state.heads.active_hmetrics = {'head_1': mock_hmetrics['head_1']}
 
-    x = torch.randn(2, 3, 16, 16)
-    y = torch.ones(2, 1, 16, 16, dtype=torch.long)
+    x = torch.randn(2, 4, 256, 256)
+    y = torch.ones(2, 1, 256, 256, dtype=torch.long)
     state.batch_cxt.refresh(bidx=1, batch=(x, y, {}))
 
     engine = executor.BatchEngine(
@@ -191,6 +192,8 @@ def test_run_validate_batch(
         config=session_config.engine_exec,
         context=_get_context()
     )
+    engine.model.set_active_heads(['head_1'])
+
     engine.run_validate_batch()
 
     assert 'head_1' in engine.state.batch_out.preds
@@ -215,8 +218,8 @@ def test_run_infer_batch_spatial_aggregation(
     )
     state.heads.active_hmetrics = {'head_1': mock_hmetrics['head_1']}
 
-    x = torch.randn(1, 3, 16, 16)
-    y = torch.ones(1, 1, 16, 16, dtype=torch.long)
+    x = torch.randn(1, 4, 256, 256)
+    y = torch.ones(1, 1, 256, 256, dtype=torch.long)
     state.batch_cxt.refresh(bidx=1, batch=(x, y, {}))
 
     engine = executor.BatchEngine(
@@ -225,6 +228,7 @@ def test_run_infer_batch_spatial_aggregation(
         config=session_config.engine_exec,
         context=_get_context()
     )
+    engine.model.set_active_heads(['head_1'])
 
     engine.run_infer_batch()
 

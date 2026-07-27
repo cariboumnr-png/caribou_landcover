@@ -62,7 +62,7 @@ def test_epoch_engine_init(trainer_and_evaluator):
     '''
     Given: Valid trainer and evaluator instances.
     When: Instantiating `EpochEngine` in train_eval mode.
-    Then: Store mode, trainer, evaluator and compute total_train_batch.
+    Then: Store mode, trainer, evaluator and `training_sample_size`.
     '''
     trainer, evaluator = trainer_and_evaluator
 
@@ -75,13 +75,13 @@ def test_epoch_engine_init(trainer_and_evaluator):
     assert epoch_engine.mode == 'train_eval'
     assert epoch_engine.trainer is trainer
     assert epoch_engine.evaluator is evaluator
-    assert epoch_engine.total_train_batch == 4  # 2 batches * batch_size 2
+    assert epoch_engine.training_sample_size == 4 # one block, 4 patches
 
 
-def test_epoch_engine_total_train_batch_no_trainer(trainer_and_evaluator):
+def test_epoch_engine_train_size_no_trainer(trainer_and_evaluator):
     '''
     Given: `EpochEngine` in eval_only mode with no trainer.
-    When: Reading `total_train_batch`.
+    When: Reading `training_sample_size`.
     Then: Return 0.
     '''
     _, evaluator = trainer_and_evaluator
@@ -92,7 +92,7 @@ def test_epoch_engine_total_train_batch_no_trainer(trainer_and_evaluator):
         evaluator=evaluator
     )
 
-    assert epoch_engine.total_train_batch == 0
+    assert epoch_engine.training_sample_size == 0
 
 
 # ----- `run_epoch` execution tests
