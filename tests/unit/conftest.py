@@ -23,19 +23,32 @@
 
 '''Fixtures for testing `landseg.core` module.'''
 
+# standard imports
+import os
 # third-party imports
+import numpy
 import pytest
 # local imports
 import landseg.core as core
 
 @pytest.fixture
-def dataspecs():
+def dataspecs(tmp_path):
+    # write temp block files
+    blk_dict = {
+        'image': numpy.random.rand(4, 256, 256), # as per 4 bands
+        'label': numpy.random.randint(1, 4, size=(2, 256, 256)) # two heads
+    }
+    if not os.path.exists(f'{tmp_path}//train_block.npz'): # just check one
+        numpy.savez(f'{tmp_path}//train_block.npz', **blk_dict)
+        numpy.savez(f'{tmp_path}//val_block.npz', **blk_dict)
+        numpy.savez(f'{tmp_path}//test_block.npz', **blk_dict)
+
     return core.DataSpecs(
         name="test_dataset",
         mode="default",
         meta=core.Meta(
-            blk_bytes=1024,
-            test_blks_grid=(2, 2),
+            blk_bytes=1024, # dummy value, != acutal size from the npz files
+            test_blks_grid=(1, 1),
             label_color_map=None,
             image_specs=core.Meta.Image(
                 num_channels=4,
@@ -61,22 +74,22 @@ def dataspecs():
             head_parent_cls={'head_1': None, 'head_2': None},
         ),
         splits=core.Splits(
-            train={'block_1': 'file//path//1'},
-            val={'block_2': 'file//path//2'},
-            test={'block_3': 'file//path//3'},
+            train={'train_block': f'{tmp_path}//train_block.npz'},
+            val={'val_block': f'{tmp_path}//val_block.npz'},
+            test={'test_block': f'{tmp_path}//test_block.npz'},
         ),
         domains=core.Domains(
         train=core.Domains.Dom(
-                ids_domain={'block_1': 1},
-                vec_domain={'block_1': [0.1, 0.2]}
+                ids_domain={'train_block': 1},
+                vec_domain={'train_block': [0.1, 0.2]}
             ),
             val=core.Domains.Dom(
-                ids_domain={'block_2': 2},
-                vec_domain={'block_2': [0.3, 0.4]}
+                ids_domain={'val_block': 2},
+                vec_domain={'val_block': [0.3, 0.4]}
             ),
             test=core.Domains.Dom(
-                ids_domain={'block_3': 3},
-                vec_domain={'block_3': [0.5, 0.6]}
+                ids_domain={'test_block': 3},
+                vec_domain={'test_block': [0.5, 0.6]}
             ),
             ids_num=3,
             vec_dim=2,
