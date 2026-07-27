@@ -22,35 +22,28 @@
 # pylint: disable=missing-function-docstring
 # pylint: disable=protected-access
 # pylint: disable=redefined-outer-name
-# pylint: disable=too-few-public-methods
 
 '''Fixtures for testing `landseg.session.engine.runtime.executor` module.'''
 
+# standard imports
+import dataclasses
 # third-party imports
 import pytest
 # local imports
 import landseg.configs.schema.sections.session as session_schema
+import landseg.session.engine.runtime.builder as runtime_builder
 import landseg.session.engine.runtime.tasks.loss.builder as loss_builder
 import landseg.session.engine.runtime.tasks.metrics.segmentation.builder as metrics_builder
 import landseg.session.engine.runtime.tasks.heads.specs as headspecs
 
+# aliases
+field = dataclasses.field
+
 
 @pytest.fixture
 def mock_hspecs(dataspecs):
+    # see dataspecs fixture @unit/conftest.py
     return headspecs.build_headspecs(dataspecs, alpha_fn='inverse')
-
-    # defined in dataspecs fixture @unit/conftest.py
-    # includes two heads as:
-    # class_counts={
-    #     'head_1': [100, 200],
-    #     'head_2': [50, 150, 250],
-    # },
-    # logits_adjust={
-    #     'head_1': [0.2, 0.1],
-    #     'head_2': [0.1, 0.1, 0.1],
-    # },
-    # head_parent={'head_1': None, 'head_2': None},
-    # head_parent_cls={'head_1': None, 'head_2': None},
 
 
 @pytest.fixture
@@ -90,3 +83,59 @@ def mock_constraint():
             forbidden=forbidden
         )
     return _create
+
+
+@pytest.fixture
+def mock_runtime(dataspecs, mock_dataloaders, mock_model, session_config):
+    return runtime_builder.build_engine_runtime(
+        dataspecs=dataspecs,
+        dataloaders=mock_dataloaders,
+        model=mock_model,
+        config=session_config,
+        device='cpu'
+    )
+
+
+@pytest.fixture
+def mock_dispatcher():
+    return _MockDispatcher()
+
+
+class _MockDispatcher:
+    def __init__(self):
+        self.events: list[str] = []
+
+    def on_train_policy_begin(self):
+        self.events.append('on_train_policy_begin')
+
+    def on_train_policy_end(self, results):
+        _ = results
+        self.events.append('on_train_policy_end')
+
+    def on_val_policy_begin(self):
+        self.events.append('on_val_policy_begin')
+
+    def on_val_policy_end(self, results):
+        _ = results
+        self.events.append('on_val_policy_end')
+
+    def on_infer_policy_begin(self):
+        self.events.append('on_infer_policy_begin')
+
+    def on_infer_policy_end(self, results):
+        _ = results
+        self.events.append('on_infer_policy_end')
+
+    def on_batch_begin(self, mode: str, bidx: int):
+        _ = mode, bidx
+        self.events.append('on_batch_begin')
+
+    def on_train_batch_end(self, bidx: int, results):
+        _ = bidx, results
+        self.events.append('on_train_batch_end')
+
+    def on_val_batch_end(self):
+        self.events.append('on_val_batch_end')
+
+    def on_infer_batch_end(self):
+        self.events.append('on_infer_batch_end')

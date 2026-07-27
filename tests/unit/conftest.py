@@ -36,7 +36,7 @@ def dataspecs(tmp_path):
     # write temp block files
     blk_dict = {
         'image': numpy.random.rand(4, 256, 256), # as per 4 bands
-        'label': numpy.random.randint(1, 4, size=(2, 256, 256)) # two heads
+        'label': numpy.random.randint(1, 3, size=(2, 256, 256)) # two heads
     }
     if not os.path.exists(f'{tmp_path}//train_block.npz'): # just check one
         numpy.savez(f'{tmp_path}//train_block.npz', **blk_dict)
