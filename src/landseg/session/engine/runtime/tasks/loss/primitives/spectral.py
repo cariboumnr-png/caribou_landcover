@@ -210,8 +210,8 @@ class SpectralSmoothnessLoss(primitives.PrimitiveLoss):
         '''Filter and normalize features.'''
         # filter feature channels if indices provided
         if self.spec_idx is not None:
-            self.spec_idx = self.spec_idx.to(features.device)
-            features = features.index_select(1, self.spec_idx)
+            spec_idx = self.spec_idx.to(features.device)
+            features = features.index_select(1, spec_idx)
         # normalize features along channel dimension.
         features = torch.nn.functional.normalize(features, p=2, dim=1) # L2
         return features
