@@ -32,25 +32,17 @@ def test_build_overfit_session(
     session_config,
     dataspecs,
     mock_model,
-    mock_dataloaders,
-    monkeypatch
 ):
     '''
     Given: Data specs, mock model, session config, and logger.
     When: Calling `build_overfit_session`.
     Then: Return `EpochEngine` configured in 'train_eval' mode.
     '''
-    monkeypatch.setattr(
-        'landseg.session.data.build_dataloaders',
-        lambda *args, **kwargs: mock_dataloaders
-    )
-    context = factory_mod.SessionBuildContext(device='cpu')
-
     engine_session = factory_mod.build_overfit_session(
         dataspecs=dataspecs,
         model=mock_model,
         config=session_config,
-        context=context,
+        context=_get_context(),
     )
 
     assert isinstance(engine_session, epoch_mod.EpochEngine)
@@ -61,25 +53,17 @@ def test_build_evaluate_session(
     session_config,
     dataspecs,
     mock_model,
-    mock_dataloaders,
-    monkeypatch
 ):
     '''
     Given: Data specs, mock model, session config, and logger.
     When: Calling `build_evaluate_session`.
     Then: Return `EpochEngine` configured in 'eval_only' mode.
     '''
-    monkeypatch.setattr(
-        'landseg.session.data.build_dataloaders',
-        lambda *args, **kwargs: mock_dataloaders
-    )
-    context = factory_mod.SessionBuildContext(device='cpu')
-
     engine_session = factory_mod.build_evaluate_session(
         dataspecs=dataspecs,
         model=mock_model,
         config=session_config,
-        context=context,
+        context=_get_context(),
     )
 
     assert isinstance(engine_session, epoch_mod.EpochEngine)
@@ -90,30 +74,49 @@ def test_build_continuous_training_session(
     session_config,
     dataspecs,
     mock_model,
-    mock_dataloaders,
     mock_session_paths,
-    monkeypatch
 ):
     '''
     Given: Valid session context with results paths manager.
     When: Calling `build_continous_training_session`.
     Then: Return `ContinuousRunner` orchestrator.
     '''
-    monkeypatch.setattr(
-        'landseg.session.data.build_dataloaders',
-        lambda *args, **kwargs: mock_dataloaders
-    )
-
-    context = factory_mod.SessionBuildContext(
-        device='cpu',
-        session_paths=mock_session_paths
-    )
-
     runner = factory_mod.build_continous_training_session(
         dataspecs=dataspecs,
         model=mock_model,
         config=session_config,
-        context=context,
+        context=_get_context(session_paths=mock_session_paths),
     )
 
     assert isinstance(runner, orchestration_mod.ContinuousRunner)
+
+
+def test_build_curriculum_training_session(
+    session_config,
+    dataspecs,
+    mock_model,
+    mock_session_paths,
+):
+    '''
+    Given: Valid session context with results paths manager.
+    When: Calling `build_curriculum_training_session`.
+    Then: Return `CurriculumRunner` orchestrator.
+    '''
+    session_config.orchestration.curriculum.schema = 'baseline'
+    runner = factory_mod.build_curriculum_training_session(
+        dataspecs=dataspecs,
+        model=mock_model,
+        config=session_config,
+        context=_get_context(session_paths=mock_session_paths),
+    )
+
+    assert isinstance(runner, orchestration_mod.CurriculumRunner)
+
+
+# ----- internal helpers
+def _get_context(**kwargs):
+    return factory_mod.SessionBuildContext(
+        device='cpu',
+        eval_dataset=kwargs.get('eval_dataset', 'val'),
+        session_paths=kwargs.get('session_paths')
+    )
