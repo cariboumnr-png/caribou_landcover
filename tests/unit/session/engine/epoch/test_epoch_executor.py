@@ -75,7 +75,7 @@ def test_epoch_engine_init(trainer_and_evaluator):
     assert epoch_engine.mode == 'train_eval'
     assert epoch_engine.trainer is trainer
     assert epoch_engine.evaluator is evaluator
-    assert epoch_engine.training_sample_size == 4 # one block, 4 patches
+    assert epoch_engine.training_batch_count == 4 # one block, 4 patches
 
 
 def test_epoch_engine_train_size_no_trainer(trainer_and_evaluator):
@@ -92,7 +92,7 @@ def test_epoch_engine_train_size_no_trainer(trainer_and_evaluator):
         evaluator=evaluator
     )
 
-    assert epoch_engine.training_sample_size == 0
+    assert epoch_engine.training_batch_count == 0
 
 
 # ----- `run_epoch` execution tests

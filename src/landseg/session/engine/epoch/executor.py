@@ -103,7 +103,7 @@ class EpochEngine:
         self.evaluator: policy.MultiHeadEvaluator | None = evaluator
 
     @property
-    def training_sample_size(self) -> int:
+    def training_batch_count(self) -> int:
         '''Returns total number of training samples of the epoch.'''
         if not self.trainer:
             return 0
