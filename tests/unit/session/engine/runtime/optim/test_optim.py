@@ -117,6 +117,7 @@ def test_optimization_step_scheduler_active(mock_model):
     opt_wrap = optim.Optimization(optimizer, scheduler=sched)
 
     initial_lr = opt_wrap.lrs[0]
+    opt_wrap.step_optimizer()
     opt_wrap.step_scheduler()
     assert opt_wrap.lrs[0] != initial_lr
 
