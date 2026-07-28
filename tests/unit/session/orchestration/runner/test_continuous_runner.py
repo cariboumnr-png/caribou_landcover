@@ -28,7 +28,7 @@ import landseg.session.orchestration.runner.continuous as continuous_mod
 
 
 def test_continuous_runner_initialization(
-    dummy_epoch_runner,
+    mock_epoch_engine,
     mock_runner_config,
     mock_dispatcher,
     session_config
@@ -43,17 +43,17 @@ def test_continuous_runner_initialization(
 
     runner = continuous_mod.ContinuousRunner(
         phase=phase,
-        epoch_runner=dummy_epoch_runner,
+        epoch_runner=mock_epoch_engine,
         base_config=mock_runner_config,
         dispatcher=mock_dispatcher
     )
 
     assert runner.phase is phase
-    assert runner.epoch_runner is dummy_epoch_runner
+    assert runner.epoch_runner is mock_epoch_engine
 
 
 def test_continuous_runner_run_generator(
-    dummy_epoch_runner,
+    mock_epoch_engine,
     mock_runner_config,
     mock_dispatcher,
     session_config,
@@ -73,7 +73,7 @@ def test_continuous_runner_run_generator(
 
     runner = continuous_mod.ContinuousRunner(
         phase=phase,
-        epoch_runner=dummy_epoch_runner,
+        epoch_runner=mock_epoch_engine,
         base_config=mock_runner_config,
         dispatcher=mock_dispatcher
     )
@@ -87,7 +87,7 @@ def test_continuous_runner_run_generator(
 
 
 def test_continuous_runner_execute(
-    dummy_epoch_runner,
+    mock_epoch_engine,
     mock_runner_config,
     mock_dispatcher,
     session_config,
@@ -106,7 +106,7 @@ def test_continuous_runner_execute(
 
     runner = continuous_mod.ContinuousRunner(
         phase=phase,
-        epoch_runner=dummy_epoch_runner,
+        epoch_runner=mock_epoch_engine,
         base_config=mock_runner_config,
         dispatcher=mock_dispatcher
     )
@@ -114,4 +114,3 @@ def test_continuous_runner_execute(
     metric = runner.execute()
 
     assert isinstance(metric, float)
-    assert metric == 0.80

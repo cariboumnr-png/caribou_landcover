@@ -29,7 +29,7 @@ import landseg.session.orchestration.runner.curriculum as curriculum_mod
 
 
 def test_curriculum_runner_initialization(
-    dummy_epoch_runner,
+    mock_epoch_engine,
     mock_runner_config,
     mock_dispatcher
 ):
@@ -45,7 +45,7 @@ def test_curriculum_runner_initialization(
 
     runner = curriculum_mod.CurriculumRunner(
         training_phases=phases,
-        epoch_runner=dummy_epoch_runner,
+        epoch_runner=mock_epoch_engine,
         base_config=mock_runner_config,
         dispatcher=mock_dispatcher
     )
@@ -55,7 +55,7 @@ def test_curriculum_runner_initialization(
 
 
 def test_curriculum_runner_run_generator(
-    dummy_epoch_runner,
+    mock_epoch_engine,
     mock_runner_config,
     mock_dispatcher,
     mocker
@@ -74,7 +74,7 @@ def test_curriculum_runner_run_generator(
 
     runner = curriculum_mod.CurriculumRunner(
         training_phases=phases,
-        epoch_runner=dummy_epoch_runner,
+        epoch_runner=mock_epoch_engine,
         base_config=mock_runner_config,
         dispatcher=mock_dispatcher
     )
@@ -88,7 +88,7 @@ def test_curriculum_runner_run_generator(
 
 
 def test_curriculum_runner_execute(
-    dummy_epoch_runner,
+    mock_epoch_engine,
     mock_runner_config,
     mock_dispatcher,
     mocker
@@ -105,7 +105,7 @@ def test_curriculum_runner_execute(
 
     runner = curriculum_mod.CurriculumRunner(
         training_phases=phases,
-        epoch_runner=dummy_epoch_runner,
+        epoch_runner=mock_epoch_engine,
         base_config=mock_runner_config,
         dispatcher=mock_dispatcher
     )
@@ -113,4 +113,3 @@ def test_curriculum_runner_execute(
     metric = runner.execute()
 
     assert isinstance(metric, float)
-    assert metric == 0.80

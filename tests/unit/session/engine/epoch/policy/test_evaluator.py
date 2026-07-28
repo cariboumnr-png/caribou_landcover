@@ -59,13 +59,15 @@ def test_evaluator_init(mock_runtime, mock_dataloaders, mock_dispatcher):
 def test_evaluator_validate_interval_skip(
     mock_runtime,
     mock_dataloaders,
-    mock_dispatcher
+    mock_dispatcher,
+    mocker
 ):
     '''
     Given: `MultiHeadEvaluator` with `val_every=2`.
     When: Calling `validate` with epoch=1.
     Then: Return None without executing validation loop.
     '''
+    on_begin = mocker.spy(mock_dispatcher, 'on_val_policy_begin')
     evaluator = eval_mod.MultiHeadEvaluator(
         val_every=2,
         engine_runtime=mock_runtime,
@@ -77,19 +79,22 @@ def test_evaluator_validate_interval_skip(
     result = evaluator.validate(epoch=1)
 
     assert result is None
-    assert 'on_val_policy_begin' not in mock_dispatcher.events
+    on_begin.assert_not_called()
 
 
 def test_evaluator_validate(
     mock_runtime,
     mock_dataloaders,
-    mock_dispatcher
+    mock_dispatcher,
+    mocker
 ):
     '''
     Given: `MultiHeadEvaluator` configured with active heads.
     When: Calling `validate` on valid epoch boundary (epoch=2).
     Then: Run validation, compute metrics, and return `ValStepResults`.
     '''
+    on_begin = mocker.spy(mock_dispatcher, 'on_val_policy_begin')
+    on_end = mocker.spy(mock_dispatcher, 'on_val_policy_end')
     evaluator = eval_mod.MultiHeadEvaluator(
         val_every=2,
         engine_runtime=mock_runtime,
@@ -103,21 +108,24 @@ def test_evaluator_validate(
 
     assert isinstance(results, core.ValStepResults)
     assert 'head_1' in results.head_metrics
-    assert 'on_val_policy_begin' in mock_dispatcher.events
-    assert 'on_val_policy_end' in mock_dispatcher.events
+    on_begin.assert_called_once()
+    on_end.assert_called_once_with(results)
 
 
 # ----- `infer` and patch stitching execution tests
 def test_evaluator_infer(
     mock_runtime,
     mock_dataloaders,
-    mock_dispatcher
+    mock_dispatcher,
+    mocker
 ):
     '''
     Given: `MultiHeadEvaluator` with active heads and spatial patch context.
     When: Calling `infer` on valid epoch boundary.
     Then: Run continuous inference, stitch patches, and return `InferStepResults`.
     '''
+    on_begin = mocker.spy(mock_dispatcher, 'on_infer_policy_begin')
+    on_end = mocker.spy(mock_dispatcher, 'on_infer_policy_end')
     evaluator = eval_mod.MultiHeadEvaluator(
         infer_every=1,
         engine_runtime=mock_runtime,
@@ -138,5 +146,5 @@ def test_evaluator_infer(
     assert isinstance(results, core.InferStepResults)
     assert 'head_1' in results.head_metrics
     assert 'head_1' in results.infer_preds
-    assert 'on_infer_policy_begin' in mock_dispatcher.events
-    assert 'on_infer_policy_end' in mock_dispatcher.events
+    on_begin.assert_called_once()
+    on_end.assert_called_once_with(results)

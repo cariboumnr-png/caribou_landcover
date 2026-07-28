@@ -55,13 +55,17 @@ def test_trainer_init(mock_runtime, mock_dataloaders, mock_dispatcher):
 def test_trainer_train_one_epoch(
     mock_runtime,
     mock_dataloaders,
-    mock_dispatcher
+    mock_dispatcher,
+    mocker
 ):
     '''
     Given: Configured `MultiHeadTrainer`.
     When: Executing `train_one_epoch(epoch=1)`.
     Then: Iterates training batches, updates state, and returns `TrainStepResults`.
     '''
+    on_begin = mocker.spy(mock_dispatcher, 'on_train_policy_begin')
+    on_end = mocker.spy(mock_dispatcher, 'on_train_policy_end')
+    on_batch_end = mocker.spy(mock_dispatcher, 'on_train_batch_end')
     trainer = trainer_mod.MultiHeadTrainer(
         update_every=1,
         engine_runtime=mock_runtime,
@@ -76,9 +80,9 @@ def test_trainer_train_one_epoch(
     assert isinstance(results, core.TrainStepResults)
     assert trainer.state.progress.epoch == 1        # started from 0
     assert trainer.state.progress.global_step == 1  # started from 0
-    assert 'on_train_policy_begin' in mock_dispatcher.events
-    assert 'on_train_policy_end' in mock_dispatcher.events
-    assert 'on_train_batch_end' in mock_dispatcher.events
+    on_begin.assert_called_once()
+    on_end.assert_called_once_with(results)
+    assert on_batch_end.call_count == 1
 
 
 # ----- `_clip_grad` gradient clipping tests

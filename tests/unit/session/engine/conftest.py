@@ -31,7 +31,6 @@ import dataclasses
 import pytest
 # local imports
 import landseg.configs.schema.sections.session as session_schema
-import landseg.session.engine.runtime.builder as runtime_builder
 import landseg.session.engine.runtime.tasks.loss.builder as loss_builder
 import landseg.session.engine.runtime.tasks.metrics.segmentation.builder as metrics_builder
 import landseg.session.engine.runtime.tasks.heads.specs as headspecs
@@ -81,61 +80,5 @@ def mock_constraint():
             trigger_val=trigger_val,
             target_head=target_head,
             forbidden=forbidden
-        )
-    return _create
-
-
-@pytest.fixture
-def mock_runtime(dataspecs, mock_dataloaders, mock_model, session_config):
-    return runtime_builder.build_engine_runtime(
-        dataspecs=dataspecs,
-        dataloaders=mock_dataloaders,
-        model=mock_model,
-        config=session_config,
-        device='cpu'
     )
-
-
-@pytest.fixture
-def mock_dispatcher():
-    return _MockDispatcher()
-
-
-class _MockDispatcher:
-    def __init__(self):
-        self.events: list[str] = []
-
-    def on_train_policy_begin(self):
-        self.events.append('on_train_policy_begin')
-
-    def on_train_policy_end(self, results):
-        _ = results
-        self.events.append('on_train_policy_end')
-
-    def on_val_policy_begin(self):
-        self.events.append('on_val_policy_begin')
-
-    def on_val_policy_end(self, results):
-        _ = results
-        self.events.append('on_val_policy_end')
-
-    def on_infer_policy_begin(self):
-        self.events.append('on_infer_policy_begin')
-
-    def on_infer_policy_end(self, results):
-        _ = results
-        self.events.append('on_infer_policy_end')
-
-    def on_batch_begin(self, mode: str, bidx: int):
-        _ = mode, bidx
-        self.events.append('on_batch_begin')
-
-    def on_train_batch_end(self, bidx: int, results):
-        _ = bidx, results
-        self.events.append('on_train_batch_end')
-
-    def on_val_batch_end(self):
-        self.events.append('on_val_batch_end')
-
-    def on_infer_batch_end(self):
-        self.events.append('on_infer_batch_end')
+    return _create

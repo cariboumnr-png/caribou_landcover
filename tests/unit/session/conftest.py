@@ -32,6 +32,15 @@ import torch
 import landseg.artifacts as artifacts
 import landseg.configs.schema.sections.session as session_schema
 import landseg.session.data.loader as data_loader
+import landseg.session.engine.epoch.policy.evaluator as eval_mod
+import landseg.session.engine.epoch.policy.trainer as trainer_mod
+import landseg.session.engine.runtime.builder as runtime_builder
+import landseg.session.instrumentation.callbacks as callbacks_mod
+
+
+@pytest.fixture
+def mock_model():
+    return _MockMultiheadModel()
 
 
 @pytest.fixture
@@ -50,9 +59,43 @@ def mock_dataloaders(dataspecs, session_config):
 
 
 @pytest.fixture
-def mock_model():
-    return _MockMultiheadModel()
+def mock_runtime(dataspecs, mock_dataloaders, mock_model, session_config):
+    return runtime_builder.build_engine_runtime(
+        dataspecs=dataspecs,
+        dataloaders=mock_dataloaders,
+        model=mock_model,
+        config=session_config,
+        device='cpu'
+    )
 
+
+@pytest.fixture
+def mock_dispatcher():
+    return callbacks_mod.CallbackDispatcher([])
+
+
+@pytest.fixture
+def mock_evaluator(mock_runtime, mock_dataloaders, mock_dispatcher):
+    return eval_mod.MultiHeadEvaluator(
+        val_every=1,
+        infer_every=1,
+        dataset='val',
+        engine_runtime=mock_runtime,
+        dataloaders=mock_dataloaders,
+        dispatcher=mock_dispatcher,
+        device='cpu'
+    )
+
+
+@pytest.fixture
+def mock_trainer(mock_runtime, mock_dataloaders, mock_dispatcher):
+    return trainer_mod.MultiHeadTrainer(
+        update_every=1,
+        engine_runtime=mock_runtime,
+        dataloaders=mock_dataloaders,
+        dispatcher=mock_dispatcher,
+        device='cpu'
+    )
 
 # ----- mock helper classes
 class _MockMultiheadModel(torch.nn.Module):
