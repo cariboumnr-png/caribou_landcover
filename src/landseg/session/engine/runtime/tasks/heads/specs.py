@@ -48,8 +48,7 @@ class HeadSpec:
     parent_head: str | None
     parent_cls: int | None # 1-based
     exclude_cls: tuple[int, ...] | None
-    weight: float = 1.0 # here each head has the default weight of 1.0
-    # TODO but the weights are not altered downstream, e.g., via user cfg
+    weight: float = 1.0 # default weight for loss scaling across heads
 
 # --------------------------------Public  Class--------------------------------
 class HeadSpecs:
@@ -84,7 +83,8 @@ def build_headspecs(
     *,
     alpha_fn: str,
     en_beta: float | None = None,
-    excluded_cls: dict[str, list[int]] | None = None
+    excluded_cls: dict[str, list[int]] | None = None,
+    head_weights: dict[str, float] | None = None,
 ) -> HeadSpecs:
     '''
     Construct per-head specifications from dataset metadata.
@@ -102,6 +102,8 @@ def build_headspecs(
             when ``alpha_fn='effective_n'``).
         excluded_cls: Optional mapping of head names to class indices to
             ignore.
+        head_weights: Optional mapping of head names to scalar loss
+            weights.
 
     Returns:
         HeadSpecs:
@@ -114,7 +116,7 @@ def build_headspecs(
     Notes:
         - Class weights are normalized per head.
         - Class indices in ``exclude_cls`` are assumed to be 1-based.
-        - Head weights default to 1.0 and can be adjusted later.
+        - Head weights default to 1.0 if unspecified for a head.
     '''
 
     # currently supported alpha compute functions
@@ -148,6 +150,7 @@ def build_headspecs(
     # iterate heads in data and create headspec for each
     for name, counts in data.heads.class_counts.items():
         exclude = tuple(excluded_cls.get(name, [])) if excluded_cls else None
+        weight = head_weights.get(name, 1.0) if head_weights and name in head_weights else 1.0
         headspec = heads.HeadSpec(
             name=name,
             count=counts,
@@ -155,6 +158,7 @@ def build_headspecs(
             parent_head=data.heads.head_parent[name],
             parent_cls=data.heads.head_parent_cls[name],
             exclude_cls=exclude,
+            weight=weight,
         )
         headspecs_dict[name] = headspec
 

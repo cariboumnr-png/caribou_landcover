@@ -97,3 +97,6 @@ model-train:
   # Tasks/heads to train. [] or null means all heads are active.
   # Heads Must be defined in dataset_config.json
   active_tasks: []
+  # Per-head/task loss weighting map (e.g., {head_1: 1.0, head_2: 0.5}).
+  # Default {} uses 1.0 for all.
+  head_weights: {}

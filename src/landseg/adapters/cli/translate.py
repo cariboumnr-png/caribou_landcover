@@ -134,6 +134,8 @@ def _translate_model_train(
         'conditioners': ['models.conditioners'],
         'patch_size': ['session.data_loader.patch_size'],
         'batch_size': ['session.data_loader.batch_size'],
+        'head_weights': ['session.engine_tasks.head_weights'],
+        'task_weights': ['session.engine_tasks.head_weights'],
     }
     _apply_mapping(rt, translated, mapping)
 

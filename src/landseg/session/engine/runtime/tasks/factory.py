@@ -53,6 +53,8 @@ class TaskConfigShape(typing.Protocol):
     @property
     def excluded_cls(self) -> dict[str, list[int]] | None: ...
     @property
+    def head_weights(self) -> dict[str, float] | None: ...
+    @property
     def loss_configs(self) -> loss.CompositeLossConfig: ...
     @property
     def mtl_constraints(self) -> typing.Sequence[constraints.MTLConstraint] | None: ...
@@ -104,7 +106,8 @@ def build_engine_tasks(
         data_specs,
         alpha_fn=config.alpha_fn,
         en_beta=config.en_beta,
-        excluded_cls=config.excluded_cls
+        excluded_cls=config.excluded_cls,
+        head_weights=config.head_weights
     )
 
     # per-head loss

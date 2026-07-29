@@ -82,6 +82,24 @@ def test_headspecs_build_success(dataspecs, alpha_fn):
     assert isinstance(specs.as_dict()['head_2'], head_specs.HeadSpec)
 
 
+def test_headspecs_build_with_head_weights(dataspecs):
+    '''
+    Given: `DataSpecs` fixture and custom `head_weights`.
+    When: `build_headspecs()` is called.
+    Then: Specified head weights are set on corresponding `HeadSpec` instances.
+    '''
+    specs = head_specs.build_headspecs(
+        dataspecs,
+        alpha_fn='effective_n',
+        en_beta=0.999,
+        excluded_cls=None,
+        head_weights={'head_1': 2.5}
+    )
+
+    assert specs['head_1'].weight == 2.5
+    assert specs['head_2'].weight == 1.0
+
+
 def test_count_to_inv_weights():
     '''
     Given: Class counts.

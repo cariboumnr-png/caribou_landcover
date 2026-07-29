@@ -96,10 +96,12 @@ class BaseConfigurator:
         logit_adjust_alpha: float,
         exclude_classes: dict[str, list[int]] | None,
         loss_weights: dict[str, float],
+        head_weights: dict[str, float] | None = None,
     ) -> typing.Self:
         '''Set engine tasks.'''
         self._cfg.session.engine_exec.logit_adjust_alpha = logit_adjust_alpha
         self._cfg.session.engine_tasks.excluded_cls = exclude_classes
+        self._cfg.session.engine_tasks.head_weights = head_weights
         losses = self._cfg.session.engine_tasks.loss_configs
         losses.focal.weight = loss_weights.get('focal', 0.5)
         losses.dice.weight = loss_weights.get('dice', 0.5)

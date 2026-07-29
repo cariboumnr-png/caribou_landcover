@@ -4,6 +4,7 @@
 alpha_fn: 'effective_n' # effective_n | inverse
 en_beta: 0.999
 excluded_cls: {}
+head_weights: {}
 
 # perhead losses
 loss_configs:

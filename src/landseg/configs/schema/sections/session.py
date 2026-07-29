@@ -121,6 +121,7 @@ class _TasksConfig:
     alpha_fn: str = 'effective_n'
     en_beta: float = 0.999
     excluded_cls: dict[str, list[int]] | None = None
+    head_weights: dict[str, float] | None = None
     loss_configs: _LossTypesConfig = field(default_factory=_LossTypesConfig)
     mtl_constraints: list[_MTLConstraints] | None = None
     mtl_reg_configs: _MTLRegularization = field(default_factory=_MTLRegularization)
@@ -130,6 +131,9 @@ class _TasksConfig:
             case 'effective_n': utils.must_within(self.en_beta, 'EN beta', 0, 1)
             case 'inverse': pass
             case _: raise ValueError('Invalid loss alpha function')
+        if self.head_weights:
+            for head_name, w in self.head_weights.items():
+                utils.must_within(w, f'{head_name} head weight', 0)
         utils.must_within(self.loss_configs.focal.weight, 'focal loss weight', 0)
         utils.must_within(self.loss_configs.dice.weight, 'dice loss weight', 0)
         utils.must_within(self.loss_configs.spectral.weight, 'spectral loss weight', 0)
