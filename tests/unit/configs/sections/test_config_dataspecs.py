@@ -19,52 +19,29 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=protected-access
+
 '''
-Unit tests for `landseg.configs.schema.sections.pipeline`.
+Unit tests for `landseg.configs.schema.sections.dataspecs`.
 '''
 
 # local imports
-import landseg.configs.schema.sections.pipeline as pipeline
+import landseg.configs.schema.sections.dataspecs as dataspecs
 
 
-# ----- `PipelineConfig` tests
-def test_pipeline_config_defaults() -> None:
-    '''verify `PipelineConfig` default sub-configurations and field values.'''
-    cfg = pipeline.PipelineConfig()
-    assert cfg.name == 'default'
-    assert isinstance(cfg.model_train, pipeline._TrainModel)
-    assert isinstance(cfg.model_evaluate, pipeline._EvaluateModel)
-    assert isinstance(cfg.study_sweep, pipeline._StudySweep)
-
-    assert cfg.model_evaluate.checkpoint is None
-    assert cfg.model_evaluate.split == 'test'
-    assert cfg.model_evaluate.export_previews is False
-
-    assert cfg.study_sweep.study_name == 'study_test'
-    assert cfg.study_sweep.preset_name == 'base'
-    assert cfg.study_sweep.n_trials == 50
+# ----- `DataSpecs` tests
+def test_data_specs_default_instantiation() -> None:
+    '''verify `DataSpecs` default attribute values.'''
+    specs = dataspecs.DataSpecs()
+    assert specs.domain_ids_name is None
+    assert specs.domain_vec_name is None
 
 
-def test_pipeline_config_custom_initialization() -> None:
-    '''verify `PipelineConfig` initialization with custom values.'''
-    eval_cfg = pipeline._EvaluateModel(
-        checkpoint='/path/to/ckpt.pt',
-        split='val',
-        export_previews=True,
+def test_data_specs_custom_values() -> None:
+    '''verify `DataSpecs` assignment with custom domain names.'''
+    specs = dataspecs.DataSpecs(
+        domain_ids_name='eco_region',
+        domain_vec_name='climate_vec',
     )
-    sweep_cfg = pipeline._StudySweep(
-        study_name='custom_study',
-        n_trials=100,
-    )
-    cfg = pipeline.PipelineConfig(
-        name='experiment_1',
-        model_evaluate=eval_cfg,
-        study_sweep=sweep_cfg,
-    )
-
-    assert cfg.name == 'experiment_1'
-    assert cfg.model_evaluate.checkpoint == '/path/to/ckpt.pt'
-    assert cfg.model_evaluate.split == 'val'
-    assert cfg.model_evaluate.export_previews is True
-    assert cfg.study_sweep.study_name == 'custom_study'
-    assert cfg.study_sweep.n_trials == 100
+    assert specs.domain_ids_name == 'eco_region'
+    assert specs.domain_vec_name == 'climate_vec'
