@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -282,6 +282,17 @@ def _track_metrics(
     mtl_metrics: dict[str, float] | None = None
 ) -> float:
     '''Track metrics as per configuration.'''
+
+    if track_heads is not None:
+
+        if not isinstance(track_heads, dict):
+            raise ValueError(
+                f'Invalid tracking head type: {type(track_heads)}, '
+                f'expect a dict[str, float] if not `None`'
+            )
+
+        if not all(isinstance(v, (float, int)) for v in track_heads.values()):
+            raise ValueError('All track head weights need to be a number')
 
     match metric_name.lower():
         case 'gem':

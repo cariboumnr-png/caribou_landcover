@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -61,6 +61,7 @@ Notes:
     division; a cumulative index array is unnecessary.
 '''
 
+
 from __future__ import annotations
 # standard imports
 import collections
@@ -73,55 +74,57 @@ import torchvision.transforms.functional
 # local imports
 import landseg.session.common.alias as alias
 
-# ------------------------------Public  Dataclass------------------------------
-@dataclasses.dataclass
-class BlockConfig:
-    '''
-    Simple dataclass to hold block processing config.
 
-    This dataclass holds the parameters that control how an image block
-    is split into uniform patches and whether simple augmentations
-    (horizontal/vertical flips) are applied. It can also carry optional
-    per-block domain features - categorical IDs or continuous covariate
-    vectors to be attached to each returned sample.
+@dataclasses.dataclass
+class BlockDatasetContext:
+    '''
+    Configuration for partitioning data blocks into patches and attaching
+    optional per-block domain features.
+
+    The configuration defines how square image blocks are partitioned
+    into uniformly sized patches, identifies the image and label arrays
+    stored in each block `.npz` file, and optionally supplies per-block
+    domain metadata to be attached to every returned sample.
 
     Attributes:
-        augment_flip (bool): Whether to apply random horizontal/vertical
-            flips to both image and label tensors during sampling.
-        block_size (int): Size (pxs) of the square input block (H == W).
-        patch_size (int): Size (pxs) of each square patch extracted.
-        domain_map (dict | None): Optional mapping from a block ID to a
-            domain feature dictionary. Each dict value should be either
-            an `int` (categorical ID) or a `list[float]` (vector of
-            continuous features).
-        patch_per_dim (int): Derived number of patches per spatial
-            dimension, set in `__post_init__`.
-        patch_per_block (int): Derived total patches per block, set in
-            `__post_init__`.
+        block_src: Mapping of block names and `.npz` file paths
+        block_size: Side length (pixels) of each square data block.
+        patch_size: Side length (pixels) of each square patch.
+        image_key: Name of the image array in each `.npz` file.
+        label_key: Name of the label array in each `.npz` file.
+        ids_domain: Mapping {blk name: categorical domain ID}.
+        vec_domain: Mapping {blk name: continuous domain feature vector}.
 
     Raises:
-        AssertionError: If `block_size < patch_size` or `block_size` is
-            not divisible by `patch_size`.
+        ValueError: If `block_size` is smaller than `patch_size`, or if
+            `block_size` is not evenly divisible by `patch_size`.
     '''
-
+    block_src: dict[str, str]
     block_size: int
     patch_size: int
-    array_keys: dict[str, str]
+    image_key: str
+    label_key: str
     ids_domain: dict[str, int] | None = None
     vec_domain: dict[str, list[float]] | None = None
-    patch_per_dim: int = dataclasses.field(init=False)
-    patch_per_blk: int = dataclasses.field(init=False)
 
     def __post_init__(self):
-        assert self.block_size >= self.patch_size
-        assert self.block_size % self.patch_size == 0
-        self.patch_per_dim = int(self.block_size // self.patch_size)
-        self.patch_per_blk = self.patch_per_dim ** 2
+        if self.block_size < self.patch_size:
+            raise ValueError('Data block size must > dataset patch size')
 
-    def __repr__(self):
-        return repr(dataclasses.asdict(self))
+        if self.block_size % self.patch_size != 0:
+            raise ValueError('Data block size must be divisible by patch size')
 
-# ------------------------------private dataclass------------------------------
+    @property
+    def patch_per_dim(self) -> int:
+        '''Return the number of patches along each spatial dimension.'''
+        return int(self.block_size // self.patch_size)
+
+    @property
+    def patch_per_blk(self) -> int:
+        '''Return total number of patches extracted from one block.'''
+        return self.patch_per_dim ** 2
+
+
 @dataclasses.dataclass
 class _MultiBlockData:
     '''Small container for multiblock data.'''
@@ -129,7 +132,7 @@ class _MultiBlockData:
     lbl: numpy.ndarray | _CacheDict = dataclasses.field(init=False)
     dom: list[alias.TorchDict] | _CacheDict = dataclasses.field(init=False)
 
-# --------------------------------Public  Class--------------------------------
+
 class MultiBlockDataset(torch.utils.data.Dataset):
     '''
     Unified dataset over multiple block .npz files with patch extraction
@@ -139,12 +142,10 @@ class MultiBlockDataset(torch.utils.data.Dataset):
     patches `(x, y, dom)` for training segmentation models.
 
     Operating modes:
-    * `preload=True`: eagerly loads all blocks, patchifies, and keeps
-        arrays in memory. Ideal for validation (static across epochs).
-
-    * `preload=False`: lazy mapping from a global index to (block, local
-        patch), loads only the needed block into a small cache. Ideal
-        for large training sets.
+    * preload=True: eagerly load, patchify, and concatenate all blocks
+        into RAM. Samples are indexed directly from contiguous arrays.
+    * preload=False: lazily map a global index to (block_idx, patch_idx),
+        loading patchified blocks on demand into a small LRU-like cache.
 
     The optional `domain_map` in `BlockConfig` is consulted per block;
     when present, a per-block domain dict is attached to each returned
@@ -152,16 +153,17 @@ class MultiBlockDataset(torch.utils.data.Dataset):
     to `torch.float32`.
 
     Attributes:
-        fpaths (list[str]): List of block file paths (`.npz`).
-        preload (bool): Whether to preload or stream.
-        block_config (BlockConfig): Block config see the dataclass.
-        _imgs: Storage for image patches. `list[ndarray]` if preload,
-            `_CacheDict` if streaming.
-        _lbls: Storage for label patches. `list[ndarray]` if preload,
-            `_CacheDict` if streaming.
-        _doms: Storage for domain. `list[dict]` if preload, `_CacheDict`
-            if streaming.
-        _len (int): Total number of patches across all blocks.
+        fpaths (list[str]):
+            List of block file paths (`.npz`).
+        preload (bool):
+            Whether to preload or stream.
+        block_config (BlockConfig):
+            Block config see the dataclass.
+        data (_MultiBlockData):
+            Storage for images, labels, and domains. In preload mode,
+            image and label arrays are concatenated into NumPy arrays
+            and domains are stored as a list. In streaming mode, each
+            field is backed by a `_CacheDict`.
 
     Raises:
         ValueError: If patch extraction fails for a block due to shape
@@ -170,68 +172,77 @@ class MultiBlockDataset(torch.utils.data.Dataset):
 
     def __init__(
         self,
-        block_src: dict[str, str],
-        config: BlockConfig,
+        context: BlockDatasetContext,
         *,
-        preload: bool = False,
         augment_flip: bool = False,
-        **kwargs
+        preload: bool = False,
+        blk_cache_num: int = 16
     ):
         '''
         Initialize the dataset over multiple data blocks (.npz files).
 
         Args:
-            fpaths (dict[str, str]): Block name: paths to `.npz` files.
-            blk_cfg (BlockConfig): Tiling, augmentation & domain config.
-            preload (bool): If `True`, load and patchify all blocks into
-                RAM; else stream with an LRU-like cache.
-            blk_cache_num (int): Max number of blocks to keep in cache.
+            block_src:
+                Mapping of block name to `.npz` path.
+            config:
+                Dataset tiling and domain configuration.
+            preload:
+                If True, eagerly load all blocks.
+            augment_flip:
+                Apply random horizontal/vertical flips when labels are
+                present.
+            blk_cache_num:
+                Maximum number of streamed blocks to retain in cache.
+                Passed via `kwargs`.
         '''
         super().__init__()
 
-        self.blks = block_src
-        self.blk_cfg = config
-        self.preload = preload
-        self.aug_flip = augment_flip
+        self.ctx = context
+        self._preload = preload
+        self._aug_flip = augment_flip
 
         self.data = _MultiBlockData()
         self._counter: tuple[int, int] = (0, 0)
 
-        if self.preload: # load all files into one dataset
+        if self._preload: # load all files into one dataset
             _imgs: list[numpy.ndarray] = []
             _lbls: list[numpy.ndarray] = []
             self.data.dom = []
             # no progress bar if logger is silent
-            for blk_name, blk_fpath in block_src.items():
-                dom = self._get_domain(blk_name)
-                blk_data = _BlockDataset(blk_fpath, config, dom, self.aug_flip)
+            for blk_name, blk_fpath in self.ctx.block_src.items():
+                blk_data = _BlockDataset(
+                    blk_fpath,
+                    context,
+                    self._get_domain(blk_name),
+                    augment_flip=self._aug_flip
+                )
                 _imgs.append(blk_data.imgs)
                 _lbls.append(blk_data.lbls)
-                self.data.dom.extend([blk_data.domain] * config.patch_per_blk)
+                self.data.dom.extend([blk_data.domain] * context.patch_per_blk)
             # concatenate
             self.data.img = numpy.concatenate(_imgs, axis=0)
             self.data.lbl = numpy.concatenate(_lbls, axis=0)
-            self._len = int(self.data.img.shape[0])
-            self._counter = len(block_src), 0
+            self._counter = len(self.ctx.block_src), 0
 
         else: # otherwise streaming
-            blk_cache_num = kwargs.get('blk_cache_num', 16)
-            self._len = self.blk_cfg.patch_per_blk * len(block_src)
             # below not needed for uniform n
             # n =  self.block_config.patch_per_block
             # self.cumulative_i = [n * i for i in range(len(fpaths) + 1)]
             self.data.img = _CacheDict(maxsize=blk_cache_num)
             self.data.lbl = _CacheDict(maxsize=blk_cache_num)
             self.data.dom = _CacheDict(maxsize=blk_cache_num)
-            self._counter = 0, len(block_src)
+            self._counter = 0, len(self.ctx.block_src)
 
     def __len__(self):
-        return self._len
+        return len(self.ctx.block_src) * self.ctx.patch_per_blk
 
     def __getitem__(self, idx: int) -> alias.DatasetItem:
-        if self.preload:
+        if self._preload:
             x = self.data.img[idx].astype(numpy.float32)  # [C, ps, ps]
-            if isinstance(self.data.lbl, numpy.ndarray) and self.data.lbl.ndim == 1:
+            if (
+                isinstance(self.data.lbl, numpy.ndarray) and
+                self.data.lbl.ndim == 1
+            ):
                 y = numpy.array([1])
             else:
                 y = self.data.lbl[idx].astype(numpy.int64)  # [ps, ps]
@@ -241,7 +252,10 @@ class MultiBlockDataset(torch.utils.data.Dataset):
             blk_idx, pch_idx = self._global_to_local(idx)
             self._load_block_to_cache(blk_idx)
             x = self.data.img[blk_idx][pch_idx]
-            if isinstance(self.data.lbl, numpy.ndarray) and self.data.lbl.ndim == 1:
+            if (
+                isinstance(self.data.lbl[blk_idx], numpy.ndarray) and
+                self.data.lbl[blk_idx].ndim == 1
+            ):
                 y = numpy.array([1])
             else:
                 y = self.data.lbl[blk_idx][pch_idx].astype(numpy.int64)  # [ps, ps]
@@ -266,51 +280,52 @@ class MultiBlockDataset(torch.utils.data.Dataset):
 
     def _global_to_local(self, idx: int) -> tuple[int, int]:
         '''Map global patch to block/patch indices (uniform blocks).'''
-
-        blk_idx = idx // self.blk_cfg.patch_per_blk
-        pch_idx = idx % self.blk_cfg.patch_per_blk
+        blk_idx = idx // self.ctx.patch_per_blk
+        pch_idx = idx % self.ctx.patch_per_blk
         return int(blk_idx), int(pch_idx)
 
     def _load_block_to_cache(self, blk_idx: int) -> None:
         '''Load a block into streaming caches if not already present.'''
-
         # skip loading if block already in the cache
         if blk_idx in self.data.img:
             return
         # otherwise proceed
-        blk_name = list(self.blks.keys())[blk_idx] # find blk name by block idx
-        blk_fpath = self.blks[blk_name]
-        dom = self._get_domain(blk_name)
-        blk_data = _BlockDataset(blk_fpath, self.blk_cfg, dom, self.aug_flip)
+        blk_name = list(self.ctx.block_src.keys())[blk_idx] # find blk name by block idx
+        blk_data = _BlockDataset(
+            self.ctx.block_src[blk_name],
+            self.ctx,
+            self._get_domain(blk_name),
+            augment_flip=self._aug_flip
+        )
         self.data.img[blk_idx] = blk_data.imgs.astype(numpy.float32)
         self.data.lbl[blk_idx] = blk_data.lbls.astype(numpy.int64)
         self.data.dom[blk_idx] = blk_data.domain
 
     def _get_domain(self, name: str) -> dict[str, int | list[float] | None]:
         '''Retrieve the per-block domain dict if available.'''
-
         ids: int | None = None
         vec: list[float] | None = None
-        if self.blk_cfg.ids_domain:
-            ids = self.blk_cfg.ids_domain[name]
-        if self.blk_cfg.vec_domain:
-            vec = self.blk_cfg.vec_domain[name]
+        if self.ctx.ids_domain:
+            ids = self.ctx.ids_domain[name]
+        if self.ctx.vec_domain:
+            vec = self.ctx.vec_domain[name]
         return {'ids': ids, 'vec': vec}
 
-# --------------------------------priavte class--------------------------------
+
+
 class _BlockDataset(torch.utils.data.Dataset):
     '''
     Prepare per-patch `(x, y, dom)` samples from a single data block.
 
     This internal dataset:
-      1) Loads a block from `.npz` (image/label/meta).
+      1) Loads a block from `.npz` (expects indexed arrays).
       2) Patchifies the image and label into `(P, C, ps, ps)` and
         `(P, ps, ps)`.
       3) Converts provided per-block domain features into tensors
         (int → long, list[float] → float32) and attaches the same dict
         to each returned patch.
-      4) Optionally applies random horizontal/vertical flips to both
-        image and label.
+      4) Optionally applies synchronized random horizontal and vertical
+        flips to both image and label. Domain tensors are unaffected..
 
     Attributes:
         config (BlockConfig): Tiling and augmentation configuration.
@@ -327,47 +342,41 @@ class _BlockDataset(torch.utils.data.Dataset):
 
     def __init__(
         self,
-        block_fpath: str,
-        block_config: BlockConfig,
-        block_domain: dict[str, int | list[float] | None],
-        augment_flip: bool
+        fpath: str,
+        config: BlockDatasetContext,
+        domains: dict[str, int | list[float] | None],
+        *,
+        augment_flip: bool = False
     ):
         '''
         Initialize the per-block dataset and patchify arrays.
 
         Args:
-            block_fpath (str): Path to the block `.npz` file.
-            block_config (BlockConfig): Tiling and augmentation
-                configuration.
-            block_domain (dict | None): Optional domain dict; integer
-                values are converted to `torch.long` and list-of-floats
-                to `torch.float32`. When absent, `domain` dict is empty.
+            fpath: Path to the block `.npz` file.
+            config:
+            domains:
 
         Raises:
             ValueError: If patch extraction fails due to shape mismatch.
         '''
-
-        # from parent class
         super().__init__()
 
         # process args
-        self.config = block_config
+        self.config = config
         self.domain: alias.TorchDict = {}
         self.augment_flip = augment_flip
 
         # load data directly from npz
-        loaded = numpy.load(block_fpath, allow_pickle=True)
-        img_key = block_config.array_keys.get('image_key')
-        lbl_key = block_config.array_keys.get('label_key')
-        assert img_key in loaded and lbl_key in loaded
+        loaded = numpy.load(fpath, allow_pickle=True)
+        assert config.image_key in loaded and config.label_key in loaded
         try:
-            self.imgs = self._get_patches(loaded[img_key])
-            self.lbls = self._get_patches(loaded[lbl_key])
+            self.imgs = self._get_patches(loaded[config.image_key])
+            self.lbls = self._get_patches(loaded[config.label_key])
         except ValueError as err:
-            raise ValueError(f'Bad patch at {block_fpath}') from err
+            raise ValueError(f'Bad patch at {fpath}') from err
 
         # parse domain if provided
-        for key, dom in block_domain.items():
+        for key, dom in domains.items():
             if isinstance(dom, int):
                 self.domain[key] = torch.tensor(dom, dtype=torch.long)
             elif isinstance(dom, list):
@@ -377,8 +386,12 @@ class _BlockDataset(torch.utils.data.Dataset):
         return self.config.patch_per_blk
 
     def __getitem__(self, idx: int) -> alias.DatasetItem:
-        assert idx in range(self.config.patch_per_blk) # sanity check
+        if not idx in range(self.config.patch_per_blk):
+            raise IndexError(f'Invalid patch idx: {idx}') # sanity check
+
+        # image should always be valid
         x = torch.from_numpy(self.imgs[idx].astype(numpy.float32))
+
         # if label is a placeholder array
         if self.lbls.ndim == 1 and self.lbls.shape == (1,):
             y = torch.empty(0, dtype=torch.long)  # passive placeholder
@@ -397,10 +410,11 @@ class _BlockDataset(torch.utils.data.Dataset):
 
     def _get_patches(self, arr: numpy.ndarray) -> numpy.ndarray:
         '''Patchify a square block into configured patches.'''
-
-        # if input is an unlabeled placeholder. see dataset/blocks/block.py
+        # unlabelled placeholder, e.g., no-ops label array for image-only data
+        # see foundation_data_block.py
         if arr.ndim == 1 and arr.shape == (1,):
             return arr  # keep as-is to signal 'no labels'
+
         # e.g., arr.shape = [C, 256, 256] ps = 128
         # top row to bottom, within each row left to right
         c, h, w = arr.shape # [C, H, W]
@@ -410,6 +424,7 @@ class _BlockDataset(torch.utils.data.Dataset):
         arr = arr.reshape(c, pn, ps, pn, ps) # [C, 2, 128, 2, 128]
         arr = arr.transpose(1, 3, 0, 2, 4)  # [2, 2, C, 128, 128]
         return arr.reshape(pn * pn, c, ps, ps) # [4, C, 128, 128]
+
 
 class _CacheDict(collections.OrderedDict):
     '''

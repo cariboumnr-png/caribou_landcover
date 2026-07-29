@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      (c) King's Printer for Ontario, 2026.                  #
@@ -23,7 +23,31 @@
 # pylint: disable=missing-function-docstring
 
 '''
-doc
+Compilation and validation of multi-task learning constraints.
+
+Constraint configuration uses 1-based class IDs to match dataset labels
+and other user-facing configuration. This module validates those
+constraints against the configured data specifications, then compiles
+them into immutable, tensor-ready constraints containing 0-based class
+indices.
+
+Each constraint describes an invalid relationship between two task
+heads:
+
+    source_head == trigger_val  AND  target_head in forbidden
+
+Compilation validates that:
+
+    - constraint names are unique;
+    - source and target heads exist and are different;
+    - trigger and forbidden class IDs are 1-based;
+    - class IDs are valid for their respective heads.
+
+The compiled constraints can be consumed directly by consistency
+metrics and differentiable regularizers that index class-probability
+tensors.
+
+`compile_constraints` returns `None` when no constraints are configured.
 '''
 
 # standard imports
@@ -32,7 +56,8 @@ import typing
 # local imports
 import landseg.core as core
 
-# --------------------------------Public Type----------------------------------
+
+# ----- input constraint config container shape
 class MTLConstraint(typing.Protocol):
     @property
     def name(self) -> str: ...
@@ -45,7 +70,8 @@ class MTLConstraint(typing.Protocol):
     @property
     def forbidden(self) -> list[int]: ...   # 1-based
 
-# ------------------------------Public  Dataclass------------------------------
+
+# ----- complied constraint container
 @dataclasses.dataclass(frozen=True)
 class CompiledConstraint:
     '''
@@ -61,15 +87,15 @@ class CompiledConstraint:
     target_head: str
     forbidden: tuple[int, ...]      # 0-based indices
 
-# -------------------------------Public Function-------------------------------
+
+# ----- public API
 def compile_constraints(
     mtl_constraints: typing.Sequence[MTLConstraint] | None,
     data_specs: core.DataSpecs
 ) -> list[CompiledConstraint] | None:
     '''Validate constraints against data specifications.'''
-
-    # early exit if list is empty
-    if mtl_constraints is None:
+    # early exit if list is empty or none provided
+    if not bool(mtl_constraints):
         return None
 
     # raise if constraints look duplicated (same names)
@@ -84,53 +110,10 @@ def compile_constraints(
     }
 
     # validate all constraints and return
-    cc: list[CompiledConstraint] = []
+    compiled: list[CompiledConstraint] = []
     for c in mtl_constraints:
-
-        if c.source_head == c.target_head:
-            raise ValueError(
-                f'Source and target heads can not be the same:'
-                f'souce: {c.source_head} vs target: {c.target_head}'
-            )
-
-        if c.source_head not in heads_idx:
-            raise ValueError(
-                f'Invalid source head: {c.source_head}, '
-                f'allowed: {list(heads_idx.keys())}'
-            )
-
-        if c.trigger_val < 1:
-            raise ValueError(
-                f'Constraint {c.name} trigger_val must be 1-based; '
-                f'got: {c.trigger_val}'
-            )
-
-        if c.trigger_val not in heads_idx[c.source_head]:
-            raise ValueError(
-                f'Invalid trigger value: {c.trigger_val}, '
-                f'allowed: {heads_idx[c.source_head]}'
-            )
-
-        if c.target_head not in heads_idx:
-            raise ValueError(
-                f'Invalid target head: {c.target_head}, '
-                f'allowed: {list(heads_idx.keys())}'
-
-            )
-
-        if any(v < 1 for v in c.forbidden):
-            raise ValueError(
-                f'Constraint {c.name} forbidden classes must be 1-based; '
-                f'got: {c.forbidden}'
-        )
-
-        if not all(f in heads_idx[c.target_head] for f in c.forbidden):
-            raise ValueError(
-                f'Invalid forbidden classes: {c.forbidden}, '
-                f'allowed: {heads_idx[c.target_head]}'
-            )
-
-        cc.append(
+        _validate_constraint(c, heads_idx)
+        compiled.append(
             CompiledConstraint(
                 name=c.name,
                 source_head=c.source_head,
@@ -139,5 +122,61 @@ def compile_constraints(
                 forbidden=tuple(v - 1 for v in c.forbidden),
             )
         )
+    return compiled
 
-    return cc if len(cc) > 0 else None
+
+# ----- internal helpers
+def _validate_constraint(
+    constraint: MTLConstraint,
+    heads_idx: dict[str, list[int]]
+) -> None:
+    '''Validate constraint for invalid inputs.'''
+    _prefix = f'Constraint: {constraint.name}'
+    if constraint.source_head == constraint.target_head:
+        raise ValueError(
+            f'{_prefix}: source and target heads can not be the same:'
+            f'{constraint.source_head} == {constraint.target_head}'
+        )
+
+    if constraint.source_head not in heads_idx:
+        raise ValueError(
+            f'{_prefix}: invalid source head; '
+            f'got: {constraint.source_head}; '
+            f'allowed: {list(heads_idx.keys())}'
+        )
+
+    if constraint.trigger_val < 1:
+        raise ValueError(
+            f'{_prefix}: trigger value must be 1-based; '
+            f'got: {constraint.trigger_val}'
+        )
+
+    if constraint.trigger_val not in heads_idx[constraint.source_head]:
+        raise ValueError(
+            f'{_prefix}: trigger value is out of range; '
+            f'got: {constraint.trigger_val}; '
+            f'allowed: {heads_idx[constraint.source_head]}'
+        )
+
+    if constraint.target_head not in heads_idx:
+        raise ValueError(
+            f'{_prefix}: invalid target head; '
+            f'got: {constraint.target_head}; '
+            f'allowed: {list(heads_idx.keys())}'
+        )
+
+    if not constraint.forbidden:
+        raise ValueError(f'{_prefix}: empty forbidden class list provided')
+
+    if any(v < 1 for v in constraint.forbidden):
+        raise ValueError(
+            f'{_prefix}: forbidden classes must be 1-based; '
+            f'got: {constraint.forbidden}'
+        )
+
+    if set(constraint.forbidden) - set(heads_idx[constraint.target_head]):
+        raise ValueError(
+            f'{_prefix}: out of range forbidden classes found; '
+            f'got: {constraint.forbidden}; '
+            f'allowed: {heads_idx[constraint.target_head]}'
+        )

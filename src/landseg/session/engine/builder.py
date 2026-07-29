@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -45,7 +45,6 @@ import landseg.session.engine.runtime.optim as optim
 import landseg.session.engine.runtime.tasks as tasks
 import landseg.session.engine.runtime as runtime
 import landseg.session.instrumentation as instrument
-import landseg.utils as utils
 
 # --------------------------------priavte  type--------------------------------
 class _EpochEngineConfigShape(typing.Protocol):
@@ -75,7 +74,7 @@ class EpochEngineContext:
     model: core.MultiheadModelLike
     dispatcher: instrument.CallbackDispatcher
     device: str
-    logger: utils.Logger
+    logger: common.SessionLogger | None = None
 
 # -------------------------------Public Function-------------------------------
 def build_epoch_engine(

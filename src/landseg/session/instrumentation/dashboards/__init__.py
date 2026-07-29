@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -52,7 +52,7 @@ def __getattr__(name: str):
         return getattr(importlib.import_module('.base', __package__), name)
 
     if name in {'MLFlowTracker'}:
-        return getattr(importlib.import_module('ml_flow', __package__), name)
+        return getattr(importlib.import_module('.ml_flow', __package__), name)
 
     if name in {'TensorBoardTracker'}:
         return getattr(importlib.import_module('.tensor_board', __package__), name)

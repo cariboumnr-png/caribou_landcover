@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -138,11 +138,11 @@ class PhasePolicy:
         )
         # reconfigure optimization per phase
         assert self.runner.trainer
-        phase_batch_n = self.config.num_epochs * self.runner.total_train_batch
+        p_batch_n = self.config.num_epochs * self.runner.training_batch_count
         curr_lr = self.runner.trainer.optimization.lrs[0] # primary
         self.runner.trainer.optimization.reconfigure(
             lr=curr_lr * self.config.lr_scale if self.config.lr_scale else None,
-            sched_args={'T_max': phase_batch_n}
+            sched_args={'T_max': p_batch_n}
         )
 
         # phase starts

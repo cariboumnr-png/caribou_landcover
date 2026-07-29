@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -96,7 +96,7 @@ class Logger:
             log_lvl (int, optional): Logging level for the file handler.
             console_lvl (int, optional): Logging level for the console
                 handler. If None, console logging is disabled.
-            enable_file_log (bool, optional): Whether to write text logs 
+            enable_file_log (bool, optional): Whether to write text logs
             to file.
         '''
 

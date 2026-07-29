@@ -49,6 +49,7 @@ ruff_cache/
 
 # Logs from tools / dev
 *.log
+logs/
 
 # ==============================================================================
 # IDE / EDITOR FILES

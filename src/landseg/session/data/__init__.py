@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -32,7 +32,7 @@ import typing
 
 __all__ = [
     # classes
-    'BlockConfig',
+    'BlockDatasetContext',
     'DataLoaders',
     'MultiBlockDataset',
     # functions
@@ -43,12 +43,12 @@ __all__ = [
 
 # for static check
 if typing.TYPE_CHECKING:
-    from .dataset import BlockConfig, MultiBlockDataset
+    from .dataset import BlockDatasetContext, MultiBlockDataset
     from .loader import DataLoaderConfig, DataLoaders, build_dataloaders
 
 def __getattr__(name: str):
 
-    if name in {'BlockConfig', 'MultiBlockDataset'}:
+    if name in {'BlockDatasetContext', 'MultiBlockDataset'}:
         return getattr(importlib.import_module('.dataset', __package__), name)
 
     if name in {'DataLoaderConfig', 'DataLoaders', 'build_dataloaders'}:

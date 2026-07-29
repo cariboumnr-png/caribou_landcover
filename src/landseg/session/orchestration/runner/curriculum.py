@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -192,8 +192,7 @@ class CurriculumRunner(runner.BaseRunner):
                     case events.CheckpointRequest(tag=tag):
                         self._save_progress(phase.name, is_best=tag=='best')
 
-                # end of current phase
-                if self._is_phase_end:
-                    reason = 'Max epoch reached'
-                    self.dispatcher.on_session_phase_end(phase.name, reason)
-                    break
+                    case events.PhaseEnd:
+                        reason = 'Max epoch reached'
+                        self.dispatcher.on_session_phase_end(phase.name, reason)
+                        break
