@@ -146,15 +146,15 @@ def test_block_dataset_instantiation(tmp_path):
     )
 
 
-def test_block_dataset_getitem_key_error(tmp_path):
+def test_block_dataset_getitem_index_error(tmp_path):
     '''
     Given: A `_BlockDataset` configured with no augment flip.
     When: call `__getitem__` from the class object with invalid key.
-    Then: Raise `KeyError`.
+    Then: Raise `IndexError`.
     '''
     dt = _test_block_dataset(tmp_path, aug_flip=False)
 
-    with pytest.raises(KeyError, match='Invalid patch idx'):
+    with pytest.raises(IndexError, match='Invalid patch idx'):
         _, _, _ = dt[4] # valid: [0, 3]
 
 
