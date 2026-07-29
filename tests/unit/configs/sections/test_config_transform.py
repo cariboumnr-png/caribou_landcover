@@ -33,7 +33,11 @@ import landseg.configs.schema.sections.transform as transform
 
 # ----- `DataTransform` tests
 def test_data_transform_defaults_and_validation() -> None:
-    '''verify `DataTransform` default values and composite validation.'''
+    '''
+    Given: A default `DataTransform` instance.
+    When: Calling `DataTransform.validate()`.
+    Then: Initialize default partition ratios, hydration, and rebuild flags.
+    '''
     dt = transform.DataTransform()
     dt.validate()
 
@@ -44,7 +48,11 @@ def test_data_transform_defaults_and_validation() -> None:
 
 
 def test_catalog_view_validation() -> None:
-    '''verify `_CatalogView` valid pixel threshold validation.'''
+    '''
+    Given: `_CatalogView` instances with valid and out-of-range thresholds.
+    When: `_CatalogView.validate()` is called.
+    Then: Validate pixel threshold boundaries or raise ValueError.
+    '''
     catalog = transform._CatalogView(valid_pxs={'image': 0.8, 'label': 0.95})
     catalog.validate()
 
@@ -54,7 +62,11 @@ def test_catalog_view_validation() -> None:
 
 
 def test_partition_validation() -> None:
-    '''verify `_Partition` ratio boundaries validation.'''
+    '''
+    Given: `_Partition` instances with valid and invalid split ratios.
+    When: `_Partition.validate()` is executed.
+    Then: Accept valid ratio bounds [0.0, 1.0] or raise ValueError.
+    '''
     partition = transform._Partition(val_ratio=0.2, test_ratio=0.1)
     partition.validate()
 
@@ -66,7 +78,11 @@ def test_partition_validation() -> None:
 
 
 def test_scoring_and_hydration_validation() -> None:
-    '''verify `_Scoring` and `_Hydration` validation rules.'''
+    '''
+    Given: `_Scoring` and `_Hydration` sub-configuration objects.
+    When: `.validate()` is called with valid or negative numeric boundaries.
+    Then: Pass valid parameters or raise ValueError for negative rates.
+    '''
     scoring = transform._Scoring(alpha=0.5, beta=0.5)
     scoring.validate()
 

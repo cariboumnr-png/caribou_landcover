@@ -37,7 +37,11 @@ import landseg.artifacts.policy as policy_mod
 
 # ----- `PayloadController` tests
 def test_payload_controller_save_and_load(tmp_path) -> None:
-    '''verify `PayloadController` saving and loading split data and metadata sidecar files.'''
+    '''
+    Given: A split-file data path and structured payload dict.
+    When: `PayloadController.save()` and `PayloadController.load()` are called.
+    Then: Write data file and metadata sidecar, then restore exact payload.
+    '''
     data_path = str(tmp_path / 'catalog.json')
     meta_path = str(tmp_path / 'catalog_meta.json')
 
@@ -66,7 +70,11 @@ def test_payload_controller_save_and_load(tmp_path) -> None:
 
 
 def test_payload_controller_schema_mismatch(tmp_path) -> None:
-    '''verify `PayloadController.load()` raises `ArtifactError` on schema ID mismatch.'''
+    '''
+    Given: A stored payload with schema ID `schema_v1`.
+    When: `PayloadController.load()` is executed expecting `schema_v2_expected`.
+    Then: Raise an `ArtifactError` indicating schema ID mismatch.
+    '''
     data_path = str(tmp_path / 'schema_test.json')
 
     ctrl_writer = payload_mod.PayloadController[dict, dict](
@@ -90,7 +98,11 @@ def test_payload_controller_schema_mismatch(tmp_path) -> None:
 
 
 def test_payload_controller_missing_files(tmp_path) -> None:
-    '''verify `PayloadController.load()` returns None when split files are missing.'''
+    '''
+    Given: A non-existent payload file path.
+    When: `PayloadController.load()` is called under `BUILD_IF_MISSING` policy.
+    Then: Return `None` to indicate missing payload files.
+    '''
     data_path = str(tmp_path / 'non_existent.json')
 
     ctrl = payload_mod.PayloadController[dict, dict](
@@ -103,7 +115,11 @@ def test_payload_controller_missing_files(tmp_path) -> None:
 
 
 def test_payload_controller_save_validation(tmp_path) -> None:
-    '''verify `PayloadController.save()` payload type and required keys validation.'''
+    '''
+    Given: Non-dictionary or missing required keys in payload dictionary.
+    When: Calling `PayloadController.save()`.
+    Then: Raise a TypeError or ValueError validating payload structure.
+    '''
     data_path = str(tmp_path / 'validation.json')
     ctrl = payload_mod.PayloadController[dict, dict](
         data_fpath=data_path,

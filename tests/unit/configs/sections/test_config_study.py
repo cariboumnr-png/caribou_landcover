@@ -31,7 +31,11 @@ import landseg.configs.schema.sections.study as study
 
 # ----- `StudyConfig` tests
 def test_study_config_default_instantiation() -> None:
-    '''verify `StudyConfig` defaults and search space ranges.'''
+    '''
+    Given: Default `StudyConfig` instantiation parameters.
+    When: Instantiating `StudyConfig` without arguments.
+    Then: Initialize sub-objects and hyperparameter search space tuples.
+    '''
     cfg = study.StudyConfig()
 
     assert isinstance(cfg.base, study._BaseObj)
@@ -46,7 +50,11 @@ def test_study_config_default_instantiation() -> None:
 
 
 def test_study_config_custom_objective() -> None:
-    '''verify `StudyConfig` customization of sweep spaces.'''
+    '''
+    Given: A custom `_ArchitectureObj` search space definition.
+    When: Passing custom architecture to `StudyConfig`.
+    Then: Store specified model bodies and base channel choices.
+    '''
     custom_arch = study._ArchitectureObj(
         model_body=['unet'],
         base_channel=(32, 64, 32),

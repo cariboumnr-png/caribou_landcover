@@ -35,7 +35,11 @@ import landseg.artifacts.policy as policy_mod
 
 # ----- `Controller` JSON tests
 def test_json_persist_fetch_and_properties(tmp_path) -> None:
-    '''verify `Controller` JSON persistence, SHA-256 calculation, and integrity checks.'''
+    '''
+    Given: A target JSON file path and serializable dictionary payload.
+    When: `Controller.persist()` and `Controller.fetch()` are executed.
+    Then: Compute valid SHA-256 hash, update `_hash.json`, and return data.
+    '''
     json_path = str(tmp_path / 'data.json')
     ctrl = ctrl_mod.Controller[dict](json_path)
 
@@ -53,7 +57,11 @@ def test_json_persist_fetch_and_properties(tmp_path) -> None:
 
 # ----- `Controller` NPZ dict tests
 def test_npz_dict_persist_and_fetch(tmp_path) -> None:
-    '''verify `Controller` NPZ array dictionary persistence and reconstruction.'''
+    '''
+    Given: A target NPZ file path and a dictionary of NumPy arrays with tuple keys.
+    When: `Controller.persist()` and `Controller.fetch()` are executed.
+    Then: Persist to compressed NPZ and reconstruct arrays with original keys.
+    '''
     npz_path = str(tmp_path / 'tiles.npz')
     ctrl = ctrl_mod.Controller[dict](npz_path)
 
@@ -72,7 +80,11 @@ def test_npz_dict_persist_and_fetch(tmp_path) -> None:
 
 
 def test_npz_write_validation(tmp_path) -> None:
-    '''verify `Controller._npz_write_dict` validation rules for inputs.'''
+    '''
+    Given: An empty dictionary or invalid non-array dictionary values.
+    When: Calling `Controller._npz_write_dict`.
+    Then: Raise a ValueError indicating invalid input payload format.
+    '''
     npz_path = str(tmp_path / 'invalid.npz')
     ctrl = ctrl_mod.Controller[dict](npz_path)
 
@@ -85,7 +97,11 @@ def test_npz_write_validation(tmp_path) -> None:
 
 # ----- `Controller` lifecycle policies tests
 def test_lifecycle_policies_fetch(tmp_path) -> None:
-    '''verify `Controller` fetch behavior under various lifecycle policies.'''
+    '''
+    Given: Artifact controllers configured with `LOAD_OR_FAIL`, `BUILD_IF_MISSING`, or `REBUILD`.
+    When: Invoking `Controller.fetch()`.
+    Then: Enforce policy rules (raise error, return None, or bypass cache).
+    '''
     json_path = str(tmp_path / 'policy_test.json')
 
     # LOAD_OR_FAIL on missing file
@@ -111,7 +127,11 @@ def test_lifecycle_policies_fetch(tmp_path) -> None:
 
 # ----- Integrity mismatch tests
 def test_controller_hash_mismatch_and_corruption(tmp_path) -> None:
-    '''verify `Controller` handling of tampered or corrupted files.'''
+    '''
+    Given: An artifact file whose contents have been modified or corrupted on disk.
+    When: `Controller.fetch()` is executed.
+    Then: Detect hash mismatch or decode failure and raise `ArtifactError`.
+    '''
     json_path = str(tmp_path / 'tampered.json')
     ctrl = ctrl_mod.Controller[dict](json_path)
     ctrl.persist({'key': 'original'})

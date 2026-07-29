@@ -33,7 +33,11 @@ import landseg.configs.schema.sections.foundation as foundation
 
 # ----- `_TileSpecs` tests
 def test_tile_specs_validation() -> None:
-    '''verify `_TileSpecs` validation rules for tile dimensions and stride.'''
+    '''
+    Given: `_TileSpecs` instances with square or non-square dimensions.
+    When: `_TileSpecs.validate()` is invoked.
+    Then: Accept valid square configs or raise ValueError for invalid inputs.
+    '''
     tile_specs = foundation._TileSpecs(
         size_row=256,
         size_col=256,
@@ -67,7 +71,11 @@ def test_tile_specs_validation() -> None:
 
 # ----- `_Grid` tests
 def test_grid_validation(tmp_path) -> None:
-    '''verify `_Grid` validation across modes and CRS formatting.'''
+    '''
+    Given: `_Grid` instances across `ref`, `aoi`, and `tiles` modes.
+    When: `_Grid.validate()` is called with valid or invalid parameters.
+    Then: Pass valid grid definitions and raise ValueError for invalid CRS/mode.
+    '''
     ref_raster = tmp_path / 'ref.tif'
     ref_raster.write_text('raster_data')
 
@@ -136,7 +144,11 @@ def test_grid_validation(tmp_path) -> None:
 
 # ----- `_Domains` tests
 def test_domains_management(tmp_path) -> None:
-    '''verify `_Domains` adding files, name auto-parsing, and validation.'''
+    '''
+    Given: A raster file for domain mapping and index base configuration.
+    When: Adding domain file to `_Domains` and triggering validation.
+    Then: Auto-parse domain name and raise TypeError for invalid index base type.
+    '''
     dom_raster = tmp_path / 'eco_region.tif'
     dom_raster.write_text('raster')
 
@@ -155,7 +167,11 @@ def test_domains_management(tmp_path) -> None:
 
 # ----- `_DataBlocks` & `DataFoundation` tests
 def test_datablocks_and_foundation_validation(tmp_path) -> None:
-    '''verify `_DataBlocks` and `DataFoundation` composite validation logic.'''
+    '''
+    Given: Valid file paths for data blocks and foundation grid settings.
+    When: `_DataBlocks.validate()` and `DataFoundation.validate()` are executed.
+    Then: Ensure test data availability and validate composite foundation configuration.
+    '''
     dev_img = tmp_path / 'dev_img.tif'
     dev_lbl = tmp_path / 'dev_lbl.tif'
     cfg_json = tmp_path / 'cfg.json'

@@ -33,7 +33,11 @@ import landseg.configs.schema.utils as utils
 
 # ----- `file_exists` & `must_exist` tests
 def test_file_exists_and_must_exist(tmp_path) -> None:
-    '''verify `file_exists` and `must_exist` with valid and non-existent paths.'''
+    '''
+    Given: Existing and non-existent file paths.
+    When: `file_exists` and `must_exist` helper functions are called.
+    Then: Return boolean existence flags or raise FileNotFoundError for missing path.
+    '''
     dummy_file = tmp_path / 'test.txt'
     dummy_file.write_text('content')
 
@@ -51,7 +55,11 @@ def test_file_exists_and_must_exist(tmp_path) -> None:
 
 # ----- `must_within` tests
 def test_must_within_validation() -> None:
-    '''verify `must_within` numeric range validation and non-numeric handling.'''
+    '''
+    Given: Numeric values, non-numeric values, and lower/upper range boundaries.
+    When: `must_within` validation function is executed.
+    Then: Pass valid/non-numeric inputs and raise ValueError for out-of-bounds numbers.
+    '''
     # non-numeric values should return early without error
     utils.must_within('string', 'tag', 0, 10)
     utils.must_within(None, 'tag', 0, 10)

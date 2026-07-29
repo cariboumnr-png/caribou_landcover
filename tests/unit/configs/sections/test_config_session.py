@@ -33,7 +33,11 @@ import landseg.configs.schema.sections.session as session_mod
 
 # ----- `SessionConfig` tests
 def test_session_config_defaults_and_validation() -> None:
-    '''verify `SessionConfig` default values and validation in continuous mode.'''
+    '''
+    Given: Default `SessionConfig` instance in continuous mode.
+    When: Setting single phase epochs and calling `SessionConfig.validate()`.
+    Then: Validate default data loader, learning rate, and mode settings.
+    '''
     session = session_mod.SessionConfig()
     session.orchestration.single_phase.num_epochs = 10
     session.validate()
@@ -45,7 +49,11 @@ def test_session_config_defaults_and_validation() -> None:
 
 
 def test_session_config_curriculum_mode_validation() -> None:
-    '''verify `SessionConfig` curriculum mode post-init and schema validation.'''
+    '''
+    Given: A `SessionConfig` configured in curriculum mode.
+    When: `SessionConfig.validate()` is called before and after schema setup.
+    Then: Enforce early stop flags and require non-single curriculum schemas.
+    '''
     session = session_mod.SessionConfig(mode='curriculum')
     # post_init should set allow_early_stop to False for curriculum
     assert session.orchestration.monitor.allow_early_stop is False
@@ -61,14 +69,22 @@ def test_session_config_curriculum_mode_validation() -> None:
 
 
 def test_session_config_invalid_mode() -> None:
-    '''verify `SessionConfig` error on invalid mode string.'''
+    '''
+    Given: A `SessionConfig` with an unrecognized mode string.
+    When: `SessionConfig.validate()` is executed.
+    Then: Raise a ValueError indicating invalid execution mode.
+    '''
     session = session_mod.SessionConfig(mode='invalid_mode')
     with pytest.raises(ValueError, match='Invalid mode: invalid_mode'):
         session.validate()
 
 
 def test_session_subsections_validation() -> None:
-    '''verify sub-component validation rules across data loader and optim.'''
+    '''
+    Given: Sub-component configs (`_DataLoaderConfig`, `_OptimConfig`, `_Phase`).
+    When: Calling `.validate()` on invalid parameter combinations.
+    Then: Raise ValueError for negative patch sizes, missing T_max, or bad epochs.
+    '''
     # data loader validation for negative size
     with pytest.raises(ValueError, match='data patch size'):
         session_mod._DataLoaderConfig(patch_size=-1).validate()

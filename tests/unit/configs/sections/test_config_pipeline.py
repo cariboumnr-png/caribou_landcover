@@ -31,7 +31,11 @@ import landseg.configs.schema.sections.pipeline as pipeline
 
 # ----- `PipelineConfig` tests
 def test_pipeline_config_defaults() -> None:
-    '''verify `PipelineConfig` default sub-configurations and field values.'''
+    '''
+    Given: Default instantiation parameters for `PipelineConfig`.
+    When: Instantiating `PipelineConfig` without arguments.
+    Then: Initialize default pipeline name, evaluate settings, and sweep trial counts.
+    '''
     cfg = pipeline.PipelineConfig()
     assert cfg.name == 'default'
     assert isinstance(cfg.model_train, pipeline._TrainModel)
@@ -48,7 +52,11 @@ def test_pipeline_config_defaults() -> None:
 
 
 def test_pipeline_config_custom_initialization() -> None:
-    '''verify `PipelineConfig` initialization with custom values.'''
+    '''
+    Given: Custom `_EvaluateModel` and `_StudySweep` sub-configuration objects.
+    When: Instantiating `PipelineConfig` with custom objects.
+    Then: Store specified sub-configurations on corresponding attributes.
+    '''
     eval_cfg = pipeline._EvaluateModel(
         checkpoint='/path/to/ckpt.pt',
         split='val',

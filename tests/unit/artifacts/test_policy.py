@@ -29,7 +29,11 @@ import landseg.artifacts.policy as policy_mod
 
 # ----- `LifecyclePolicy` tests
 def test_lifecycle_policy_members() -> None:
-    '''verify `LifecyclePolicy` enum members and identity.'''
+    '''
+    Given: The `LifecyclePolicy` enumeration.
+    When: Accessing enum members and member count.
+    Then: Verify member names and total member count match expected policies.
+    '''
     assert policy_mod.LifecyclePolicy.LOAD_ONLY.name == 'LOAD_ONLY'
     assert policy_mod.LifecyclePolicy.LOAD_OR_FAIL.name == 'LOAD_OR_FAIL'
     assert policy_mod.LifecyclePolicy.BUILD_IF_MISSING.name == 'BUILD_IF_MISSING'

@@ -33,14 +33,22 @@ import landseg.artifacts.paths as paths_mod
 
 # ----- `ArtifactPaths` & Foundation tests
 def test_artifact_paths_hierarchy() -> None:
-    '''verify `ArtifactPaths` namespaces and child path construction.'''
+    '''
+    Given: An experiment root directory string.
+    When: Instantiating `ArtifactPaths`.
+    Then: Return correctly joined child `foundation` and `transform` namespaces.
+    '''
     art = paths_mod.ArtifactPaths(root='/tmp/exp')
     assert art.foundation.root == os.path.join('/tmp/exp', 'foundation')
     assert art.transform.root == os.path.join('/tmp/exp', 'transform')
 
 
 def test_foundation_paths() -> None:
-    '''verify `FoundationPaths` properties and sub-containers.'''
+    '''
+    Given: A foundation root directory string.
+    When: Accessing `FoundationPaths` properties and sub-container helpers.
+    Then: Return expected report, config, world grid, and domain map filepaths.
+    '''
     f = '/tmp/exp/foundation'
     f_paths = paths_mod.FoundationPaths(root=f)
     assert f_paths.report == os.path.join(f, 'ingest_report.json')
@@ -63,7 +71,11 @@ def test_foundation_paths() -> None:
 
 
 def test_data_blocks_paths() -> None:
-    '''verify `_DataBlocks` and `_DataBlockPaths` dev/test properties.'''
+    '''
+    Given: A data blocks root directory string.
+    When: Accessing `_DataBlocks` dev/test block paths and window mapping methods.
+    Then: Return expected model dev and test holdout artifact file paths.
+    '''
     db = paths_mod._DataBlocks(root='/tmp/exp/foundation/data_blocks')
 
     d = '/tmp/exp/foundation/data_blocks/model_dev'
@@ -77,7 +89,11 @@ def test_data_blocks_paths() -> None:
 
 # ----- `TransformPaths` tests
 def test_transform_paths() -> None:
-    '''verify `TransformPaths` properties and sub-paths.'''
+    '''
+    Given: A transform root directory string.
+    When: Accessing `TransformPaths` property endpoints.
+    Then: Return canonical file and directory paths for transformed datasets.
+    '''
     t = '/tmp/exp/transform'
     t_paths = paths_mod.TransformPaths(root=t)
 
@@ -100,7 +116,11 @@ def test_transform_paths() -> None:
 
 # ----- `ResultsPaths` tests
 def test_results_paths_init_and_checkpoints(tmp_path) -> None:
-    '''verify `ResultsPaths` initialization, run folder creation, and checkpoint paths.'''
+    '''
+    Given: A results root directory path.
+    When: Initializing `ResultsPaths` across multiple runs and tracing options.
+    Then: Auto-increment run IDs, create subdirectories, and build checkpoint paths.
+    '''
     results = paths_mod.ResultsPaths(results_root=str(tmp_path))
     results.init()
 

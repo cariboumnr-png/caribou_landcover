@@ -32,7 +32,11 @@ import landseg.configs.schema.sections as sec
 
 # ----- `RootConfig` tests
 def test_root_config_defaults_and_as_dict() -> None:
-    '''verify `RootConfig` default initializations and dictionary conversion.'''
+    '''
+    Given: Default `RootConfig` instantiation parameters.
+    When: Instantiating `RootConfig` and calling `.as_dict`.
+    Then: Initialize sub-sections and serialize configuration to dictionary.
+    '''
     root = root_mod.RootConfig()
 
     assert isinstance(root.execution, root_mod._ExecutionContext)
@@ -53,7 +57,11 @@ def test_root_config_defaults_and_as_dict() -> None:
 
 
 def test_root_config_hyperparameter_setters() -> None:
-    '''verify `RootConfig` hyperparameter setter methods.'''
+    '''
+    Given: A default `RootConfig` instance.
+    When: Invoking hyperparameter setter helper methods.
+    Then: Mutate nested session data loader and optimizer fields accordingly.
+    '''
     root = root_mod.RootConfig()
 
     root.set_data_patch_size(256)
@@ -73,7 +81,11 @@ def test_root_config_hyperparameter_setters() -> None:
 
 
 def test_root_config_validate_all(tmp_path) -> None:
-    '''verify `RootConfig.validate_all()` execution with valid file structure.'''
+    '''
+    Given: A `RootConfig` configured with valid foundation files and session.
+    When: `RootConfig.validate_all()` is executed.
+    Then: Complete validation across all configuration sub-sections.
+    '''
     dev_img = tmp_path / 'dev_img.tif'
     dev_lbl = tmp_path / 'dev_lbl.tif'
     cfg_json = tmp_path / 'cfg.json'
