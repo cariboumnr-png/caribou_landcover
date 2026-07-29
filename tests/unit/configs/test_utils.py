@@ -19,34 +19,49 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-# pylint: disable=missing-function-docstring
-
 '''
-Session schema utilities.
+Unit tests for `landseg.configs.schema.utils`.
 '''
 
-# standard imports
-import os
-import typing
+# third-party imports
+import pytest
+# local imports
+import landseg.configs.schema.utils as utils
 
-def file_exists(path: str) -> bool:
-    return os.path.isfile(path) and os.path.exists(path)
 
-def must_exist(path: str | None, tag: str) -> None:
-    if path and not file_exists(path):
-        raise FileNotFoundError(f'File [{tag}] is invalid: {path}')
+# ----- `file_exists` & `must_exist` tests
+def test_file_exists_and_must_exist(tmp_path) -> None:
+    '''verify `file_exists` and `must_exist` with valid and non-existent paths.'''
+    dummy_file = tmp_path / 'test.txt'
+    dummy_file.write_text('content')
 
-def must_within(
-    value: typing.Any,
-    tag: str,
-    mmin: int | float | None = None,
-    mmax: int | float | None = None,
-) -> None:
-    if not isinstance(value, (int, float)):
-        return
-    rr = f'[{mmin}, {mmax}]'
-    if (
-        (mmin is not None and value < mmin) or
-        (mmax is not None and value > mmax)
-    ):
-        raise ValueError(f'Value [{tag}] must be within {rr}, got: {value}')
+    assert utils.file_exists(str(dummy_file)) is True
+    assert utils.file_exists(str(tmp_path / 'missing.txt')) is False
+
+    # must_exist should pass silently for existing file or None
+    utils.must_exist(str(dummy_file), 'dummy')
+    utils.must_exist(None, 'none_path')
+
+    # must_exist should raise FileNotFoundError for missing path
+    with pytest.raises(FileNotFoundError, match='File \\[missing\\] is invalid'):
+        utils.must_exist(str(tmp_path / 'missing.txt'), 'missing')
+
+
+# ----- `must_within` tests
+def test_must_within_validation() -> None:
+    '''verify `must_within` numeric range validation and non-numeric handling.'''
+    # non-numeric values should return early without error
+    utils.must_within('string', 'tag', 0, 10)
+    utils.must_within(None, 'tag', 0, 10)
+
+    # valid numbers within bounds
+    utils.must_within(5, 'tag', 0, 10)
+    utils.must_within(0.5, 'tag', 0.0, 1.0)
+
+    # out of bounds lower
+    with pytest.raises(ValueError, match='Value \\[tag\\] must be within'):
+        utils.must_within(-1, 'tag', 0, 10)
+
+    # out of bounds upper
+    with pytest.raises(ValueError, match='Value \\[tag\\] must be within'):
+        utils.must_within(11, 'tag', 0, 10)

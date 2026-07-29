@@ -19,34 +19,27 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-# pylint: disable=missing-function-docstring
-
 '''
-Session schema utilities.
+Unit tests for `landseg.configs.schema.sections.dataspecs`.
 '''
 
-# standard imports
-import os
-import typing
+# local imports
+import landseg.configs.schema.sections.dataspecs as dataspecs
 
-def file_exists(path: str) -> bool:
-    return os.path.isfile(path) and os.path.exists(path)
 
-def must_exist(path: str | None, tag: str) -> None:
-    if path and not file_exists(path):
-        raise FileNotFoundError(f'File [{tag}] is invalid: {path}')
+# ----- `DataSpecs` tests
+def test_data_specs_default_instantiation() -> None:
+    '''verify `DataSpecs` default attribute values.'''
+    specs = dataspecs.DataSpecs()
+    assert specs.domain_ids_name is None
+    assert specs.domain_vec_name is None
 
-def must_within(
-    value: typing.Any,
-    tag: str,
-    mmin: int | float | None = None,
-    mmax: int | float | None = None,
-) -> None:
-    if not isinstance(value, (int, float)):
-        return
-    rr = f'[{mmin}, {mmax}]'
-    if (
-        (mmin is not None and value < mmin) or
-        (mmax is not None and value > mmax)
-    ):
-        raise ValueError(f'Value [{tag}] must be within {rr}, got: {value}')
+
+def test_data_specs_custom_values() -> None:
+    '''verify `DataSpecs` assignment with custom domain names.'''
+    specs = dataspecs.DataSpecs(
+        domain_ids_name='eco_region',
+        domain_vec_name='climate_vec',
+    )
+    assert specs.domain_ids_name == 'eco_region'
+    assert specs.domain_vec_name == 'climate_vec'
