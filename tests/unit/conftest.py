@@ -30,36 +30,61 @@ import numpy
 import pytest
 # local imports
 import landseg.core as core
+import landseg.geopipe.core as geo_core
+
 
 @pytest.fixture
 def dataspecs(tmp_path):
     # write temp block files
-    blk_dict = {
-        'image': numpy.random.rand(4, 256, 256), # as per 4 bands
-        'label': numpy.random.randint(1, 3, size=(2, 256, 256)) # two heads
-    }
-    if not os.path.exists(f'{tmp_path}//train_block.npz'): # just check one
-        numpy.savez(f'{tmp_path}//train_block.npz', **blk_dict)
-        numpy.savez(f'{tmp_path}//val_block.npz', **blk_dict)
-        numpy.savez(f'{tmp_path}//test_block.npz', **blk_dict)
+    if not os.path.exists(f'{tmp_path}/train_block.npz'):
+        img = numpy.random.rand(4, 256, 256).astype(numpy.float32)
+        lbl = numpy.random.randint(1, 3, size=(2, 256, 256)).astype(numpy.int64)
+        cfg = geo_core.DataBlockConfig(
+            image_band_map={'red': 0, 'green': 1, 'blue': 2, 'dem': 3},
+            image_nodata=numpy.nan,
+            image_dem_pad_px=0,
+            label_ignore_index=255,
+        )
+        label_specs: dict[str, geo_core.LabelSpecs] = {
+            'head_1': {
+                'num_cls': 2,
+                'ignore_cls': [255],
+                'class_name': {'1': 'bg', '2': 'fg'},
+            },
+            'head_2': {
+                'num_cls': 3,
+                'ignore_cls': [255],
+                'class_name': {'0': 'c0', '1': 'c1', '2': 'c2'},
+            },
+        }
+        for name in ('train_block', 'val_block', 'test_block'):
+            inputs = geo_core.DataBlockInputs(
+                block_name=name,
+                image_array=img,
+                image_padded_dem=None,
+                label_array=lbl,
+                label_specs=label_specs,
+            )
+            block = geo_core.DataBlock.build(inputs, cfg)
+            block.save(f'{tmp_path}/{name}.npz')
 
     return core.DataSpecs(
         name="test_dataset",
         mode="default",
         meta=core.Meta(
-            blk_bytes=1024, # dummy value, != acutal size from the npz files
+            blk_bytes=1024,
             test_blks_grid=(1, 1),
             label_color_map=None,
             image_specs=core.Meta.Image(
                 num_channels=4,
                 height_width=256,
                 array_key='image',
-                band_map={'red': 0, 'green': 1, 'blue': 2, 'dem': 3}
+                band_map={'red': 0, 'green': 1, 'blue': 2, 'dem': 3},
             ),
             label_specs=core.Meta.Label(
                 ignore_index=255,
-                array_key='label'
-            )
+                array_key='label',
+            ),
         ),
         heads=core.Heads(
             class_counts={
@@ -74,22 +99,22 @@ def dataspecs(tmp_path):
             head_parent_cls={'head_1': None, 'head_2': None},
         ),
         splits=core.Splits(
-            train={'train_block': f'{tmp_path}//train_block.npz'},
-            val={'val_block': f'{tmp_path}//val_block.npz'},
-            test={'test_block': f'{tmp_path}//test_block.npz'},
+            train={'train_block': f'{tmp_path}/train_block.npz'},
+            val={'val_block': f'{tmp_path}/val_block.npz'},
+            test={'test_block': f'{tmp_path}/test_block.npz'},
         ),
         domains=core.Domains(
-        train=core.Domains.Dom(
+            train=core.Domains.Dom(
                 ids_domain={'train_block': 1},
-                vec_domain={'train_block': [0.1, 0.2]}
+                vec_domain={'train_block': [0.1, 0.2]},
             ),
             val=core.Domains.Dom(
                 ids_domain={'val_block': 2},
-                vec_domain={'val_block': [0.3, 0.4]}
+                vec_domain={'val_block': [0.3, 0.4]},
             ),
             test=core.Domains.Dom(
                 ids_domain={'test_block': 3},
-                vec_domain={'test_block': [0.5, 0.6]}
+                vec_domain={'test_block': [0.5, 0.6]},
             ),
             ids_num=3,
             vec_dim=2,
