@@ -32,7 +32,7 @@ import landseg.configs.schema.sections.transform as transform
 
 
 # ----- `DataTransform` tests
-def test_data_transform_defaults_and_validation() -> None:
+def test_data_transform_defaults_and_validation():
     '''
     Given: A default `DataTransform` instance.
     When: Calling `DataTransform.validate()`.
@@ -47,7 +47,7 @@ def test_data_transform_defaults_and_validation() -> None:
     assert dt.hydration.max_skew_rate == 10.0
 
 
-def test_catalog_view_validation() -> None:
+def test_catalog_view_validation():
     '''
     Given: `_CatalogView` instances with valid and out-of-range thresholds.
     When: `_CatalogView.validate()` is called.
@@ -61,7 +61,7 @@ def test_catalog_view_validation() -> None:
         invalid_catalog.validate()
 
 
-def test_partition_validation() -> None:
+def test_partition_validation():
     '''
     Given: `_Partition` instances with valid and invalid split ratios.
     When: `_Partition.validate()` is executed.
@@ -77,7 +77,7 @@ def test_partition_validation() -> None:
         transform._Partition(test_ratio=1.5).validate()
 
 
-def test_scoring_and_hydration_validation() -> None:
+def test_scoring_and_hydration_validation():
     '''
     Given: `_Scoring` and `_Hydration` sub-configuration objects.
     When: `.validate()` is called with valid or negative numeric boundaries.

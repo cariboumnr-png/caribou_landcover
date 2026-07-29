@@ -28,7 +28,7 @@ import landseg.artifacts.policy as policy_mod
 
 
 # ----- `LifecyclePolicy` tests
-def test_lifecycle_policy_members() -> None:
+def test_lifecycle_policy_members():
     '''
     Given: The `LifecyclePolicy` enumeration.
     When: Accessing enum members and member count.

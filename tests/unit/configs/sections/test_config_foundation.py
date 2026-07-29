@@ -32,7 +32,7 @@ import landseg.configs.schema.sections.foundation as foundation
 
 
 # ----- `_TileSpecs` tests
-def test_tile_specs_validation() -> None:
+def test_tile_specs_validation():
     '''
     Given: `_TileSpecs` instances with square or non-square dimensions.
     When: `_TileSpecs.validate()` is invoked.
@@ -70,7 +70,7 @@ def test_tile_specs_validation() -> None:
 
 
 # ----- `_Grid` tests
-def test_grid_validation(tmp_path) -> None:
+def test_grid_validation(tmp_path):
     '''
     Given: `_Grid` instances across `ref`, `aoi`, and `tiles` modes.
     When: `_Grid.validate()` is called with valid or invalid parameters.
@@ -143,7 +143,7 @@ def test_grid_validation(tmp_path) -> None:
 
 
 # ----- `_Domains` tests
-def test_domains_management(tmp_path) -> None:
+def test_domains_management(tmp_path):
     '''
     Given: A raster file for domain mapping and index base configuration.
     When: Adding domain file to `_Domains` and triggering validation.
@@ -166,7 +166,7 @@ def test_domains_management(tmp_path) -> None:
 
 
 # ----- `_DataBlocks` & `DataFoundation` tests
-def test_datablocks_and_foundation_validation(tmp_path) -> None:
+def test_datablocks_and_foundation_validation(tmp_path):
     '''
     Given: Valid file paths for data blocks and foundation grid settings.
     When: `_DataBlocks.validate()` and `DataFoundation.validate()` are executed.

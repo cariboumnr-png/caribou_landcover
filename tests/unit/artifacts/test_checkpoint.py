@@ -30,7 +30,7 @@ import landseg.artifacts.checkpoint as ckpt_mod
 
 
 # ----- Checkpoint save and load tests
-def test_save_and_load_checkpoint_full(tmp_path) -> None:
+def test_save_and_load_checkpoint_full(tmp_path):
     '''
     Given: Model, optimizer, scheduler instances, and checkpoint metadata.
     When: Calling `save_checkpoint` and then restoring with `load_checkpoint`.
@@ -72,7 +72,7 @@ def test_save_and_load_checkpoint_full(tmp_path) -> None:
         assert torch.equal(p1, p2)
 
 
-def test_load_checkpoint_optional_components(tmp_path) -> None:
+def test_load_checkpoint_optional_components(tmp_path):
     '''
     Given: A saved model checkpoint file without scheduler.
     When: `load_checkpoint` is called in evaluation mode with model only.

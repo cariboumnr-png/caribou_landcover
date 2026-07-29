@@ -36,7 +36,7 @@ import landseg.artifacts.policy as policy_mod
 
 
 # ----- `PayloadController` tests
-def test_payload_controller_save_and_load(tmp_path) -> None:
+def test_payload_controller_save_and_load(tmp_path):
     '''
     Given: A split-file data path and structured payload dict.
     When: `PayloadController.save()` and `PayloadController.load()` are called.
@@ -69,7 +69,7 @@ def test_payload_controller_save_and_load(tmp_path) -> None:
     assert loaded['data'] == {'items': [10, 20, 30]}
 
 
-def test_payload_controller_schema_mismatch(tmp_path) -> None:
+def test_payload_controller_schema_mismatch(tmp_path):
     '''
     Given: A stored payload with schema ID `schema_v1`.
     When: `PayloadController.load()` is executed expecting `schema_v2_expected`.
@@ -97,7 +97,7 @@ def test_payload_controller_schema_mismatch(tmp_path) -> None:
         ctrl_reader.load()
 
 
-def test_payload_controller_missing_files(tmp_path) -> None:
+def test_payload_controller_missing_files(tmp_path):
     '''
     Given: A non-existent payload file path.
     When: `PayloadController.load()` is called under `BUILD_IF_MISSING` policy.
@@ -114,7 +114,7 @@ def test_payload_controller_missing_files(tmp_path) -> None:
     assert ctrl.load() is None
 
 
-def test_payload_controller_save_validation(tmp_path) -> None:
+def test_payload_controller_save_validation(tmp_path):
     '''
     Given: Non-dictionary or missing required keys in payload dictionary.
     When: Calling `PayloadController.save()`.

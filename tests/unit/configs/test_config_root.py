@@ -31,7 +31,7 @@ import landseg.configs.schema.sections as sec
 
 
 # ----- `RootConfig` tests
-def test_root_config_defaults_and_as_dict() -> None:
+def test_root_config_defaults_and_as_dict():
     '''
     Given: Default `RootConfig` instantiation parameters.
     When: Instantiating `RootConfig` and calling `.as_dict`.
@@ -56,7 +56,7 @@ def test_root_config_defaults_and_as_dict() -> None:
     assert 'models' in cfg_dict
 
 
-def test_root_config_hyperparameter_setters() -> None:
+def test_root_config_hyperparameter_setters():
     '''
     Given: A default `RootConfig` instance.
     When: Invoking hyperparameter setter helper methods.
@@ -80,7 +80,7 @@ def test_root_config_hyperparameter_setters() -> None:
     assert root.session.engine_optim.opt_cls == 'Adam'
 
 
-def test_root_config_validate_all(tmp_path) -> None:
+def test_root_config_validate_all(tmp_path):
     '''
     Given: A `RootConfig` configured with valid foundation files and session.
     When: `RootConfig.validate_all()` is executed.

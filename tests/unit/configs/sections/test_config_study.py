@@ -30,7 +30,7 @@ import landseg.configs.schema.sections.study as study
 
 
 # ----- `StudyConfig` tests
-def test_study_config_default_instantiation() -> None:
+def test_study_config_default_instantiation():
     '''
     Given: Default `StudyConfig` instantiation parameters.
     When: Instantiating `StudyConfig` without arguments.
@@ -49,7 +49,7 @@ def test_study_config_default_instantiation() -> None:
     assert cfg.architecture.bottleneck == study.BOTTLENECKS
 
 
-def test_study_config_custom_objective() -> None:
+def test_study_config_custom_objective():
     '''
     Given: A custom `_ArchitectureObj` search space definition.
     When: Passing custom architecture to `StudyConfig`.

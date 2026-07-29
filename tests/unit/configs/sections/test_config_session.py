@@ -32,7 +32,7 @@ import landseg.configs.schema.sections.session as session_mod
 
 
 # ----- `SessionConfig` tests
-def test_session_config_defaults_and_validation() -> None:
+def test_session_config_defaults_and_validation():
     '''
     Given: Default `SessionConfig` instance in continuous mode.
     When: Setting single phase epochs and calling `SessionConfig.validate()`.
@@ -48,7 +48,7 @@ def test_session_config_defaults_and_validation() -> None:
     assert session.engine_optim.lr == 1e-4
 
 
-def test_session_config_curriculum_mode_validation() -> None:
+def test_session_config_curriculum_mode_validation():
     '''
     Given: A `SessionConfig` configured in curriculum mode.
     When: `SessionConfig.validate()` is called before and after schema setup.
@@ -68,7 +68,7 @@ def test_session_config_curriculum_mode_validation() -> None:
     session.validate()
 
 
-def test_session_config_invalid_mode() -> None:
+def test_session_config_invalid_mode():
     '''
     Given: A `SessionConfig` with an unrecognized mode string.
     When: `SessionConfig.validate()` is executed.
@@ -79,7 +79,7 @@ def test_session_config_invalid_mode() -> None:
         session.validate()
 
 
-def test_session_subsections_validation() -> None:
+def test_session_subsections_validation():
     '''
     Given: Sub-component configs (`_DataLoaderConfig`, `_OptimConfig`, `_Phase`).
     When: Calling `.validate()` on invalid parameter combinations.

@@ -32,7 +32,7 @@ import landseg.artifacts.paths as paths_mod
 
 
 # ----- `ArtifactPaths` & Foundation tests
-def test_artifact_paths_hierarchy() -> None:
+def test_artifact_paths_hierarchy():
     '''
     Given: An experiment root directory string.
     When: Instantiating `ArtifactPaths`.
@@ -44,7 +44,7 @@ def test_artifact_paths_hierarchy() -> None:
     assert art.transform.root == os.path.join(r, 'transform')
 
 
-def test_foundation_paths() -> None:
+def test_foundation_paths():
     '''
     Given: A foundation root directory string.
     When: Accessing `FoundationPaths` properties and sub-container helpers.
@@ -71,7 +71,7 @@ def test_foundation_paths() -> None:
     assert mapped_tiles == os.path.join(d_dir, expected_npz)
 
 
-def test_data_blocks_paths() -> None:
+def test_data_blocks_paths():
     '''
     Given: A data blocks root directory string.
     When: Accessing `_DataBlocks` dev/test block paths and window mapping methods.
@@ -90,7 +90,7 @@ def test_data_blocks_paths() -> None:
 
 
 # ----- `TransformPaths` tests
-def test_transform_paths() -> None:
+def test_transform_paths():
     '''
     Given: A transform root directory string.
     When: Accessing `TransformPaths` property endpoints.
@@ -117,7 +117,7 @@ def test_transform_paths() -> None:
 
 
 # ----- `ResultsPaths` tests
-def test_results_paths_init_and_checkpoints(tmp_path) -> None:
+def test_results_paths_init_and_checkpoints(tmp_path):
     '''
     Given: A results root directory path.
     When: Initializing `ResultsPaths` across multiple runs and tracing options.

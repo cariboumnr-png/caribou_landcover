@@ -34,7 +34,7 @@ import landseg.artifacts.policy as policy_mod
 
 
 # ----- `Controller` JSON tests
-def test_json_persist_fetch_and_properties(tmp_path) -> None:
+def test_json_persist_fetch_and_properties(tmp_path):
     '''
     Given: A target JSON file path and serializable dictionary payload.
     When: `Controller.persist()` and `Controller.fetch()` are executed.
@@ -56,7 +56,7 @@ def test_json_persist_fetch_and_properties(tmp_path) -> None:
 
 
 # ----- `Controller` NPZ dict tests
-def test_npz_dict_persist_and_fetch(tmp_path) -> None:
+def test_npz_dict_persist_and_fetch(tmp_path):
     '''
     Given: A target NPZ file path and a dictionary of NumPy arrays with tuple keys.
     When: `Controller.persist()` and `Controller.fetch()` are executed.
@@ -79,7 +79,7 @@ def test_npz_dict_persist_and_fetch(tmp_path) -> None:
     assert numpy.array_equal(loaded[(0, 1)], arr2)
 
 
-def test_npz_write_validation(tmp_path) -> None:
+def test_npz_write_validation(tmp_path):
     '''
     Given: An empty dictionary or invalid non-array dictionary values.
     When: Calling `Controller._npz_write_dict`.
@@ -96,7 +96,7 @@ def test_npz_write_validation(tmp_path) -> None:
 
 
 # ----- `Controller` lifecycle policies tests
-def test_lifecycle_policies_fetch(tmp_path) -> None:
+def test_lifecycle_policies_fetch(tmp_path):
     '''
     Given: Artifact controllers configured with `LOAD_OR_FAIL`, `BUILD_IF_MISSING`, or `REBUILD`.
     When: Invoking `Controller.fetch()`.
@@ -126,7 +126,7 @@ def test_lifecycle_policies_fetch(tmp_path) -> None:
 
 
 # ----- Integrity mismatch tests
-def test_controller_hash_mismatch_and_corruption(tmp_path) -> None:
+def test_controller_hash_mismatch_and_corruption(tmp_path):
     '''
     Given: An artifact file whose contents have been modified or corrupted on disk.
     When: `Controller.fetch()` is executed.

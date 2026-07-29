@@ -30,7 +30,7 @@ import landseg.configs.schema.sections.dataspecs as dataspecs
 
 
 # ----- `DataSpecs` tests
-def test_data_specs_default_instantiation() -> None:
+def test_data_specs_default_instantiation():
     '''
     Given: Default `DataSpecs` instantiation parameters.
     When: Creating a `DataSpecs` instance without arguments.
@@ -41,7 +41,7 @@ def test_data_specs_default_instantiation() -> None:
     assert specs.domain_vec_name is None
 
 
-def test_data_specs_custom_values() -> None:
+def test_data_specs_custom_values():
     '''
     Given: Explicit domain names for IDs and vector representations.
     When: Instantiating `DataSpecs` with custom strings.

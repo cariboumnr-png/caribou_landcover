@@ -30,7 +30,7 @@ import landseg.configs.schema.sections.pipeline as pipeline
 
 
 # ----- `PipelineConfig` tests
-def test_pipeline_config_defaults() -> None:
+def test_pipeline_config_defaults():
     '''
     Given: Default instantiation parameters for `PipelineConfig`.
     When: Instantiating `PipelineConfig` without arguments.
@@ -51,7 +51,7 @@ def test_pipeline_config_defaults() -> None:
     assert cfg.study_sweep.n_trials == 50
 
 
-def test_pipeline_config_custom_initialization() -> None:
+def test_pipeline_config_custom_initialization():
     '''
     Given: Custom `_EvaluateModel` and `_StudySweep` sub-configuration objects.
     When: Instantiating `PipelineConfig` with custom objects.

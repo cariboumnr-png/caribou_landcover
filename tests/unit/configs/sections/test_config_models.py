@@ -32,7 +32,7 @@ import landseg.configs.schema.sections.models as models
 
 
 # ----- `ModelsConfig` tests
-def test_models_config_defaults_and_getters() -> None:
+def test_models_config_defaults_and_getters():
     '''
     Given: A default `ModelsConfig` instance.
     When: Accessing backbone properties, modifying base channels, and reading conditioners.
@@ -60,7 +60,7 @@ def test_models_config_defaults_and_getters() -> None:
     assert isinstance(cond_map['concat'], models._Concat)
 
 
-def test_models_config_validation_failures() -> None:
+def test_models_config_validation_failures():
     '''
     Given: `ModelsConfig` instances with invalid model body, conditioner, or clamp ordering.
     When: `ModelsConfig.validate()` is called.

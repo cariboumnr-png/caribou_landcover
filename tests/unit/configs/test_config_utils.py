@@ -32,7 +32,7 @@ import landseg.configs.schema.utils as utils
 
 
 # ----- `file_exists` & `must_exist` tests
-def test_file_exists_and_must_exist(tmp_path) -> None:
+def test_file_exists_and_must_exist(tmp_path):
     '''
     Given: Existing and non-existent file paths.
     When: `file_exists` and `must_exist` helper functions are called.
@@ -54,7 +54,7 @@ def test_file_exists_and_must_exist(tmp_path) -> None:
 
 
 # ----- `must_within` tests
-def test_must_within_validation() -> None:
+def test_must_within_validation():
     '''
     Given: Numeric values, non-numeric values, and lower/upper range boundaries.
     When: `must_within` validation function is executed.
