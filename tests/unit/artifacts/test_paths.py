@@ -38,9 +38,10 @@ def test_artifact_paths_hierarchy() -> None:
     When: Instantiating `ArtifactPaths`.
     Then: Return correctly joined child `foundation` and `transform` namespaces.
     '''
-    art = paths_mod.ArtifactPaths(root='/tmp/exp')
-    assert art.foundation.root == os.path.join('/tmp/exp', 'foundation')
-    assert art.transform.root == os.path.join('/tmp/exp', 'transform')
+    r = os.path.join('/tmp', 'exp')
+    art = paths_mod.ArtifactPaths(root=r)
+    assert art.foundation.root == os.path.join(r, 'foundation')
+    assert art.transform.root == os.path.join(r, 'transform')
 
 
 def test_foundation_paths() -> None:
@@ -49,7 +50,7 @@ def test_foundation_paths() -> None:
     When: Accessing `FoundationPaths` properties and sub-container helpers.
     Then: Return expected report, config, world grid, and domain map filepaths.
     '''
-    f = '/tmp/exp/foundation'
+    f = os.path.join('/tmp', 'exp', 'foundation')
     f_paths = paths_mod.FoundationPaths(root=f)
     assert f_paths.report == os.path.join(f, 'ingest_report.json')
     assert f_paths.config == os.path.join(f, 'config.json')
@@ -76,9 +77,10 @@ def test_data_blocks_paths() -> None:
     When: Accessing `_DataBlocks` dev/test block paths and window mapping methods.
     Then: Return expected model dev and test holdout artifact file paths.
     '''
-    db = paths_mod._DataBlocks(root='/tmp/exp/foundation/data_blocks')
+    b = os.path.join('/tmp', 'exp', 'foundation', 'data_blocks')
+    db = paths_mod._DataBlocks(root=b)
 
-    d = '/tmp/exp/foundation/data_blocks/model_dev'
+    d = os.path.join(b, 'model_dev')
     assert db.dev.blocks == os.path.join(d, 'blocks')
     assert db.dev.catalog == os.path.join(d, 'catalog.json')
     assert db.dev.schema == os.path.join(d, 'schema.json')
@@ -94,7 +96,7 @@ def test_transform_paths() -> None:
     When: Accessing `TransformPaths` property endpoints.
     Then: Return canonical file and directory paths for transformed datasets.
     '''
-    t = '/tmp/exp/transform'
+    t = os.path.join('/tmp', 'exp', 'transform')
     t_paths = paths_mod.TransformPaths(root=t)
 
     assert t_paths.report == os.path.join(t, 'prep_report.json')
