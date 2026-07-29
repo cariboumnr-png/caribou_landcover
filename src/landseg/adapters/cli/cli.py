@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright (c) His Majesty the King in right of Ontario,           #
+#           Copyright © His Majesty the King in right of Ontario,           #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -44,7 +44,7 @@ def main(config: omegaconf.DictConfig) -> typing.Any:
     '''Run the selected CLI pipeline with resolved configuration.'''
 
     # cli logger
-    # use platform-agnostic temp directory 
+    # use platform-agnostic temp directory
     # /tmp is databricks compute node friendly
     logger = utils.Logger('cli', os.path.join(tempfile.gettempdir(), 'cli.log'))
 
