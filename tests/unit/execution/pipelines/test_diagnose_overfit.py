@@ -26,6 +26,7 @@ Unit tests for diagnose overfit pipeline (diagnose_overfit.py).
 '''
 
 # standard imports
+import json
 import os
 import shutil
 import typing
@@ -46,26 +47,19 @@ def test_prepare_dataspecs(tmp_path, dataspecs):
     Then: Return a valid DataSpecs instance with correct shape and meta.
     '''
     block_fpath = dataspecs.splits.train['train_block']
-    overfit_dpath = str(tmp_path / 'results' / 'overfit_test')
-    os.makedirs(overfit_dpath, exist_ok=True)
-    shutil.copy(block_fpath, os.path.join(overfit_dpath, 'test_block.npz'))
+    dd = str(tmp_path / 'results' / 'overfit_test')
+    os.makedirs(dd, exist_ok=True)
+    shutil.copy(block_fpath, os.path.join(dd, 'test_block.npz'))
 
-    cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
-    cfg_schema.execution.exp_root = str(tmp_path)
-    config = typing.cast(
-        configs.RootConfig,
-        omegaconf.OmegaConf.to_object(cfg_schema)
-    )
+    schema = omegaconf.OmegaConf.structured(configs.RootConfig)
+    schema.execution.exp_root = str(tmp_path)
+    cfg = typing.cast(configs.RootConfig, omegaconf.OmegaConf.to_object(schema))
 
-    logger = session.SessionLogger(
-        'test_overfit', log_file=f'{overfit_dpath}/test.json'
-    )
-    specs = overfit_pipeline._prepare_dataspecs(
-        overfit_dpath, config, logger
-    )
+    logger = session.SessionLogger('test_overfit', log_file=f'{dd}/test.json')
+    specs = overfit_pipeline._prepare_dataspecs(dd, cfg, logger)
 
     assert isinstance(specs, core.DataSpecs)
-    assert specs.mode == 'single'
+    assert specs.mode == 'default'
     assert specs.meta.image_specs.num_channels == 4
     assert specs.meta.image_specs.height_width == 256
     assert 'head_1' in specs.heads.class_counts
@@ -74,12 +68,14 @@ def test_prepare_dataspecs(tmp_path, dataspecs):
 
 
 # ----- `overfit` pipeline mock test
-def test_overfit_pipeline_with_existing_block(tmp_path, dataspecs):
+def test_overfit_pipeline_with_existing_block(tmp_path, dataspecs, monkeypatch):
     '''
     Given: A RootConfig and an existing block in output directory.
     When: `overfit` pipeline executes.
     Then: Successfully load existing block, set up model and run overfit.
     '''
+    monkeypatch.setattr(overfit_pipeline.c, 'OVERFIT_MAX_EPOCH', 2)
+
     block_fpath = dataspecs.splits.train['train_block']
     exp_root = str(tmp_path / 'exp')
     overfit_dpath = f'{exp_root}/results/overfit_test'
@@ -87,19 +83,23 @@ def test_overfit_pipeline_with_existing_block(tmp_path, dataspecs):
     shutil.copy(block_fpath, os.path.join(overfit_dpath, 'test_block.npz'))
 
     # compose config with OmegaConf
-    cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
-    cfg_schema.execution.exp_root = exp_root
+    schema = omegaconf.OmegaConf.structured(configs.RootConfig)
+    schema.execution.exp_root = exp_root
 
     # override session & models for fast overfit test
-    cfg_schema.session.orchestration.monitor.track_heads = {'head_1': 1.0}
-    cfg_schema.session.data_loader.patch_size = 16
-    cfg_schema.models.model_body_registry.unet.base_ch = 8
+    schema.session.orchestration.monitor.track_heads = {'head_1': 1.0}
+    schema.session.data_loader.patch_size = 16
+    schema.models.model_body_registry.unet.base_ch = 8
 
-    config = typing.cast(
-        configs.RootConfig,
-        omegaconf.OmegaConf.to_object(cfg_schema)
-    )
+    cfg = typing.cast(configs.RootConfig, omegaconf.OmegaConf.to_object(schema))
 
-    overfit_pipeline.overfit(config)
+    overfit_pipeline.overfit(cfg)
 
-    assert os.path.exists(f'{overfit_dpath}/log/overfit_summary.json')
+    summary_fpath = f'{overfit_dpath}/log/overfit_summary.json'
+    assert os.path.exists(summary_fpath)
+    with open(summary_fpath, 'r', encoding='utf-8') as f:
+        summary_data = json.load(f)
+
+    assert summary_data['summary_status'] == 'FAILED'
+    assert summary_data['results']['overfit_reached'] is False
+    assert summary_data['results']['final_epoch'] == 2

@@ -43,6 +43,7 @@ import landseg.geopipe.utils as geo_utils
 import landseg.models as models
 import landseg.session as session
 import landseg.session.engine as engine
+import landseg.session.factory as session_factory
 
 # aliases
 DatasetConfigCtrl = artifacts.Controller[dict[str, typing.Any]]
@@ -90,7 +91,7 @@ def overfit(config: configs.RootConfig) -> None:
             clamp_range=config.models.numeric_safety.clamp_range,
         )
 
-        runner = session.factory.build_overfit_session(
+        runner = session_factory.build_overfit_session(
             dataspecs=dataspecs,
             model=model,
             config=config.session,
@@ -146,7 +147,7 @@ def _prepare_dataspecs(
 
     return core.DataSpecs(
         name='overfit_single_block',
-        mode='single',
+        mode='default',
         meta=core.Meta(
             blk_bytes=0,
             test_blks_grid=(0, 0),
