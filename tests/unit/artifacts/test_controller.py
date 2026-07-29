@@ -38,7 +38,7 @@ def test_json_persist_fetch_and_properties(tmp_path):
     '''
     Given: A target JSON file path and serializable dictionary payload.
     When: `Controller.persist()` and `Controller.fetch()` are executed.
-    Then: Compute valid SHA-256 hash, update `_hash.json`, and return data.
+    Then: Compute valid SHA-256 hash, update `_hash.json`, return data.
     '''
     json_path = str(tmp_path / 'data.json')
     ctrl = ctrl_mod.Controller[dict](json_path)
@@ -58,9 +58,9 @@ def test_json_persist_fetch_and_properties(tmp_path):
 # ----- `Controller` NPZ dict tests
 def test_npz_dict_persist_and_fetch(tmp_path):
     '''
-    Given: A target NPZ file path and a dictionary of NumPy arrays with tuple keys.
-    When: `Controller.persist()` and `Controller.fetch()` are executed.
-    Then: Persist to compressed NPZ and reconstruct arrays with original keys.
+    Given: Target NPZ file path and array dictionary with tuple keys.
+    When: `_npz_write_dict` and `_npz_read_dict` are invoked.
+    Then: Save to compressed NPZ and reconstruct arrays with original keys.
     '''
     npz_path = str(tmp_path / 'tiles.npz')
     ctrl = ctrl_mod.Controller[dict](npz_path)
@@ -98,9 +98,10 @@ def test_npz_write_validation(tmp_path):
 # ----- `Controller` lifecycle policies tests
 def test_lifecycle_policies_fetch(tmp_path):
     '''
-    Given: Artifact controllers configured with `LOAD_OR_FAIL`, `BUILD_IF_MISSING`, or `REBUILD`.
-    When: Invoking `Controller.fetch()`.
-    Then: Enforce policy rules (raise error, return None, or bypass cache).
+    Given: Artifact controllers configured with `LOAD_OR_FAIL`,
+    `BUILD_IF_MISSING`, or `REBUILD`.
+    When: Executing `get()` under non-existent or fresh state conditions.
+    Then: Enforce policy rules (raise error, return None, or bypass).
     '''
     json_path = str(tmp_path / 'policy_test.json')
 
@@ -128,8 +129,8 @@ def test_lifecycle_policies_fetch(tmp_path):
 # ----- Integrity mismatch tests
 def test_controller_hash_mismatch_and_corruption(tmp_path):
     '''
-    Given: An artifact file whose contents have been modified or corrupted on disk.
-    When: `Controller.fetch()` is executed.
+    Given: An artifact file modified or corrupted on disk.
+    When: Controller loads the artifact.
     Then: Detect hash mismatch or decode failure and raise `ArtifactError`.
     '''
     json_path = str(tmp_path / 'tampered.json')

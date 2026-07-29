@@ -125,7 +125,7 @@ def test_regularizer_forward_empty_logits(
     '''
     Given: An empty logits dictionary.
     When: `ConsistencyRegularizer.forward()` is called.
-    Then: Return an unscaled zero scalar or empty tensor for the reduction.
+    Then: Return unscaled zero scalar or empty tensor for the reduction.
     '''
     reg_cfg = session_config.engine_tasks.mtl_reg_configs
     reg_cfg.consistency_lambda = 2.0
@@ -334,7 +334,7 @@ def test_invalid_stats_prob_single_forbidden_class():
 def test_invalid_stats_prob_multiple_forbidden_classes():
     '''
     Given: Source and target logits for a single pixel with three classes.
-    When: source=class_0 (trigger) * target=class_1 & class_2 (forbidden)
+    When: source=class_0 (trigger) and target=class_1/2 (forbidden)
     Then: The result is 2/9  (1/3 * 2/3).
     '''
     # 1 pixel with 3 classes for both source and target [1, 3, 1, 1]

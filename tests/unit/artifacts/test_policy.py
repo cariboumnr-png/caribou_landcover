@@ -32,7 +32,7 @@ def test_lifecycle_policy_members():
     '''
     Given: The `LifecyclePolicy` enumeration.
     When: Accessing enum members and member count.
-    Then: Verify member names and total member count match expected policies.
+    Then: Verify member names and total count match expected policies.
     '''
     assert policy_mod.LifecyclePolicy.LOAD_ONLY.name == 'LOAD_ONLY'
     assert policy_mod.LifecyclePolicy.LOAD_OR_FAIL.name == 'LOAD_OR_FAIL'

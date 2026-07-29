@@ -405,7 +405,7 @@ def test_config_post_init_missing_red_for_any_spectral():
 )
 def test_config_post_init_missing_required_bands(indice, required):
     '''
-    Given: A config requesting a spectral index but lacking required bands.
+    Given: A config requesting a spectral index without required bands.
     When: Instantiating DataBlockConfig.
     Then: Raise a ValueError.
     '''

@@ -37,7 +37,7 @@ def test_multihead_unet_initialization(
     '''
     Given: A DataSpec and configuration objects.
     When: Initializing a MultiHeadUNet frame.
-    Then: Correctly construct model heads, conditioners, divisor, and safety.
+    Then: Correctly construct model heads, conditioners, and safety.
     '''
     backbone_cfg = mock_backbone_config_factory(body_type='unet', base_ch=16)
     conditioning_cfg = {
@@ -66,7 +66,7 @@ def test_multihead_unet_initialization_no_domain(
     '''
     Given: A DataSpec without any domain dimensions.
     When: Initializing a MultiHeadUNet frame.
-    Then: Construct the model without any concat/film conditioning blocks.
+    Then: Construct model without any concat/film conditioning blocks.
     '''
     dataspecs.domains = dataspecs.domains.__class__(
         train=None, val=None, test=None, ids_num=0, vec_dim=0
@@ -118,7 +118,7 @@ def test_multihead_unet_build_dummy_batch(
     '''
     Given: A constructed MultiHeadUNet model.
     When: Invoking build_dummy_batch.
-    Then: Generate a batch dictionary containing x, ids, and vec tensors.
+    Then: Generate a batch dict containing x, ids, and vec tensors.
     '''
     backbone_cfg = mock_backbone_config_factory(body_type='unet', base_ch=16)
     model = frames_unet.MultiHeadUNet(
@@ -174,7 +174,7 @@ def test_multihead_unet_logit_adjust_properties(
     '''
     Given: A DataSpec containing logits adjustments.
     When: Initializing a MultiHeadUNet frame.
-    Then: Correctly load logit adjustments tensors and scale properties.
+    Then: Correctly load logit adjustment tensors and scale properties.
     '''
     dataspecs.heads = dataspecs.heads.__class__(
         class_counts={'head_1': [100, 200]},

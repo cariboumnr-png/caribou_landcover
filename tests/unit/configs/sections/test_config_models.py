@@ -35,8 +35,8 @@ import landseg.configs.schema.sections.models as models
 def test_models_config_defaults_and_getters():
     '''
     Given: A default `ModelsConfig` instance.
-    When: Accessing backbone properties, modifying base channels, and reading conditioners.
-    Then: Return UNet backbone configs, set base channel, and return conditioner objects.
+    When: Accessing backbone properties and reading conditioners.
+    Then: Return UNet backbone configs and conditioner objects.
     '''
     cfg = models.ModelsConfig()
     cfg.validate()
@@ -62,7 +62,7 @@ def test_models_config_defaults_and_getters():
 
 def test_models_config_validation_failures():
     '''
-    Given: `ModelsConfig` instances with invalid model body, conditioner, or clamp ordering.
+    Given: `ModelsConfig` with invalid model body or clamp ordering.
     When: `ModelsConfig.validate()` is called.
     Then: Raise ValueError for each validation failure scenario.
     '''

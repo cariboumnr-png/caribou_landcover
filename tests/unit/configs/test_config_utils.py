@@ -36,7 +36,7 @@ def test_file_exists_and_must_exist(tmp_path):
     '''
     Given: Existing and non-existent file paths.
     When: `file_exists` and `must_exist` helper functions are called.
-    Then: Return boolean existence flags or raise FileNotFoundError for missing path.
+    Then: Return existence flags or raise FileNotFoundError if missing.
     '''
     dummy_file = tmp_path / 'test.txt'
     dummy_file.write_text('content')
@@ -56,9 +56,9 @@ def test_file_exists_and_must_exist(tmp_path):
 # ----- `must_within` tests
 def test_must_within_validation():
     '''
-    Given: Numeric values, non-numeric values, and lower/upper range boundaries.
-    When: `must_within` validation function is executed.
-    Then: Pass valid/non-numeric inputs and raise ValueError for out-of-bounds numbers.
+    Given: Numeric and non-numeric values with lower/upper boundaries.
+    When: `validate_numeric_range` is executed.
+    Then: Pass valid inputs, raising ValueError for out-of-bound values.
     '''
     # non-numeric values should return early without error
     utils.must_within('string', 'tag', 0, 10)

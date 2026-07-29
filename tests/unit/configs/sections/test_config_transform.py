@@ -36,7 +36,7 @@ def test_data_transform_defaults_and_validation():
     '''
     Given: A default `DataTransform` instance.
     When: Calling `DataTransform.validate()`.
-    Then: Initialize default partition ratios, hydration, and rebuild flags.
+    Then: Initialize default partition ratios and rebuild flags.
     '''
     dt = transform.DataTransform()
     dt.validate()
@@ -49,7 +49,7 @@ def test_data_transform_defaults_and_validation():
 
 def test_catalog_view_validation():
     '''
-    Given: `_CatalogView` instances with valid and out-of-range thresholds.
+    Given: `_CatalogView` with valid and out-of-range thresholds.
     When: `_CatalogView.validate()` is called.
     Then: Validate pixel threshold boundaries or raise ValueError.
     '''
@@ -80,7 +80,7 @@ def test_partition_validation():
 def test_scoring_and_hydration_validation():
     '''
     Given: `_Scoring` and `_Hydration` sub-configuration objects.
-    When: `.validate()` is called with valid or negative numeric boundaries.
+    When: `.validate()` is called with valid or negative boundaries.
     Then: Pass valid parameters or raise ValueError for negative rates.
     '''
     scoring = transform._Scoring(alpha=0.5, beta=0.5)

@@ -35,7 +35,7 @@ def test_root_config_defaults_and_as_dict():
     '''
     Given: Default `RootConfig` instantiation parameters.
     When: Instantiating `RootConfig` and calling `.as_dict`.
-    Then: Initialize sub-sections and serialize configuration to dictionary.
+    Then: Initialize sub-sections and serialize config to dictionary.
     '''
     root = root_mod.RootConfig()
 
@@ -60,7 +60,7 @@ def test_root_config_hyperparameter_setters():
     '''
     Given: A default `RootConfig` instance.
     When: Invoking hyperparameter setter helper methods.
-    Then: Mutate nested session data loader and optimizer fields accordingly.
+    Then: Mutate nested session data loader and optimizer fields.
     '''
     root = root_mod.RootConfig()
 
@@ -82,7 +82,7 @@ def test_root_config_hyperparameter_setters():
 
 def test_root_config_validate_all(tmp_path):
     '''
-    Given: A `RootConfig` configured with valid foundation files and session.
+    Given: A `RootConfig` with valid foundation files and session.
     When: `RootConfig.validate_all()` is executed.
     Then: Complete validation across all configuration sub-sections.
     '''

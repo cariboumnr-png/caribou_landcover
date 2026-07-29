@@ -61,7 +61,7 @@ def test_trainer_train_one_epoch(
     '''
     Given: Configured `MultiHeadTrainer`.
     When: Executing `train_one_epoch(epoch=1)`.
-    Then: Iterates training batches, updates state, and returns `TrainStepResults`.
+    Then: Iterate training batches and return `TrainStepResults`.
     '''
     on_begin = mocker.spy(mock_dispatcher, 'on_train_policy_begin')
     on_end = mocker.spy(mock_dispatcher, 'on_train_policy_end')

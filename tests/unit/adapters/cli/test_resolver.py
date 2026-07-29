@@ -80,8 +80,8 @@ def test_resolve_configs_base(tmp_path):
 
 def test_resolve_configs_missing_user_file():
     '''
-    Given: A custom non-existent user config path specified in `execution.user_cfg`.
-    When: `resolve_configs` is executed with `use_additional_settings=True`.
+    Given: Non-existent user config path in `execution.user_cfg`.
+    When: `resolve_configs` executes with `use_additional_settings=True`.
     Then: Raise a FileNotFoundError indicating missing user config file.
     '''
     cfg_dict = omegaconf.OmegaConf.create({

@@ -36,7 +36,7 @@ def test_tile_specs_validation():
     '''
     Given: `_TileSpecs` instances with square or non-square dimensions.
     When: `_TileSpecs.validate()` is invoked.
-    Then: Accept valid square configs or raise ValueError for invalid inputs.
+    Then: Accept valid square configs or raise ValueError for invalid.
     '''
     tile_specs = foundation._TileSpecs(
         size_row=256,
@@ -74,7 +74,7 @@ def test_grid_validation(tmp_path):
     '''
     Given: `_Grid` instances across `ref`, `aoi`, and `tiles` modes.
     When: `_Grid.validate()` is called with valid or invalid parameters.
-    Then: Pass valid grid definitions and raise ValueError for invalid CRS/mode.
+    Then: Pass valid grid definitions and raise ValueError for invalid.
     '''
     ref_raster = tmp_path / 'ref.tif'
     ref_raster.write_text('raster_data')
@@ -145,9 +145,9 @@ def test_grid_validation(tmp_path):
 # ----- `_Domains` tests
 def test_domains_management(tmp_path):
     '''
-    Given: A raster file for domain mapping and index base configuration.
-    When: Adding domain file to `_Domains` and triggering validation.
-    Then: Auto-parse domain name and raise TypeError for invalid index base type.
+    Given: Raster file for domain mapping and index base config.
+    When: Instantiating `_DomainMap` sub-configuration object.
+    Then: Auto-parse domain name and raise TypeError for bad base type.
     '''
     dom_raster = tmp_path / 'eco_region.tif'
     dom_raster.write_text('raster')
@@ -168,9 +168,9 @@ def test_domains_management(tmp_path):
 # ----- `_DataBlocks` & `DataFoundation` tests
 def test_datablocks_and_foundation_validation(tmp_path):
     '''
-    Given: Valid file paths for data blocks and foundation grid settings.
-    When: `_DataBlocks.validate()` and `DataFoundation.validate()` are executed.
-    Then: Ensure test data availability and validate composite foundation configuration.
+    Given: Valid file paths for data blocks and grid settings.
+    When: `_DataBlocks.validate()` and `DataFoundation.validate()` run.
+    Then: Ensure test data availability and validate foundation config.
     '''
     dev_img = tmp_path / 'dev_img.tif'
     dev_lbl = tmp_path / 'dev_lbl.tif'

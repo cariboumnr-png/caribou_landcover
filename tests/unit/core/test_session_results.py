@@ -159,7 +159,7 @@ def test_session_step_summary_as_dict_missing_results():
 def test_session_step_summary_as_dict_returns_snapshot():
     '''
     Given: A SessionStepSummary instance.
-    When: Accessing the as_dict property and mutating the source fields.
+    When: Accessing `as_dict` property and mutating source fields.
     Then: The dict return value is unaffected by subsequent mutations.
     '''
     training = core.TrainStepResults(
@@ -514,7 +514,7 @@ def test_accumulated_metrics_lock():
     '''
     Given: An AccumulatedMetrics instance.
     When: Locking the metrics.
-    Then: Freeze internal properties and raise an AttributeError on edit.
+    Then: Freeze internal properties and raise AttributeError on edit.
     '''
     metrics = core.AccumulatedMetrics()
     metrics.lock()
@@ -713,7 +713,7 @@ def test_get_mean_iou_missing_weight_defaults_to_one():
 
 def test_get_mean_iou_active_mean_selected_per_head():
     '''
-    Given: Multi-head validation where only some heads have active means.
+    Given: Multi-head validation with partially active head means.
     When: Running _get_mean_iou.
     Then: Resolve active/default means properly per head.
     '''

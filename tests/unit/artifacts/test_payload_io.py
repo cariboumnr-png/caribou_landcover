@@ -39,8 +39,8 @@ import landseg.artifacts.policy as policy_mod
 def test_payload_controller_save_and_load(tmp_path):
     '''
     Given: A split-file data path and structured payload dict.
-    When: `PayloadController.save()` and `PayloadController.load()` are called.
-    Then: Write data file and metadata sidecar, then restore exact payload.
+    When: Calling `PayloadController.save()` and `PayloadController.load()`.
+    Then: Write data file and metadata sidecar, restoring exact payload.
     '''
     data_path = str(tmp_path / 'catalog.json')
     meta_path = str(tmp_path / 'catalog_meta.json')
@@ -72,7 +72,7 @@ def test_payload_controller_save_and_load(tmp_path):
 def test_payload_controller_schema_mismatch(tmp_path):
     '''
     Given: A stored payload with schema ID `schema_v1`.
-    When: `PayloadController.load()` is executed expecting `schema_v2_expected`.
+    When: `PayloadController.load()` runs expecting `schema_v2_expected`.
     Then: Raise an `ArtifactError` indicating schema ID mismatch.
     '''
     data_path = str(tmp_path / 'schema_test.json')
@@ -100,7 +100,7 @@ def test_payload_controller_schema_mismatch(tmp_path):
 def test_payload_controller_missing_files(tmp_path):
     '''
     Given: A non-existent payload file path.
-    When: `PayloadController.load()` is called under `BUILD_IF_MISSING` policy.
+    When: `PayloadController.load()` is called with `BUILD_IF_MISSING`.
     Then: Return `None` to indicate missing payload files.
     '''
     data_path = str(tmp_path / 'non_existent.json')

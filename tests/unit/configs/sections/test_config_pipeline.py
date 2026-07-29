@@ -34,7 +34,7 @@ def test_pipeline_config_defaults():
     '''
     Given: Default instantiation parameters for `PipelineConfig`.
     When: Instantiating `PipelineConfig` without arguments.
-    Then: Initialize default pipeline name, evaluate settings, and sweep trial counts.
+    Then: Initialize default pipeline name and sweep trial counts.
     '''
     cfg = pipeline.PipelineConfig()
     assert cfg.name == 'default'
@@ -53,9 +53,9 @@ def test_pipeline_config_defaults():
 
 def test_pipeline_config_custom_initialization():
     '''
-    Given: Custom `_EvaluateModel` and `_StudySweep` sub-configuration objects.
-    When: Instantiating `PipelineConfig` with custom objects.
-    Then: Store specified sub-configurations on corresponding attributes.
+    Given: Custom `_EvaluateModel` and `_StudySweep` sub-configs.
+    When: Instantiating `PipelineConfig` with custom sub-configurations.
+    Then: Store specified sub-configurations on attributes.
     '''
     eval_cfg = pipeline._EvaluateModel(
         checkpoint='/path/to/ckpt.pt',

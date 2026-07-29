@@ -83,7 +83,7 @@ def test_head_manager_forward_default_active_heads():
     '''
     Given: An input tensor and active_heads set to None.
     When: Running forward pass.
-    Then: Default to executing and returning output tensors for all heads.
+    Then: Default to executing and returning output tensors for heads.
     '''
     in_ch = 8
     heads_dict = {'head_a': 2, 'head_b': 3}
@@ -108,7 +108,7 @@ def test_head_manager_freeze():
     '''
     Given: HeadManager instance with multiple heads.
     When: Freezing a target list of heads.
-    Then: Lock parameters of the frozen heads while keeping others active.
+    Then: Lock parameters of frozen heads while keeping others active.
     '''
     in_ch = 8
     heads_dict = {'head_a': 2, 'head_b': 3}

@@ -36,7 +36,7 @@ def test_artifact_paths_hierarchy():
     '''
     Given: An experiment root directory string.
     When: Instantiating `ArtifactPaths`.
-    Then: Return correctly joined child `foundation` and `transform` namespaces.
+    Then: Return joined child `foundation` and `transform` namespaces.
     '''
     r = os.path.join('/tmp', 'exp')
     art = paths_mod.ArtifactPaths(root=r)
@@ -48,7 +48,7 @@ def test_foundation_paths():
     '''
     Given: A foundation root directory string.
     When: Accessing `FoundationPaths` properties and sub-container helpers.
-    Then: Return expected report, config, world grid, and domain map filepaths.
+    Then: Return expected report, config, grid, and domain map filepaths.
     '''
     f = os.path.join('/tmp', 'exp', 'foundation')
     f_paths = paths_mod.FoundationPaths(root=f)
@@ -74,8 +74,8 @@ def test_foundation_paths():
 def test_data_blocks_paths():
     '''
     Given: A data blocks root directory string.
-    When: Accessing `_DataBlocks` dev/test block paths and window mapping methods.
-    Then: Return expected model dev and test holdout artifact file paths.
+    When: Accessing `_DataBlocks` dev/test paths and window map methods.
+    Then: Return expected model dev and test holdout artifact paths.
     '''
     b = os.path.join('/tmp', 'exp', 'foundation', 'data_blocks')
     db = paths_mod._DataBlocks(root=b)
@@ -94,7 +94,7 @@ def test_transform_paths():
     '''
     Given: A transform root directory string.
     When: Accessing `TransformPaths` property endpoints.
-    Then: Return canonical file and directory paths for transformed datasets.
+    Then: Return canonical file and folder paths for transformed datasets.
     '''
     t = os.path.join('/tmp', 'exp', 'transform')
     t_paths = paths_mod.TransformPaths(root=t)
@@ -120,8 +120,8 @@ def test_transform_paths():
 def test_results_paths_init_and_checkpoints(tmp_path):
     '''
     Given: A results root directory path.
-    When: Initializing `ResultsPaths` across multiple runs and tracing options.
-    Then: Auto-increment run IDs, create subdirectories, and build checkpoint paths.
+    When: Initializing `ResultsPaths` across runs and tracing options.
+    Then: Auto-increment run IDs and build checkpoint paths.
     '''
     results = paths_mod.ResultsPaths(results_root=str(tmp_path))
     results.init()

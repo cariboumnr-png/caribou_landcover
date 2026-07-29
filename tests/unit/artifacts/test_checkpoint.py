@@ -33,7 +33,7 @@ import landseg.artifacts.checkpoint as ckpt_mod
 def test_save_and_load_checkpoint_full(tmp_path):
     '''
     Given: Model, optimizer, scheduler instances, and checkpoint metadata.
-    When: Calling `save_checkpoint` and then restoring with `load_checkpoint`.
+    When: Calling `save_checkpoint` and restoring with `load_checkpoint`.
     Then: Restore state dicts and return matching metadata.
     '''
     model_src = _DummyModel()

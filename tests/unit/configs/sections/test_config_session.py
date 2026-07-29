@@ -35,8 +35,8 @@ import landseg.configs.schema.sections.session as session_mod
 def test_session_config_defaults_and_validation():
     '''
     Given: Default `SessionConfig` instance in continuous mode.
-    When: Setting single phase epochs and calling `SessionConfig.validate()`.
-    Then: Validate default data loader, learning rate, and mode settings.
+    When: Setting single phase epochs and calling `validate()`.
+    Then: Validate default data loader and learning rate settings.
     '''
     session = session_mod.SessionConfig()
     session.orchestration.single_phase.num_epochs = 10
@@ -51,8 +51,8 @@ def test_session_config_defaults_and_validation():
 def test_session_config_curriculum_mode_validation():
     '''
     Given: A `SessionConfig` configured in curriculum mode.
-    When: `SessionConfig.validate()` is called before and after schema setup.
-    Then: Enforce early stop flags and require non-single curriculum schemas.
+    When: `SessionConfig.validate()` runs before/after schema setup.
+    Then: Enforce early stop flags and require non-single schemas.
     '''
     session = session_mod.SessionConfig(mode='curriculum')
     # post_init should set allow_early_stop to False for curriculum
@@ -81,9 +81,9 @@ def test_session_config_invalid_mode():
 
 def test_session_subsections_validation():
     '''
-    Given: Sub-component configs (`_DataLoaderConfig`, `_OptimConfig`, `_Phase`).
-    When: Calling `.validate()` on invalid parameter combinations.
-    Then: Raise ValueError for negative patch sizes, missing T_max, or bad epochs.
+    Given: Sub-component configs (`_DataLoaderConfig`, `_OptimConfig`).
+    When: Instantiating and validating with invalid parameters.
+    Then: Raise ValueError for invalid patch sizes, T_max, or epochs.
     '''
     # data loader validation for negative size
     with pytest.raises(ValueError, match='data patch size'):

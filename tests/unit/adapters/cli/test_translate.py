@@ -59,7 +59,7 @@ def test_translate_user_config_data_prepare():
     '''
     Given: A user configuration `DictConfig` with `data-prepare` settings.
     When: `translate_user_config` is called.
-    Then: Map fields to `transform` partition, catalog, and scoring fields.
+    Then: Map fields to `transform` partition, catalog, and scoring.
     '''
     user_cfg = omegaconf.OmegaConf.create({
         'data-prepare': {
@@ -107,7 +107,7 @@ def test_set_paths_helper():
     '''
     Given: A target dictionary and dot-separated property paths.
     When: Calling internal `_set_paths` helper function.
-    Then: Create nested dictionary structure and assign value to target keys.
+    Then: Create nested dictionary and assign value to target keys.
     '''
     target: dict = {}
     translate_mod._set_paths(target, ['a.b.c', 'x.y'], 42)
