@@ -83,6 +83,7 @@ def test_epoch_engine_run_epoch_train_eval(mock_trainer, mock_evaluator):
 
     # populate dummy patch entry in infer_out for continuous inference
     dummy_weight = mock_trainer.model.conv.weight.new_zeros(16, 16)
+    assert mock_evaluator.state.infer_out is not None
     mock_evaluator.state.infer_out.labels['head_1'] = {(0, 0): dummy_weight}
     mock_evaluator.state.infer_out.preds['head_1'] = {(0, 0): dummy_weight}
     mock_evaluator.state.infer_out.errors['head_1'] = {(0, 0): dummy_weight}

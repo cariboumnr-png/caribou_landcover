@@ -137,6 +137,7 @@ def test_evaluator_infer(
 
     # populate dummy patch entries in infer_out for stitching
     coord = (0, 0)
+    assert evaluator.state.infer_out is not None
     evaluator.state.infer_out.labels['head_1'] = {coord: torch.zeros(16, 16)}
     evaluator.state.infer_out.preds['head_1'] = {coord: torch.zeros(16, 16)}
     evaluator.state.infer_out.errors['head_1'] = {coord: torch.zeros(16, 16)}
