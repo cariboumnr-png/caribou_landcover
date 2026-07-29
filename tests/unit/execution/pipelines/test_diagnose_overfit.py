@@ -100,6 +100,6 @@ def test_overfit_pipeline_with_existing_block(tmp_path, dataspecs, monkeypatch):
     with open(summary_fpath, 'r', encoding='utf-8') as f:
         summary_data = json.load(f)
 
-    assert summary_data['summary_status'] == 'FAILED'
+    assert summary_data['status'] == 'FAILED'
     assert summary_data['results']['overfit_reached'] is False
     assert summary_data['results']['final_epoch'] == 2
