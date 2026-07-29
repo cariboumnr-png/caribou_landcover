@@ -63,7 +63,11 @@ def test_resolve_configs_base(tmp_path):
         },
         'session': {
             'orchestration': {
-                'single_phase': {'num_epochs': 5},
+                'curriculum': {
+                    'single': {
+                        'phases': [{'num_epochs': 5}],
+                    },
+                },
             },
         },
     })
