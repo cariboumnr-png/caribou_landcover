@@ -19,6 +19,7 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=missing-function-docstring
 # pylint: disable=protected-access
 
 '''Unit tests for FiLM domain conditioning adapter (film.py).'''
@@ -150,7 +151,7 @@ def test_film_conditioner_forward_modulation():
     ids_embd = torch.randn(2, 8)
     payload = domains.DomainTargetPayload(ids_embd=ids_embd, vec_proj=None)
 
-    class MockFilmSeq(torch.nn.Module):
+    class _MockFilmSeq(torch.nn.Module):
         def forward(self, z):
             return torch.cat(
                 [
@@ -158,7 +159,7 @@ def test_film_conditioner_forward_modulation():
                     torch.full((z.shape[0], 4), 0.2)
                 ], dim=1
             )
-    cond.film = MockFilmSeq() # type: ignore
+    cond.film = _MockFilmSeq() # type: ignore
 
     out = cond(x, payload)
     assert out.shape == (2, 4, 8, 8)

@@ -121,7 +121,14 @@ class ParallelExecutor:
             ]
             it = (f.result() for f in futures)
             if self.show_progress:
-                results = list(tqdm.tqdm(it, total=len(jobs), ncols=self.ncol, desc=desc or self.desc))
+                results = list(
+                    tqdm.tqdm(
+                        it,
+                        total=len(jobs),
+                        ncols=self.ncol,
+                        desc=desc or self.desc
+                    )
+                )
             else:
                 results = list(it)
         return results
@@ -131,7 +138,14 @@ class ParallelExecutor:
         with multiprocessing.Pool(self.max_workers) as pool:
             it = pool.imap(self._wrapper_func, jobs)
             if self.show_progress:
-                results = list(tqdm.tqdm(it, total=len(jobs), ncols=self.ncol, desc=desc or self.desc))
+                results = list(
+                    tqdm.tqdm(
+                        it,
+                        total=len(jobs),
+                        ncols=self.ncol,
+                        desc=desc or self.desc
+                    )
+                )
             else:
                 results = list(it)
         return results

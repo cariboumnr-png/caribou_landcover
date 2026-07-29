@@ -220,7 +220,6 @@ class Logger:
 
     def on_close(self) -> None:
         '''Hook for subclasses to execute code when close() is called.'''
-        pass
 
     def close(self) -> None:
         '''Closes the file handler.'''

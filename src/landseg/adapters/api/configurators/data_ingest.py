@@ -91,4 +91,3 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
         '''Set whether to force rebuild ingestion artifacts.'''
         self._cfg.foundation.rebuild = rebuild
         return self
-
