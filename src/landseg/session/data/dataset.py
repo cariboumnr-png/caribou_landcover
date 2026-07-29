@@ -387,7 +387,7 @@ class _BlockDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx: int) -> alias.DatasetItem:
         if not idx in range(self.config.patch_per_blk):
-            raise KeyError(f'Invalid patch idx: {idx}') # sanity check
+            raise IndexError(f'Invalid patch idx: {idx}') # sanity check
 
         # image should always be valid
         x = torch.from_numpy(self.imgs[idx].astype(numpy.float32))

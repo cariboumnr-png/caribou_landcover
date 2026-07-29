@@ -140,7 +140,7 @@ def build_headspecs(
         case _:
             raise ValueError(
                 f'Invalid class weights function; '
-                f'got: {alpha_fn}'
+                f'got: {alpha_fn} '
                 f'allowed: "effective_n", "inverse"; '
             )
 
