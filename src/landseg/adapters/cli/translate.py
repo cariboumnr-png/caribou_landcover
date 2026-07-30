@@ -134,35 +134,28 @@ def _translate_model_train(
         'conditioners': ['models.conditioners'],
         'patch_size': ['session.data_loader.patch_size'],
         'batch_size': ['session.data_loader.batch_size'],
-        'head_weights': ['session.engine_tasks.head_weights'],
-        'task_weights': ['session.engine_tasks.head_weights'],
+        'head_loss_weights': ['session.engine_tasks.head_weights'],
+        'head_metrics_weights': ['session.orchestration.monitor.track_heads'],
     }
     _apply_mapping(rt, translated, mapping)
 
-    if 'epochs' in rt:
-        phase = {'name': 'demo_train', 'num_epochs': rt['epochs']}
-        if 'active_tasks' in rt:
-            active_tasks = rt['active_tasks']
-            if active_tasks is None or len(active_tasks) == 0:
-                phase['active_heads'] = None
-            else:
-                phase['active_heads'] = list(active_tasks)
-        _set_paths(
-            translated,
-            ['session.orchestration.curriculum.single.phases'],
-            [phase]
-        )
-    elif 'active_tasks' in rt:
-        active_tasks = rt['active_tasks']
-        if active_tasks is None or len(active_tasks) == 0:
-            active_heads = None
-        else:
-            active_heads = list(active_tasks)
-        _set_paths(
-            translated,
-            ['session.orchestration.curriculum.single.phases'],
-            [{'name': 'demo_train', 'active_heads': active_heads}]
-        )
+    # infer active heads for phase from head weights
+    # sanity - these two should have the same heads
+    loss_heads = rt.get('head_loss_weights', {})
+    metrics_heads = rt.get('head_metrics_weights', {})
+    if loss_heads and metrics_heads and set(loss_heads) != set(metrics_heads):
+        raise ValueError('Different heads between loss and metrics weights')
+
+    phase = {
+        'name': 'demo-train',
+        'num_epochs': rt['epochs'],
+        'active_heads': list(loss_heads.keys()) if loss_heads else None
+    }
+    _set_paths(
+        translated,
+        ['session.orchestration.curriculum.single.phases'],
+        [phase]
+    )
 
 def _apply_mapping(
     src: omegaconf.DictConfig,
