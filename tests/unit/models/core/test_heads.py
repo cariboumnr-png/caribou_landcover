@@ -44,13 +44,17 @@ def test_head_manager_initialization():
     assert 'head_a' in hm.outc
     assert 'head_b' in hm.outc
 
-    assert isinstance(hm.outc['head_a'], torch.nn.Conv2d)
-    assert hm.outc['head_a'].in_channels == in_ch
-    assert hm.outc['head_a'].out_channels == 3
+    head_a = hm.outc['head_a']
+    assert isinstance(head_a, torch.nn.Conv2d)
+    assert head_a.in_channels == in_ch
+    assert head_a.out_channels == 3
 
-    assert hm.outc['head_b'].in_channels == in_ch
-    assert hm.outc['head_b'].out_channels == 5
+    head_b = hm.outc['head_b']
+    assert isinstance(head_b, torch.nn.Conv2d)
+    assert head_b.in_channels == in_ch
+    assert head_b.out_channels == 5
 
+    assert hm.active is not None
     assert set(hm.active) == {'head_a', 'head_b'}
     assert hm.frozen is None
 
@@ -83,7 +87,7 @@ def test_head_manager_forward_default_active_heads():
     '''
     Given: An input tensor and active_heads set to None.
     When: Running forward pass.
-    Then: Default to executing and returning output tensors for all heads.
+    Then: Default to executing and returning output tensors for heads.
     '''
     in_ch = 8
     heads_dict = {'head_a': 2, 'head_b': 3}
@@ -108,7 +112,7 @@ def test_head_manager_freeze():
     '''
     Given: HeadManager instance with multiple heads.
     When: Freezing a target list of heads.
-    Then: Lock parameters of the frozen heads while keeping others active.
+    Then: Lock parameters of frozen heads while keeping others active.
     '''
     in_ch = 8
     heads_dict = {'head_a': 2, 'head_b': 3}
@@ -173,8 +177,11 @@ def test_head_manager_nan_to_num():
 
     # mock a convolutional output with non-finite values
     x = torch.zeros(1, in_ch, 4, 4)
-    hm.outc['head_a'].weight.data.fill_(0.0)
-    hm.outc['head_a'].bias.data.fill_(float('nan'))
+    head_a = hm.outc['head_a']
+    assert isinstance(head_a, torch.nn.Conv2d)
+    assert head_a.bias is not None
+    head_a.weight.data.fill_(0.0)
+    head_a.bias.data.fill_(float('nan'))
 
     out = hm.forward(
         x,
@@ -184,7 +191,7 @@ def test_head_manager_nan_to_num():
     )
     assert torch.all(out['head_a'] == 0.0)
 
-    hm.outc['head_a'].bias.data.fill_(float('inf'))
+    head_a.bias.data.fill_(float('inf'))
     out_pos = hm.forward(
         x,
         active_heads=['head_a'],
@@ -193,7 +200,7 @@ def test_head_manager_nan_to_num():
     )
     assert torch.all(out_pos['head_a'] == 1e4)
 
-    hm.outc['head_a'].bias.data.fill_(float('-inf'))
+    head_a.bias.data.fill_(float('-inf'))
     out_neg = hm.forward(
         x,
         active_heads=['head_a'],

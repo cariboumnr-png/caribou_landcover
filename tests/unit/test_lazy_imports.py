@@ -34,7 +34,7 @@ import landseg
 
 
 def _discover_lazy_modules() -> list[types.ModuleType]:
-    '''Discover all package modules in `landseg` that define `__getattr__`.'''
+    '''Discover package modules in `landseg` defining `__getattr__`.'''
     modules = [landseg] if '__getattr__' in landseg.__dict__ else []
     prefix = landseg.__name__ + '.'
     for _, modname, ispkg in pkgutil.walk_packages(landseg.__path__, prefix):
@@ -58,9 +58,9 @@ LAZY_MODULES = _discover_lazy_modules()
 )
 def test_package_lazy_imports(module: types.ModuleType):
     '''
-    Given: Any package module in `landseg` implementing lazy `__getattr__`.
+    Given: Package module in `landseg` implementing lazy `__getattr__`.
     When: Accessing every symbol declared in `__all__`.
-    Then: Every attribute resolves cleanly and invalid attribute raises AttributeError.
+    Then: Resolves attributes and invalid attribute raises AttributeError.
     '''
     assert hasattr(module, '__all__'), f'{module.__name__} missing __all__'
 

@@ -37,7 +37,7 @@ def test_evaluator_init(mock_runtime, mock_dataloaders, mock_dispatcher):
     '''
     Given: Parameters for `MultiHeadEvaluator`.
     When: Instantiating `MultiHeadEvaluator`.
-    Then: Validation and inference intervals and results containers are set.
+    Then: Validation and inference intervals and containers are set.
     '''
     evaluator = eval_mod.MultiHeadEvaluator(
         val_every=2,
@@ -120,9 +120,9 @@ def test_evaluator_infer(
     mocker
 ):
     '''
-    Given: `MultiHeadEvaluator` with active heads and spatial patch context.
-    When: Calling `infer` on valid epoch boundary.
-    Then: Run continuous inference, stitch patches, and return `InferStepResults`.
+    Given: `MultiHeadEvaluator` with active heads and patch context.
+    When: Executing `infer_one_epoch`.
+    Then: Run inference, stitch patches, and return `InferStepResults`.
     '''
     on_begin = mocker.spy(mock_dispatcher, 'on_infer_policy_begin')
     on_end = mocker.spy(mock_dispatcher, 'on_infer_policy_end')
@@ -137,6 +137,7 @@ def test_evaluator_infer(
 
     # populate dummy patch entries in infer_out for stitching
     coord = (0, 0)
+    assert evaluator.state.infer_out is not None
     evaluator.state.infer_out.labels['head_1'] = {coord: torch.zeros(16, 16)}
     evaluator.state.infer_out.preds['head_1'] = {coord: torch.zeros(16, 16)}
     evaluator.state.infer_out.errors['head_1'] = {coord: torch.zeros(16, 16)}

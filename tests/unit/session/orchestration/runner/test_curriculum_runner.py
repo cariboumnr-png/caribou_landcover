@@ -63,7 +63,7 @@ def test_curriculum_runner_run_generator(
     '''
     Given: CurriculumRunner with 2 sequential phases of 1 epoch each.
     When: Iterating over generator returned by `run()`.
-    Then: Execute phases in sequence and yield steps per epoch plus run end.
+    Then: Execute phases in sequence and yield steps per epoch.
     '''
     mocker.patch('landseg.artifacts.save_checkpoint', autospec=True)
 

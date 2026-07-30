@@ -87,7 +87,7 @@ def test_epoch_start_and_end_events():
 # ----- control and report event tests
 def test_control_and_report_events():
     '''
-    Given: Parameters for `MetricsReport`, `StopRun`, and `CheckpointRequest`.
+    Given: Parameters for `MetricsReport` and `CheckpointRequest`.
     When: Instantiating control and report events.
     Then: Custom payloads and attributes are populated.
     '''

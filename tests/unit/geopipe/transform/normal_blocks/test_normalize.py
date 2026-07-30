@@ -35,7 +35,7 @@ import landseg.geopipe.transform.normal_blocks.normalize as normalize
 # ----- `_normalize_image` tests
 def test_normalize_image_math():
     '''
-    Given: A raw image array, a valid pixel mask, and global band stats.
+    Given: Raw image array, valid pixel mask, and global band stats.
     When: Running _normalize_image.
     Then: Correctly apply z-score normalization and replace invalid values.
     '''
@@ -65,7 +65,7 @@ def test_normalize_image_math():
 # ----- `_purge` tests
 def test_purge_removes_stale_files(tmp_path):
     '''
-    Given: A target directory containing a mixture of expected and stale files.
+    Given: Target directory containing expected and stale files.
     When: Running _purge.
     Then: Remove stale files and keep the expected ones.
     '''

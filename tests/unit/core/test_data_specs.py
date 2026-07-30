@@ -30,7 +30,7 @@ def test_dataspecs_fixture_constructs_valid_instance(dataspecs):
     '''
     Given: The standard dataspecs fixture.
     When: Testing its composition.
-    Then: Return a valid DataSpec instance with expected schema subparts.
+    Then: Return a valid DataSpec instance with expected subparts.
     '''
     assert dataspecs.name == "test_dataset"
     assert dataspecs.mode == "default"
@@ -46,7 +46,7 @@ def test_image_collects_spectral_channels():
     '''
     Given: An Image metadata object containing spectral bands.
     When: Accessing spec_channels.
-    Then: Extract correct channel indexes and zero topographic channels.
+    Then: Extract correct channel indexes and zero topo channels.
     '''
     image = _make_image_meta(
         band_map={
@@ -63,7 +63,7 @@ def test_image_collects_spectral_channels():
 
 def test_image_collects_topographic_channels():
     '''
-    Given: An Image metadata object containing elevation and aspect bands.
+    Given: Image metadata object containing elevation and aspect bands.
     When: Accessing topo_channels.
     Then: Extract correct channel indexes and zero spectral channels.
     '''

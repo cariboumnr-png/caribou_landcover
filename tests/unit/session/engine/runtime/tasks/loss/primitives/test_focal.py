@@ -101,7 +101,7 @@ def test_focal_loss_alpha_weighting():
     '''
     Given: Class weights alpha.
     When: `forward` is called on `FocalLoss`.
-    Then: Scale the loss of different classes by the respective alpha weights.
+    Then: Scale loss of different classes by respective alpha weights.
     '''
     # configure alpha: class 0 has weight 0.1, class 1 has weight 0.9
     loss_weighted = focal_loss.FocalLoss(

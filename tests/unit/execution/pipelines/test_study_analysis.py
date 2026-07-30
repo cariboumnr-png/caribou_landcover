@@ -19,34 +19,58 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-# pylint: disable=missing-function-docstring
-
 '''
-Session schema utilities.
+Unit tests for study analysis pipeline (study_analysis.py).
 '''
 
 # standard imports
+import json
 import os
 import typing
+# third-party imports
+import omegaconf
+# local imports
+import landseg.configs as configs
+import landseg.execution.pipelines.study_analysis as analysis_pipeline
 
-def file_exists(path: str) -> bool:
-    return os.path.isfile(path) and os.path.exists(path)
 
-def must_exist(path: str | None, tag: str) -> None:
-    if path and not file_exists(path):
-        raise FileNotFoundError(f'File [{tag}] is invalid: {path}')
+# ----- `analyze` pipeline test
+def test_analyze_pipeline(tmp_path, monkeypatch):
+    '''
+    Given: A RootConfig instance with study_sweep settings.
+    When: `analyze` is called.
+    Then: Rank completed trials and persist analysis JSON artifact.
+    '''
+    mock_ranked = [{'trial_id': 1, 'value': 0.95, 'params': {'lr': 0.001}}]
 
-def must_within(
-    value: typing.Any,
-    tag: str,
-    mmin: int | float | None = None,
-    mmax: int | float | None = None,
-) -> None:
-    if not isinstance(value, (int, float)):
-        return
-    rr = f'[{mmin}, {mmax}]'
-    if (
-        (mmin is not None and value < mmin) or
-        (mmax is not None and value > mmax)
+    def mock_rank_trials(
+        study_name: str,
+        storage: str,
+        top_k: int = 5,
+        ascending: bool = False,
     ):
-        raise ValueError(f'Value [{tag}] must be within {rr}, got: {value}')
+        _ = study_name, storage, top_k, ascending
+        return mock_ranked
+
+    monkeypatch.setattr(
+        analysis_pipeline.study, 'rank_trials', mock_rank_trials
+    )
+
+    exp_root = str(tmp_path / 'exp')
+    schema = omegaconf.OmegaConf.structured(configs.RootConfig)
+    schema.execution.exp_root = exp_root
+    schema.pipeline.study_sweep.study_name = 'test_study'
+    schema.pipeline.study_sweep.storage = 'sqlite:///test.db'
+
+    config = typing.cast(
+        configs.RootConfig,
+        omegaconf.OmegaConf.to_object(schema)
+    )
+
+    analysis_pipeline.analyze(config)
+
+    analysis_fpath = f'{exp_root}/analysis/test_study.json'
+    assert os.path.exists(analysis_fpath)
+    with open(analysis_fpath, 'r', encoding='utf-8') as f:
+        saved_data = json.load(f)
+    assert saved_data == mock_ranked

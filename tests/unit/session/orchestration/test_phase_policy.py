@@ -72,7 +72,7 @@ def test_phase_policy_run_generator_flow(mock_epoch_engine, session_config):
     '''
     Given: `PhasePolicy` executed via generator `run()`.
     When: Stepping through generator events.
-    Then: Yield `PhaseStart`, `CheckpointRequest`, `MetricsReport`, `PhaseEnd`.
+    Then: Yield `PhaseStart`, `CheckpointRequest`, and `PhaseEnd`.
     '''
     phase_cfg = session_config.orchestration.single_phase
     phase_cfg.num_epochs = 1
@@ -103,7 +103,7 @@ def test_phase_policy_run_generator_flow(mock_epoch_engine, session_config):
 
 def test_phase_policy_early_stopping(mock_epoch_engine, session_config):
     '''
-    Given: `PhasePolicy` with `enable_early_stop=True` and `patience_epochs=0`.
+    Given: `PhasePolicy` with `enable_early_stop=True` and `patience=0`.
     When: Metric fails to improve over consecutive epochs.
     Then: Emit `StopRun` event and stop execution early.
     '''

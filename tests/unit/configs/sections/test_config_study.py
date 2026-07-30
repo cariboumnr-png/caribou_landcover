@@ -19,34 +19,47 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-# pylint: disable=missing-function-docstring
+# pylint: disable=protected-access
 
 '''
-Session schema utilities.
+Unit tests for `landseg.configs.schema.sections.study`.
 '''
 
-# standard imports
-import os
-import typing
+# local imports
+import landseg.configs.schema.sections.study as study
 
-def file_exists(path: str) -> bool:
-    return os.path.isfile(path) and os.path.exists(path)
 
-def must_exist(path: str | None, tag: str) -> None:
-    if path and not file_exists(path):
-        raise FileNotFoundError(f'File [{tag}] is invalid: {path}')
+# ----- `StudyConfig` tests
+def test_study_config_default_instantiation():
+    '''
+    Given: Default `StudyConfig` instantiation parameters.
+    When: Instantiating `StudyConfig` without arguments.
+    Then: Initialize sub-objects and hyperparameter search space tuples.
+    '''
+    cfg = study.StudyConfig()
 
-def must_within(
-    value: typing.Any,
-    tag: str,
-    mmin: int | float | None = None,
-    mmax: int | float | None = None,
-) -> None:
-    if not isinstance(value, (int, float)):
-        return
-    rr = f'[{mmin}, {mmax}]'
-    if (
-        (mmin is not None and value < mmin) or
-        (mmax is not None and value > mmax)
-    ):
-        raise ValueError(f'Value [{tag}] must be within {rr}, got: {value}')
+    assert isinstance(cfg.base, study._BaseObj)
+    assert isinstance(cfg.optimizer, study._OptimizerObj)
+    assert isinstance(cfg.architecture, study._ArchitectureObj)
+
+    # range definitions
+    assert cfg.base.learning_rate == (1e-5, 1e-1)
+    assert cfg.optimizer.weight_decay == (1e-6, 1e-2)
+    assert cfg.architecture.model_body == study.MODEL_BODIES
+    assert cfg.architecture.bottleneck == study.BOTTLENECKS
+
+
+def test_study_config_custom_objective():
+    '''
+    Given: A custom `_ArchitectureObj` search space definition.
+    When: Passing custom architecture to `StudyConfig`.
+    Then: Store specified model bodies and base channel choices.
+    '''
+    custom_arch = study._ArchitectureObj(
+        model_body=['unet'],
+        base_channel=(32, 64, 32),
+    )
+    cfg = study.StudyConfig(architecture=custom_arch)
+
+    assert cfg.architecture.model_body == ['unet']
+    assert cfg.architecture.base_channel == (32, 64, 32)

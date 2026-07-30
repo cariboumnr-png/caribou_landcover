@@ -27,124 +27,187 @@ and trains until near-perfect IoU to validate the end-to-end stack.
 '''
 
 # standard imports
+import datetime
 import os
+import typing
 # local imports
 import landseg._constants as c
+import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.core as core
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.world_grids as world_grids
-import landseg.artifacts as artifacts
 import landseg.geopipe.foundation.data_blocks.assembler as assembler
 import landseg.geopipe.foundation.data_blocks.mapper as mapper
+import landseg.geopipe.foundation.world_grids as world_grids
 import landseg.geopipe.utils as geo_utils
 import landseg.models as models
 import landseg.session as session
-import landseg.utils as utils
+import landseg.session.engine as engine
+import landseg.session.factory as session_factory
 
+# aliases
+DatasetConfigCtrl = artifacts.Controller[dict[str, typing.Any]]
+
+
+# ----- overfit test pipeline
 def overfit(config: configs.RootConfig) -> None:
     '''
     Run an overfit test on a single block.
 
     Creates or loads a block, builds a small `DataSpecs`, instantiates
-    the model and a trainer with minimal logging, and trains until an IoU
-    threshold or the epoch limit is reached.
+    the model and a trainer with minimal logging, and trains until an
+    IoU threshold or the epoch limit is reached.
 
     Args:
         config: RootConfig with model/trainer settings.
     '''
-
-    # root dpath
     root = f'{config.execution.exp_root}/results/overfit_test'
-
-    # init a logger
-    logger = utils.Logger('overfit', f'{root}/log')
-
-    # get a single block
-    block_fp = _build_a_block(root, config, logger=logger)
-
-    # build the dataspecs dataclass
-    dataspecs = _build_dataspec_a_block(block_fp)
-
-    # setup the model
-    model = models.build_multihead_unet(
-        patch_size=config.session.data_loader.patch_size,
-        dataspecs=dataspecs,
-        unet_backbone_config=config.models.unet_backbone_config,
-        conditioning_config=config.models.conditioning_config,
-        enable_clamp=config.models.numeric_safety.enable_clamp,
-        clamp_range=config.models.numeric_safety.clamp_range
+    log_file = f'{root}/log/overfit_summary.json'
+    logger = session.SessionLogger('overfit', log_file=log_file)
+    time_stamp = datetime.datetime.now().strftime(c.TF_ISO8601)
+    logger.init_summary(
+        run_id='overfit_test',
+        pipeline='diagnose_overfit',
+        start_time=time_stamp,
     )
 
-    # build the session
-    session_context=session.SessionBuildContext(device=c.DEVICE)
-    runner = session.factory.build_overfit_session(
-        dataspecs=dataspecs,
-        model=model,
-        config=config.session,
-        context=session_context,
-        logger=logger
-    )
+    try:
+        logger.log_sep()
+        logger.set_inputs({
+            'exp_root': config.execution.exp_root,
+            'patch_size': config.session.data_loader.patch_size,
+            'lr': config.session.engine_optim.lr,
+            'max_epoch': c.OVERFIT_MAX_EPOCH,
+        })
 
-    # set monitor head
-    monitor_head = config.session.orchestration.monitor.track_heads
-    assert monitor_head
-    runner.set_head_state(list(monitor_head.keys()))
+        dataspecs = _prepare_dataspecs(root, config, logger)
 
-    # run train-evaluate
-    max_epoch = c.OVERFIT_MAX_EPOCH
-    lr = config.session.engine_optim.lr
-    logger.log('INFO', 'Starting overfit test')
-    logger.log('INFO', f'Maximum epoch: {max_epoch}')
-    logger.log('INFO', f'Learning rate: {lr}')
-    for ep in range(1, max_epoch + 1):
-        results = runner.run_epoch(ep)
-        assert results.training and results.validation # typing
-        los = results.training.total_objective
-        iou = results.target_metrics
-        logger.log('INFO', f'Epoch: {ep:04d} | Loss: {los:4f} | IoU: {iou:4f}')
-        if iou >= 0.99:
-            logger.log('INFO', 'Overfit reached - test complete')
-            logger.close()
-            return
+        model = models.build_multihead_unet(
+            patch_size=config.session.data_loader.patch_size,
+            dataspecs=dataspecs,
+            unet_backbone_config=config.models.unet_backbone_config,
+            conditioning_config=config.models.conditioning_config,
+            enable_clamp=config.models.numeric_safety.enable_clamp,
+            clamp_range=config.models.numeric_safety.clamp_range,
+        )
 
-    # if overfit not reached
-    logger.log('WARNING',f'IoU did not reach 99% after {max_epoch} epochs. ')
-    logger.close()
+        runner = session_factory.build_overfit_session(
+            dataspecs=dataspecs,
+            model=model,
+            config=config.session,
+            context=session.SessionBuildContext(device=c.DEVICE),
+            logger=logger,
+        )
 
-def _build_a_block(
+        monitor_head = config.session.orchestration.monitor.track_heads
+        active_heads = (
+            list(monitor_head.keys())
+            if monitor_head
+            else list(dataspecs.heads.class_counts.keys())
+        )
+        runner.set_head_state(active_heads=active_heads)
+
+        results = _run_overfit_loop(runner, config, logger)
+        status = 'SUCCESS' if results['overfit_reached'] else 'FAILED'
+
+        logger.set_results(results)
+        logger.set_summary_status(status)
+
+    except Exception as e:
+        logger.set_summary_status('FAILED')
+        logger.log('ERROR', f'Overfit pipeline failed: {e}', exc_info=True)
+        raise e
+
+    finally:
+        logger.log_sep()
+        logger.close()
+
+
+# ----- dataspecs builder
+def _prepare_dataspecs(
     save_dpath: str,
     config: configs.RootConfig,
-    *,
-    logger: utils.Logger,
-    **kwargs
-) -> str:
-    '''Build or select one valid block for the overfit test.'''
+    logger: session.SessionLogger,
+) -> core.DataSpecs:
+    '''Build or select a single test block and construct `DataSpecs`.'''
+    block_fpath: str | None = None
+    if os.path.exists(save_dpath):
+        for f in os.listdir(save_dpath):
+            if f.endswith('.npz'):
+                block_fpath = os.path.join(save_dpath, f)
+                logger.log('INFO', f'Using existing block: {block_fpath}')
+                break
 
-    # early return if there is already a block, e.g., an .npz file
-    for f in os.listdir(save_dpath):
-        if f.endswith('.npz'):
-            block_fpath = os.path.join(save_dpath, f)
-            logger.log('INFO', f'Using existing block" {block_fpath}')
-            return block_fpath
+    if not block_fpath:
+        block_fpath = _create_block(save_dpath, config, logger)
 
-    logger.log('INFO', 'Preparing world grid')
+    block = geo_core.DataBlock.load(block_fpath)
+    counts = block.manifest['label_count']
+    cc = {k: [1] * len(counts[k]) for k in counts if k != 'original'}
 
-    # get world grid
-    grid_cfg = config.foundation.grid
-    grid_config = world_grids.GridParameters(
-        mode=grid_cfg.mode, # type: ignore
-        crs=grid_cfg.crs,
-        ref_fpath=grid_cfg.extent.filepath,
-        origin=grid_cfg.extent.origin,
-        pixel_size=grid_cfg.extent.pixel_size,
-        grid_extent=grid_cfg.extent.grid_extent,
-        grid_shape=grid_cfg.extent.grid_shape,
-        tile_specs=grid_cfg.tile_specs_tuple,
+    return core.DataSpecs(
+        name='overfit_single_block',
+        mode='default',
+        meta=core.Meta(
+            blk_bytes=0,
+            test_blks_grid=(0, 0),
+            label_color_map=None,
+            image_specs=core.Meta.Image(
+                num_channels=block.data.image.shape[0],
+                height_width=block.data.image.shape[1],  # assume H == W
+                array_key='image',
+                band_map=block.manifest['image_band_map'],
+            ),
+            label_specs=core.Meta.Label(
+                array_key='label_stack',
+                ignore_index=block.manifest['ignore_index'],
+            ),
+        ),
+        heads=core.Heads(
+            class_counts=cc,  # neutral
+            logits_adjust={k: [1.0] * len(v) for k, v in cc.items()},  # neutral
+            head_parent=block.manifest['label_parent'],
+            head_parent_cls=block.manifest['label_parent_cls'],
+        ),
+        splits=core.Splits(
+            train={block.manifest['block_name']: block_fpath},
+            val={block.manifest['block_name']: block_fpath},
+            test={},
+        ),
+        domains=core.Domains(
+            train={'ids_domain': None, 'vec_domain': None},
+            val={'ids_domain': None, 'vec_domain': None},
+            test={'ids_domain': None, 'vec_domain': None},
+            ids_num=0,
+            vec_dim=0,
+        ),
     )
-    world_grid = world_grids.build_grid(grid_config)
 
-    # map image unto world grid
+
+# ----- block construction helper
+def _create_block(
+    save_dpath: str,
+    config: configs.RootConfig,
+    logger: session.SessionLogger,
+) -> str:
+    '''Build one valid block for the overfit test.'''
+    # construct world grid layout
+    logger.log('INFO', 'Preparing world grid')
+    grid_cfg = config.foundation.grid
+    world_grid = world_grids.build_grid(
+        world_grids.GridParameters(
+            mode=grid_cfg.mode,  # type: ignore
+            crs=grid_cfg.crs,
+            ref_fpath=grid_cfg.extent.filepath,
+            origin=grid_cfg.extent.origin,
+            pixel_size=grid_cfg.extent.pixel_size,
+            grid_extent=grid_cfg.extent.grid_extent,
+            grid_shape=grid_cfg.extent.grid_shape,
+            tile_specs=grid_cfg.tile_specs_tuple,
+        )
+    )
+
+    # map raster windows onto world grid
     logger.log('INFO', 'Mapping image unto the world grid')
     datablocks_cfg = config.foundation.datablocks
     mapped = mapper.map_rasters(
@@ -153,19 +216,16 @@ def _build_a_block(
         datablocks_cfg.filepaths.dev_label,
     )
 
-    logger.log('INFO', 'Building a single data block')
-    # search windows and build a single block
     # load dataset config JSON
-    ctrl = artifacts.Controller[dict].load_json_or_fail(datablocks_cfg.filepaths.config)
+    logger.log('INFO', 'Building a single data block')
+    ctrl = DatasetConfigCtrl.load_json_or_fail(datablocks_cfg.filepaths.config)
     ctrl.hash(overwrite=False)
     dataset_config = ctrl.fetch()
     assert dataset_config
 
-    # map coordinate names to RasterReadInput objects
-    inputs_map = {}
-    for coord in mapped.image:
-        name = geo_utils.xy_name(coord)
-        inputs_map[name] = assembler.RasterReadInput(
+    # construct `RasterReadInput` mapping for mapped windows
+    inputs_map = {
+        geo_utils.xy_name(coord): assembler.RasterReadInput(
             image_fpath=datablocks_cfg.filepaths.dev_image,
             image_window=mapped.image[coord],
             image_band_map=dataset_config['image_band_map'],
@@ -174,14 +234,19 @@ def _build_a_block(
             label_window=mapped.label[coord] if mapped.label else None,
             label_specs=dataset_config.get('label_specs'),
         )
+        for coord in mapped.image
+    }
 
-    # build a single block matching criteria for testing
+    # resolve target head for filtering
+    target_head = _resolve_target_head(config, dataset_config)
+
+    # build single valid test block matching criteria
     block_fpath = assembler.build_test_block(
         save_dpath=save_dpath,
         inputs=inputs_map,
-        target_head=kwargs.get('monitor_head', 'base'),
-        valid_px_per=kwargs.get('valid_px_per', 0.8),
-        need_all_classes=kwargs.get('need_all_classes', True),
+        target_head=target_head,
+        valid_px_per=0.8,
+        need_all_classes=True,
     )
     if not block_fpath:
         raise ValueError('No valid block for testing is found')
@@ -189,50 +254,64 @@ def _build_a_block(
     logger.log('INFO', f'Single block successfully created: {block_fpath}')
     return block_fpath
 
-def _build_dataspec_a_block(block_fpath: str) -> core.DataSpecs:
-    '''Build a minimal `DataSpecs` from a single saved block.'''
 
-    # read the block
-    block = geo_core.DataBlock.load(block_fpath)
-    counts = block.manifest['label_count']
-    cc = {k: [1] * len(counts[k]) for k in counts if k != 'original'}
+# ----- target head resolution helper
+def _resolve_target_head(
+    config: configs.RootConfig,
+    dataset_config: dict[str, typing.Any],
+) -> str:
+    '''Resolve the target head for test block filtering.'''
+    label_specs = dataset_config.get('label_specs')
+    if not label_specs:
+        raise ValueError('No label specifications found in dataset config')
 
-    # returgeocorerectly from schema dict
-    specs = core.DataSpecs(
-        name='',
-        mode='single',
-        meta =core.Meta(
-            blk_bytes=0,
-            test_blks_grid=(0, 0),
-            label_color_map=None,
-            image_specs=core.Meta.Image(
-                num_channels=block.data.image.shape[0],
-                height_width=block.data.label.shape[1], # here assume H==W
-                array_key='image',
-                band_map=block.manifest['image_band_map'],
-            ),
-            label_specs=core.Meta.Label(
-                array_key='label_stack',
-                ignore_index=block.manifest['ignore_index']
-            )
-        ),
-        heads=core.Heads(
-            class_counts=cc, # neutral
-            logits_adjust={k: [1.0] * len(v) for k, v in cc.items()}, # neutral
-            head_parent=block.manifest['label_parent'],
-            head_parent_cls=block.manifest['label_parent_cls'],
-        ),
-        splits=core.Splits(
-            train={block.manifest['block_name']: block_fpath},
-            val={block.manifest['block_name']: block_fpath},
-            test={}
-        ),
-        domains=core.Domains(
-            train={'ids_domain': None, 'vec_domain': None},
-            val={'ids_domain': None, 'vec_domain': None},
-            test={'ids_domain': None, 'vec_domain': None},
-            ids_num=-1,
-            vec_dim=0
-        )
+    first_head = list(label_specs.keys())[0]
+    monitor_track = config.session.orchestration.monitor.track_heads
+    return (
+        list(monitor_track.keys())[0] if monitor_track else first_head
     )
-    return specs
+
+
+# ----- overfit epoch training loop helper
+def _run_overfit_loop(
+    runner: engine.EpochEngine,
+    config: configs.RootConfig,
+    logger: session.SessionLogger,
+) -> dict[str, typing.Any]:
+    '''Execute epoch training loop until threshold or max epochs.'''
+    max_epoch = c.OVERFIT_MAX_EPOCH
+    lr = config.session.engine_optim.lr
+    logger.log('INFO', 'Starting overfit test')
+    logger.log('INFO', f'Maximum epoch: {max_epoch}')
+    logger.log('INFO', f'Learning rate: {lr}')
+
+    loss, iou = 0.0, 0.0
+    for ep in range(1, max_epoch + 1):
+        results = runner.run_epoch(ep)
+        assert results.training and results.validation  # typing
+        results.track(
+            config.session.orchestration.monitor.metric_name,
+            config.session.orchestration.monitor.track_heads,
+        )
+        loss = results.training.total_objective
+        iou = results.target_metrics
+        logger.log(
+            'INFO',
+            f'Epoch: {ep:04d} | Loss: {loss:.4f} | IoU: {iou:.4f}'
+        )
+        if iou >= 0.99:
+            logger.log('INFO', 'Overfit reached - test complete')
+            return {
+                'final_epoch': ep,
+                'final_loss': loss,
+                'final_iou': iou,
+                'overfit_reached': True,
+            }
+
+    logger.log('WARNING', f'IoU did not reach 99% after {max_epoch} epochs.')
+    return {
+        'final_epoch': max_epoch,
+        'final_loss': loss,
+        'final_iou': iou,
+        'overfit_reached': False,
+    }

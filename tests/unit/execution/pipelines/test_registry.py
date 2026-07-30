@@ -19,34 +19,42 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-# pylint: disable=missing-function-docstring
-
 '''
-Session schema utilities.
+Unit tests for pipeline registry (_registry.py).
 '''
 
-# standard imports
-import os
-import typing
+# third-party imports
+import pytest
+# local imports
+import landseg.execution.pipelines._registry as registry
 
-def file_exists(path: str) -> bool:
-    return os.path.isfile(path) and os.path.exists(path)
 
-def must_exist(path: str | None, tag: str) -> None:
-    if path and not file_exists(path):
-        raise FileNotFoundError(f'File [{tag}] is invalid: {path}')
+# ----- `get` helper
+@pytest.mark.parametrize('name', [
+    'default',
+    'data-ingest',
+    'data-prepare',
+    'diagnose-overfit',
+    'model-evaluate',
+    'model-train',
+    'study-sweep',
+    'study-analysis',
+])
+def test_get_valid_pipeline(name: registry.PipelineName):
+    '''
+    Given: A valid pipeline name.
+    When: `get` is called.
+    Then: Return the registered pipeline callable.
+    '''
+    pipeline_fn = registry.get(name)
+    assert callable(pipeline_fn)
 
-def must_within(
-    value: typing.Any,
-    tag: str,
-    mmin: int | float | None = None,
-    mmax: int | float | None = None,
-) -> None:
-    if not isinstance(value, (int, float)):
-        return
-    rr = f'[{mmin}, {mmax}]'
-    if (
-        (mmin is not None and value < mmin) or
-        (mmax is not None and value > mmax)
-    ):
-        raise ValueError(f'Value [{tag}] must be within {rr}, got: {value}')
+
+def test_get_invalid_pipeline_raises_key_error():
+    '''
+    Given: An unknown pipeline name.
+    When: `get` is called.
+    Then: Raise a KeyError.
+    '''
+    with pytest.raises(KeyError, match='Unknown pipeline name'):
+        registry.get('non-existent-pipeline')

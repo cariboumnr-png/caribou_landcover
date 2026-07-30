@@ -283,9 +283,9 @@ def test_build_blocks_orchestrator(
 # ----- test block construction
 def test_build_test_block_success(dummy_geotiff_factory, tmp_path):
     '''
-    Given: Large label and image inputs meeting class coverage requirements.
-    When: Running build_test_block.
-    Then: Return the path to a serialized DataBlock with valid coverage.
+    Given: Large label and image inputs meeting coverage requirements.
+    When: Running raster_assembler.
+    Then: Return path to serialized DataBlock with valid coverage.
     '''
     img_path = str(dummy_geotiff_factory('image.tif', 16, 16, 5))
     lbl_path = str(dummy_geotiff_factory('label.tif', 16, 16, 1))

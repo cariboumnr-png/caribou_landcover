@@ -72,7 +72,7 @@ def test_epoch_engine_run_epoch_train_eval(mock_trainer, mock_evaluator):
     '''
     Given: `EpochEngine` in `train_eval` mode.
     When: Calling `run_epoch(epoch=1)`.
-    Then: Execute train, val, and infer policies, returning `SessionStepResults`.
+    Then: Execute policies, returning `SessionStepResults`.
     '''
     epoch_engine = exec_mod.EpochEngine(
         mode='train_eval',
@@ -83,6 +83,7 @@ def test_epoch_engine_run_epoch_train_eval(mock_trainer, mock_evaluator):
 
     # populate dummy patch entry in infer_out for continuous inference
     dummy_weight = mock_trainer.model.conv.weight.new_zeros(16, 16)
+    assert mock_evaluator.state.infer_out is not None
     mock_evaluator.state.infer_out.labels['head_1'] = {(0, 0): dummy_weight}
     mock_evaluator.state.infer_out.preds['head_1'] = {(0, 0): dummy_weight}
     mock_evaluator.state.infer_out.errors['head_1'] = {(0, 0): dummy_weight}
@@ -99,7 +100,7 @@ def test_epoch_engine_run_epoch_train_only(mock_trainer):
     '''
     Given: `EpochEngine` in `train_only` mode.
     When: Calling `run_epoch(epoch=1)`.
-    Then: Execute training policy and return `SessionStepResults(training, None, None)`.
+    Then: Execute training policy and return training `SessionStepResults`.
     '''
     epoch_engine = exec_mod.EpochEngine(
         mode='train_only',
@@ -120,7 +121,7 @@ def test_epoch_engine_run_epoch_eval_only(mock_evaluator):
     '''
     Given: `EpochEngine` in `eval_only` mode.
     When: Calling `run_epoch(epoch=1)`.
-    Then: Execute validation policy and return `SessionStepResults(None, validation, None)`.
+    Then: Execute validation policy and return validation step results.
     '''
     epoch_engine = exec_mod.EpochEngine(
         mode='eval_only',

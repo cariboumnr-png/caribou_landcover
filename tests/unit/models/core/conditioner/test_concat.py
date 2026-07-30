@@ -126,7 +126,7 @@ def test_concat_adapter_both():
 
 def test_concat_adapter_mismatched_both():
     '''
-    Given: Conflicting shapes for both ID embedding and vector projection.
+    Given: Conflicting shapes for ID embedding and vector projection.
     When: Running forward pass.
     Then: Raise a ValueError indicating mismatched dimensions.
     '''

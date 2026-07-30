@@ -35,7 +35,7 @@ def test_build_engine_runtime_patch_size_divisibility_error(
     mock_dataloaders
 ):
     '''
-    Given: Dataloader patch_size (15) not divisible by model spatial_divisor (16).
+    Given: Dataloader patch_size (15) indivisible by spatial_divisor (16).
     When: Calling `build_engine_runtime`.
     Then: Raise `ValueError` matching patch dimension divisibility.
     '''
@@ -61,7 +61,7 @@ def test_build_engine_runtime_success(
     '''
     Given: Compatible dataloaders, model, dataspecs, and session_config.
     When: Calling `build_engine_runtime`.
-    Then: Return populated `EngineRuntime` with engine, engine_optim, engine_tasks.
+    Then: Return populated `EngineRuntime` with engine and tasks.
     '''
     runtime = builder_mod.build_engine_runtime(
         dataspecs=dataspecs,

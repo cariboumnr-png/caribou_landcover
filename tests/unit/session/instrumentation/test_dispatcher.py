@@ -79,7 +79,7 @@ def test_dispatcher_register_and_deregister():
 def test_dispatcher_event_broadcasting():
     '''
     Given: `CallbackDispatcher` with registered `MockCallback`.
-    When: Broadcasting lifecycle events (`on_batch_begin`, `on_session_end`, etc.).
+    When: Broadcasting lifecycle events (such as `on_batch_begin`).
     Then: All registered callbacks receive event notifications.
     '''
     mock_cb = MockCallback()
@@ -103,7 +103,7 @@ def test_build_dispatcher_default():
     '''
     Given: No trackers specified for `build_dispatcher`.
     When: Building dispatcher.
-    Then: Dispatcher is created with standard logging and tracking callbacks.
+    Then: Dispatcher is created with logging and tracking callbacks.
     '''
     dispatcher = builder_mod.build_dispatcher(verbose=False)
 

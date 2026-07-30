@@ -65,7 +65,7 @@ def test_engine_base_set_head_state_default(
     '''
     Given: `EngineBase` with active heads set to None.
     When: Invoking `set_head_state(active_heads=None)`.
-    Then: Active heads default to `all_heads` and state pointers are updated.
+    Then: Active heads default to `all_heads` and state is updated.
     '''
     engine_base = base_mod.EngineBase(
         engine_runtime=mock_runtime,

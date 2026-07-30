@@ -57,7 +57,7 @@ def test_composite_loss_init_all_losses(session_config):
     Given: A composite configuration enabling focal/dice/spectral/tv
         losses.
     When: Instantiating `CompositeLoss`.
-    Then: Register all 4 primitive losses and compute weighted composite
+    Then: Register 4 primitive losses and compute weighted composite
         loss.
     '''
     cfg = session_config.engine_tasks.loss_configs

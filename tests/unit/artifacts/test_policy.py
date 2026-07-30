@@ -19,34 +19,26 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-# pylint: disable=missing-function-docstring
-
 '''
-Session schema utilities.
+Unit tests for `landseg.artifacts.policy`.
 '''
 
-# standard imports
-import os
-import typing
+# local imports
+import landseg.artifacts.policy as policy_mod
 
-def file_exists(path: str) -> bool:
-    return os.path.isfile(path) and os.path.exists(path)
 
-def must_exist(path: str | None, tag: str) -> None:
-    if path and not file_exists(path):
-        raise FileNotFoundError(f'File [{tag}] is invalid: {path}')
+# ----- `LifecyclePolicy` tests
+def test_lifecycle_policy_members():
+    '''
+    Given: The `LifecyclePolicy` enumeration.
+    When: Accessing enum members and member count.
+    Then: Verify member names and total count match expected policies.
+    '''
+    assert policy_mod.LifecyclePolicy.LOAD_ONLY.name == 'LOAD_ONLY'
+    assert policy_mod.LifecyclePolicy.LOAD_OR_FAIL.name == 'LOAD_OR_FAIL'
+    assert policy_mod.LifecyclePolicy.BUILD_IF_MISSING.name == 'BUILD_IF_MISSING'
+    assert policy_mod.LifecyclePolicy.REBUILD.name == 'REBUILD'
+    assert policy_mod.LifecyclePolicy.REBUILD_IF_STALE.name == 'REBUILD_IF_STALE'
 
-def must_within(
-    value: typing.Any,
-    tag: str,
-    mmin: int | float | None = None,
-    mmax: int | float | None = None,
-) -> None:
-    if not isinstance(value, (int, float)):
-        return
-    rr = f'[{mmin}, {mmax}]'
-    if (
-        (mmin is not None and value < mmin) or
-        (mmax is not None and value > mmax)
-    ):
-        raise ValueError(f'Value [{tag}] must be within {rr}, got: {value}')
+    # verify total count of enum members
+    assert len(policy_mod.LifecyclePolicy) == 5
