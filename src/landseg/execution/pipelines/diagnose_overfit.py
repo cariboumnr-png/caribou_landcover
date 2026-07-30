@@ -241,13 +241,25 @@ def _create_block(
     target_head = _resolve_target_head(config, dataset_config)
 
     # build single valid test block matching criteria
+    logger.log('DEBUG', 'Try: valid_px_per=0.95; need_all_class=True')
     block_fpath = assembler.build_test_block(
         save_dpath=save_dpath,
         inputs=inputs_map,
         target_head=target_head,
-        valid_px_per=0.8,
+        valid_px_per=0.95,
         need_all_classes=True,
     )
+    # second try
+    if not block_fpath:
+        logger.log('DEBUG', 'Try: valid_px_per=0.95; need_all_class=False')
+        block_fpath = assembler.build_test_block(
+            save_dpath=save_dpath,
+            inputs=inputs_map,
+            target_head=target_head,
+            valid_px_per=0.95,
+            need_all_classes=False,
+        )
+    # fail
     if not block_fpath:
         raise ValueError('No valid block for testing is found')
 
@@ -266,10 +278,9 @@ def _resolve_target_head(
         raise ValueError('No label specifications found in dataset config')
 
     first_head = list(label_specs.keys())[0]
-    monitor_track = config.session.orchestration.monitor.track_heads
-    return (
-        list(monitor_track.keys())[0] if monitor_track else first_head
-    )
+    active_heads = config.session.orchestration.single_phase.active_heads
+
+    return active_heads[0] if active_heads else first_head
 
 
 # ----- overfit epoch training loop helper

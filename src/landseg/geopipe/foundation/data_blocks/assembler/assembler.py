@@ -138,10 +138,12 @@ def build_test_block(
     shuffled_inputs = list(inputs.items())
     random.Random(42).shuffle(shuffled_inputs)
 
-    name: str | None = None
-    candidate: geo_core.DataBlock | None = None
+    selected_name = None
+    selected_candidate = None
+
     for name, candidate_input in shuffled_inputs:
         print('Searching for a valid block...', end='\r', flush=True)
+
         try:
             candidate = build_single_block(name, candidate_input)
             manifest = candidate.manifest
@@ -160,12 +162,18 @@ def build_test_block(
                 valid_ratio >= valid_px_per and
                 (has_all_classes or not need_all_classes)
             ):
+                selected_name = name
+                selected_candidate = candidate
                 break
+
         except ValueError:
             continue
 
-    if not candidate:
+    if selected_candidate is None:
         return None
+
+    candidate = selected_candidate
+    name = selected_name
 
     # In-place image normalization for debugging block
     mean = numpy.mean(candidate.data.image)

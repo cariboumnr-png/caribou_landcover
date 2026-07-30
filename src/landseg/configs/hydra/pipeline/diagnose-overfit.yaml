@@ -1,9 +1,5 @@
 # @package _global_
 
-models:
-  model_body: unet
-  conditioners: []
-
 session:
 
   engine_exec:
@@ -27,10 +23,6 @@ session:
         weight: 0.0
       tv:
         weight: 0.0
-
-  orchestration:
-    monitor:
-      track_heads: {base: 1.0}
 
 pipeline:
   name: diagnose-overfit
