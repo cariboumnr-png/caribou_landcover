@@ -131,8 +131,14 @@ class Logger:
 
             # create a file handler if enabled
             if enable_file_log:
+                # if provided log_file is not a .log file
+                if not log_file.endswith('log'):
+                    _root, _ = os.path.splitext(log_file)
+                    _log_file = f'{_root}.log'
+                else:
+                    _log_file = log_file
                 # create a file handler - delay=True to create file upon first log
-                file_handler = logging.FileHandler(log_file, delay=True)
+                file_handler = logging.FileHandler(_log_file, delay=True)
                 file_handler.setLevel(log_lvl)
                 file_handler.setFormatter(formatter)
                 # add the file handler to the logger
