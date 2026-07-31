@@ -32,7 +32,6 @@ analysis are handled elsewhere.
 '''
 
 # standard imports
-import datetime
 import typing
 # local imports
 import landseg._constants as c
@@ -88,7 +87,6 @@ def _runner_builder(config: configs.RootConfig) -> tuple[str, StepRunner]:
         logger.init_summary(
             run_id=paths.run_id,
             pipeline=config.pipeline.name,
-            start_time=datetime.datetime.now().strftime(c.TF_ISO8601)
         )
         logger.set_inputs(config.as_dict)
         try:
@@ -133,7 +131,6 @@ def _runner_builder(config: configs.RootConfig) -> tuple[str, StepRunner]:
             yield from runner.run()
 
             # update summary
-            logger.summary['completed_at'] = datetime.datetime.now().strftime(c.TF_ISO8601)
             logger.set_summary_status('SUCCESS')
 
         except Exception as e:

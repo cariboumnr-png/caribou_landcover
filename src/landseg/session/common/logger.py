@@ -24,8 +24,10 @@ Subclass wrapper of Logger to handle structured session summaries.
 '''
 
 # standard imports
+import datetime
 import typing
 # local imports
+import landseg._constants as c
 import landseg.artifacts as artifacts
 import landseg.utils as utils
 
@@ -52,12 +54,13 @@ class SessionLogger(utils.Logger):
         super().__init__(*arg, **kwargs)
         self.summary: SessionSummary | None = None
 
-    def init_summary(self, *, run_id: str, pipeline: str, start_time: str):
+    def init_summary(self, *, run_id: str, pipeline: str):
         '''Initialize the structured session summary dictionary.'''
+        t = datetime.datetime.now().strftime(c.TF_ISO8601)
         self.summary = {
             'run_id': run_id,
             'pipeline': pipeline,
-            'started_at': start_time,
+            'started_at': t,
             'status': 'RUNNING',
             'completed_at': None,
             'inputs': {},
@@ -86,6 +89,8 @@ class SessionLogger(utils.Logger):
 
     def on_close(self) -> None:
         '''Persist the collected summary JSON report.'''
+        t = datetime.datetime.now().strftime(c.TF_ISO8601)
         if self.summary is not None:
+            self.summary['completed_at'] = t
             ctrl = artifacts.Controller(self.log_file)
             ctrl.persist(self.summary)

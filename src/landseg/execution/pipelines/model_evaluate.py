@@ -24,7 +24,6 @@ Evaluating a model.
 '''
 
 # standard imports
-import datetime
 import typing
 # local imports
 import landseg._constants as c
@@ -70,7 +69,6 @@ def evaluate(config: configs.RootConfig):
     logger.init_summary(
         run_id=session_paths.run_id,
         pipeline=config.pipeline.name,
-        start_time=datetime.datetime.now().strftime(c.TF_ISO8601)
     )
     logger.set_inputs({
         'checkpoint': eval_config.checkpoint,
@@ -137,7 +135,6 @@ def evaluate(config: configs.RootConfig):
         output_ctrl.persist(metrics)
 
         # update summary
-        logger.summary['completed_at'] = datetime.datetime.now().strftime(c.TF_ISO8601)
         logger.set_summary_status('SUCCESS')
         logger.set_results({'final': evaluation_results.target_metrics})
 

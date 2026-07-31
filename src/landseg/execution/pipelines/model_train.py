@@ -27,7 +27,6 @@ model, and runs the multi-phase training runner.
 '''
 
 # standard imports
-import datetime
 import time
 import typing
 # third-party imports
@@ -74,7 +73,6 @@ def train(config: configs.RootConfig) -> None:
     logger.init_summary(
         run_id=ss_paths.run_id,
         pipeline=config.pipeline.name,
-        start_time=_current_time()
     )
     assert logger.summary # typing
 
@@ -293,7 +291,6 @@ def _log_results(
         peak_gpu_mb = float(torch.cuda.max_memory_allocated() / (1024 * 1024))
 
     assert logger.summary is not None
-    logger.summary['completed_at'] = _current_time()
     logger.set_summary_status('SUCCESS')
     logger.set_results({
         'best_value': final,
@@ -308,8 +305,3 @@ def _log_results(
             'peak_gpu_memory_mb': peak_gpu_mb
         }
     })
-
-
-def _current_time() -> str:
-    '''Return current time as a formatted string.'''
-    return datetime.datetime.now().strftime(c.TF_ISO8601)

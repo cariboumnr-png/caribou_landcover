@@ -27,7 +27,6 @@ and trains until near-perfect IoU to validate the end-to-end stack.
 '''
 
 # standard imports
-import datetime
 import os
 import typing
 # local imports
@@ -64,12 +63,7 @@ def overfit(config: configs.RootConfig) -> None:
     root = f'{config.execution.exp_root}/results/overfit_test'
     log_file = f'{root}/log/overfit_summary.json'
     logger = session.SessionLogger('overfit', log_file=log_file)
-    time_stamp = datetime.datetime.now().strftime(c.TF_ISO8601)
-    logger.init_summary(
-        run_id='overfit_test',
-        pipeline='diagnose_overfit',
-        start_time=time_stamp,
-    )
+    logger.init_summary(run_id='overfit_test', pipeline='diagnose_overfit')
 
     try:
         logger.log_sep()
