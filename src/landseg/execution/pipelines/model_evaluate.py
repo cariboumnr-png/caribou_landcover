@@ -45,7 +45,7 @@ def evaluate(config: configs.RootConfig):
         config: RootConfig with model, trainer, and runner settings.
     '''
     # init run io folder tree
-    session_paths = artifacts.ResultsPaths(f'{config.execution.exp_root}/results')
+    session_paths = artifacts.SessionPaths(f'{config.execution.exp_root}/results')
     session_paths.init()
 
     # parse evaluation pipeline configs

@@ -53,7 +53,7 @@ def train(config: configs.RootConfig) -> None:
         config: RootConfig with model, trainer, and runner settings.
     '''
     # init session results paths and create run io folder tree
-    ss_paths = artifacts.ResultsPaths(f'{config.execution.exp_root}/results')
+    ss_paths = artifacts.SessionPaths(f'{config.execution.exp_root}/results')
     ss_paths.init(config.session.orchestration.schedule.resume_from_last)
 
     # persist running config as JSON
