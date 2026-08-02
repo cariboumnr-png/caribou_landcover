@@ -2,7 +2,7 @@
 
 [English](./data_preparation.md) | [Français](./data_preparation_fr.md)
 
-Last updated: 2026-04-07
+Last updated: 2026-08-02
 
 ---
 
@@ -10,7 +10,7 @@ Last updated: 2026-04-07
 
 Effective geospatial machine‑learning workflows begin with careful and consistent data preparation. Before any modeling, training, or experimentation can take place, all input rasters must be standardized in terms of CRS, resolution, extent, and alignment so they behave predictably throughout the pipeline. Ensuring these core properties are harmonized at the start greatly reduces downstream complexity and prevents errors related to mismatched spatial reference systems or misaligned pixels.
 
-A central part of this standardization is the definition of a static spatial extent as the canvas for tiling and deterministic indexing. Once the extent is established, all datasets intended for training, inference, or future production must be snapped or reprojected to match its CRS, pixel size using external GIS tools such as QGIS, ArcGIS, or GDAL.
+A central part of this standardization is the definition of a static spatial extent as the canvas for tiling and deterministic indexing. Once the extent is established, all datasets intended for training, inference, or future production must be snapped or reprojected to match its CRS and pixel size. Users can prepare rasters externally using GIS tools such as QGIS, ArcGIS, or GDAL (see the tutorial below), or use the project's built-in `data-harmonize` ETL pipeline (`python scripts/run.py pipeline=data-harmonize`) to reproject and composite raw GeoTIFFs automatically.
 
 This guide outlines the recommended steps for creating a reference raster, enforcing consistent alignment across datasets, and exporting clean, grid‑compatible rasters that form a reliable foundation for all subsequent analysis and modeling.
 
@@ -25,7 +25,7 @@ This guide outlines the recommended steps for creating a reference raster, enfor
   - [Domain Raster (Optional)](#domain-raster-optional)
 - [Raster Alignment Requirements](#raster-alignment-requirements)
 - [Data Configuration JSON](#data-configuration-json)
-- [Required Project Folder Structure](#required-project-folder-structure)
+- [Project Folder Structure Layout](#project-folder-structure-layout)
 
 ---
 
@@ -37,8 +37,8 @@ Once the extent is fixed, users may generate one or more **world grids** as stab
 
 The grid extent can be provided in two ways:
 
-  - Manual definition using a top‑left origin and a specified number of tiles in    the horizontal and vertical directions.
-  - Reference‑raster definition (preferred), where a raster created in common GIS tools (QGIS, ArcGIS, GDAL) that supplies the CRS, pixel resolution, extent, and origin to build grid
+  - Manual definition using a top‑left origin and a specified number of tiles in the horizontal and vertical directions.
+  - Reference‑raster definition (preferred), where a raster created in common GIS tools (QGIS, ArcGIS, GDAL) supplies the CRS, pixel resolution, extent, and origin to build grid.
 
 After project extent is defined, world grids are derived from it during the pipeline (module `landseg.geopipe.foundation.world_grids`) to form reproducible, versioned tiling schemes used throughout experimentation and production.
 
@@ -58,9 +58,7 @@ Image rasters used for model training and prediction typically originate from sa
 
 For GEE users, we recommend exploring the **Best Available Pixel (BAP)** workflow, which provides flexible tools for assembling high‑quality annual composites. A widely adopted implementation is available here: <https://github.com/saveriofrancini/bap>. BAP‑style compositing helps produce temporally stable, cloud‑free rasters suitable for downstream ML models.
 
-Regardless of the processing path, the final image must contain at least the six standard Landsat optical bands, which are required for computing the project’s spectral indices. In addition, users should append a DEM layer, which should be resampled and aligned to the same raster properties as the optical data. Besides
-this minimal 7‑channel composite input, you may supply as many additional channels
-as applicable.
+The input image composite is flexible: users may supply any arbitrary set of raster channels, and there are no rigid band count or band ordering requirements. Optional derived features—such as spectral indices (e.g., NDVI, NDWI) or topographic layers derived from a DEM (e.g., slope, aspect)—are computed automatically by downstream pipelines *only if* the required optical bands or elevation layer are mapped in `image_band_map`. Users can supply as many or as few channels as their application requires.
 
 <img src="./images/example_image_raster.png" alt="example_image_raster" width="800">
 
@@ -79,9 +77,7 @@ Because the project is designed for land‑cover segmentation, the label raster 
 
 During data preparation, both `NoData` and user‑specified ignore‑classes are automatically converted into a single ignore‑label index (commonly 255, user‑configurable). This ensures clean handling of invalid or unwanted pixels throughout training and inference.
 
-In many real‑world classification systems, the number of raw land‑cover classes
-can be large, imbalanced, or difficult to model effectively in a single pass. To support more manageable and staged training strategies, this framework provides
-an optional two‑tier parent–child label hierarchy:
+In many real‑world classification systems, the number of raw land‑cover classes can be large, imbalanced, or difficult to model effectively in a single pass. To support more manageable and staged training strategies, this framework provides an optional two‑tier parent–child label hierarchy:
 
   - Parent classes represent broader, generalized groups.
   - Child classes represent the finer‑scale raw categories that belong to each parent group.
@@ -114,22 +110,15 @@ Because domain processing occurs within the training configuration—not the dat
 
 ## Raster Alignment Requirements
 
-All input rasters—image, label, and optional domain—must be **aligned** to the
-project’s reference raster created during world‑grid definition. This ensures that
-every raster shares:
+All input rasters—image, label, and optional domain—must be **aligned** to the project’s reference raster created during world‑grid definition. This ensures that every raster shares:
 
 - **The same projected CRS**
 - **The same pixel resolution**
 - **The same pixel origin and alignment**
 
-Snapping to the reference raster guarantees that pixel boundaries match exactly,
-which is essential for deterministic tiling, correct label–image pairing, and
-reproducible experiments.
+Snapping to the reference raster guarantees that pixel boundaries match exactly, which is essential for deterministic tiling, correct label–image pairing, and reproducible experiments.
 
-All rasters must also fall **entirely within the bounds** of the project extent.
-Any data extending beyond the reference raster’s extent will be clipped or
-discarded during alignment. Users should therefore crop or reproject their data
-appropriately before entering the pipeline.
+All rasters must also fall **entirely within the bounds** of the project extent. Any data extending beyond the reference raster’s extent will be clipped or discarded during alignment. Users should therefore crop or reproject their data appropriately before entering the pipeline.
 
 [Jump](#tutorial---snapping-workflow-in-qgis) to the tutorial on how to align rasters to a reference raster in QGIS.
 
@@ -137,219 +126,103 @@ appropriately before entering the pipeline.
 
 ## Data Configuration JSON
 
-A data configuration JSON must accompany the input rasters.
-It defines band ordering, label behavior, and (optionally) parent–child grouping.
+A data configuration JSON accompanies the input rasters. It defines band ordering, label specifications, and optional class remapping.
 
-### Required Fields
+### Core Configuration Fields
 | Key | Purpose | Notes |
 |-----|---------|-------|
-| band_map | Defines band order of the composite image | Must be 0‑based |
-| label_num_classes | Number of raw label IDs | Any numbering scheme allowed |
-| label_to_ignore | Raw labels to exclude | Will be mapped to ignore_label |
-| label_reclass_map | Parent→child class grouping (optional) | Enables hierarchical training |
+| `image_band_map` | Defines channel band order of the composite image | Must be 0‑based index mapping |
+| `label_specs` | Defines target task head label specifications | Contains `num_cls`, `ignore_cls`, and `reclass_map` |
 
 **Example:**
 ```json
 {
-  "band_map": {
+  "image_band_map": {
     "dem": 0, "blue": 1, "green": 2,
     "red": 3, "nir": 4, "swir1": 5, "swir2": 6
   },
-  "label_num_classes": 8,
-  "label_to_ignore": [7, 8],
-  "label_reclass_map": {
-    "1": [1, 2],
-    "2": [3, 4],
-    "3": [5, 6]
+  "label_specs": {
+    "main_task": {
+      "num_cls": 8,
+      "ignore_cls": [0, 255],
+      "reclass_map": {
+        "1": 1, "2": 1,
+        "3": 2, "4": 2,
+        "5": 3, "6": 3
+      }
+    }
   }
 }
 ```
 
-### Optional Documentation Fields
+### Optional Metadata Fields
 These improve interpretability and visualization, but are not required by the preprocessing pipeline.
 
-| Key| Purpose |
-|----|---------|
-| label_class_name       | Human‑readable names for raw labels                   |
-|label_reclass_name      |Human‑readable names for parent classes                |
-|label_reclass_color_map | RGB colors for parent classes (preview visualization) |
-
-**Example:**
-```json
-{
-  "label_class_name": {
-    "1": "ISL", "2": "WAT",
-    "3": "FOR_NEW", "4": "FOR_OLD",
-    "5": "TMS", "6": "OMS",
-    "7": "RCK", "8": "UCL"
-  },
-  "label_reclass_name": {
-    "1": "water",
-    "2": "forest",
-    "3": "wetland"
-  },
-  "label_reclass_color_map": {
-    "1": [51,108,230],
-    "2": [25,114,19],
-    "3": [195,208,54]
-  }
-}
-```
+| Key | Purpose |
+|-----|---------|
+| `label_class_name` | Human‑readable names for raw label categories |
+| `label_reclass_name` | Human‑readable names for parent classes |
+| `label_reclass_color_map` | RGB color arrays for class preview visualization |
 
 **Key Rules**
-  - Band indices must be 0‑based.
-  - Label IDs may use any numbering system.
-  - label_reclass_map is optional; use only if leveraging hierarchical training.
-  - Fields like dem_pad are intentionally omitted (under revision).
-
-**Summary**
-
-You only need:
-  - `band_map`
-  - `label_num_classes`
-  - `label_to_ignore`
-  - `ignore_label`
-  - `label_reclass_map` (optional)
-
-Everything else is optional metadata for readability or visualization.
+- Band indices in `image_band_map` must be 0‑based.
+- `ignore_cls` values (such as `0` or `255`) are automatically handled during data ingestion.
+- `reclass_map` is optional; use only if leveraging parent–child class grouping.
 
 ---
 
-## Required Project Folder Structure
+## Project Folder Structure Layout
 
-After all data rasters and the corresponding configuration JSON are prepared,
-they are expected to follows a fixed and predictable folder structure. The system expects this structure exactly as described below:
+Input rasters, generated pipeline artifacts, and session execution results are organized within a structured experiment root directory (`<exp_root>`).
 
-```
-<exp_root>/                                 # user-picked location
-├── input/
-│   ├── extent_reference/
-│   │    └── example_extent.tif
-│   │
-│   ├── domain_knowledge/
-│   │    └── example_domain_1.tif
-│   │    └── example_domain_2.tif
-│   │    └── ... (you may add more)
-│   │
-│   └── <dataset_name>/                     # user-defined dataset name
-│        ├── dev/
-│        │    ├── example_image.tif
-│        │    └── example_label.tif
-│        │
-│        ├── test/                          # optional
-│        │    ├── example_image.tif
-│        │    └── example_label.tif
-│        │
-│        └── example_config.json
-...
-```
+For the complete, detailed directory tree layout across inputs, artifacts, and training results, see:
+- [Experiment & Artifacts Directory Tree Layout](./experiment_directory_layout.md) ([Français](./experiment_directory_layout_fr.md))
 
-This predictable structure allows the pipeline to automatically locate training
-data, labels, domain rasters, and configuration files without requiring users to
-manually specify paths.
+> **Synthetic Mock Data Generation**: To populate a local testing environment with a complete set of synthetic sample GeoTIFFs, run:
 
-### Folder Purpose Summary
-
-- **extent_reference/**
-  Contains a single reference raster that defines the project CRS, pixel size,
-  origin, and extent. All other rasters must be aligned to this file.
-
-- **domain_knowledge/**
-  Contains any number of *domain rasters* used as categorical or contextual
-  layers. These files are treated as a library; the model uses only one for ID
-  values and one for vector values, selected later in the configuration file.
-
-- **\<dataset_name\>/**
-  A user-named folder containing the rasters used for training and testing.
-
-  - **dev/**
-    Contains the image and label rasters used for model training.
-
-  - **test/** (optional)
-    Contains the image and label rasters for evaluation or validation.
-
-  - **/config.json**
-    The JSON configuration that defines band order, label handling, and optional parent–child class grouping.
-
-### Key Rules
-
-1. The structure inside `exp_root` must remain exactly as shown.
-2. Only `exp_root` and `dataset_name` are user-defined.
-3. Filenames inside each folder may vary, but **folder names must not change**.
-4. The system automatically constructs full paths from this structure; you do not
-   need to provide directory paths in the YAML configuration.
-5. Missing files or incorrect folder organization will lead to errors during
-   data preparation or training.
+> ```bash
+> python scripts/generate_dummy_data.py
+> ```
 
 ---
 
-## Appendix
+## Tutorial - Create a Reference Raster
 
-### Tutorial - Create A Reference Raster
-For the purpose of this guide, we will create a reference raster in QGIS in the
-following steps:
-
-**Task 1 — Define Your Study Area**<br>
-**Goal:** Identify the total spatial region to be modeled.
-1. Determine the full area covering:
-   - Your **training region**, and
-   - All **intended prediction regions**.
-2. Choose a **projected CRS** (units in metres recommended).
+### Step 1 — Select Projected CRS
+1. Open QGIS.
+2. In the bottom‑right corner, click the CRS button.
+3. Select your local projected system (e.g., `EPSG:3161`).
 
 ---
 
-**Task 2 — Create an Extent Polygon**<br>
-**Goal:** Build a vector outline representing the project extent.
-*(Skip if you already have a suitable polygon.)*
-1. Open the **Processing Toolbox**.
-2. Navigate to: **Vector Geometry → Create layer from extent**
-3. Generate a polygon that fully covers your study area.
+### Step 2 — Create Extent Layer
+1. Go to **Layer → Create Layer → New Shapefile Layer**.
+2. Set Geometry Type to **Polygon**.
+3. Draw a bounding polygon that fully covers:
+   - All training imagery
+   - All expected prediction regions
+4. Save the shapefile as `project_extent.shp`.
 
 ---
 
-**Task 3 — Convert the Extent Polygon to a Raster**<br>
-**Goal:** Produce the reference raster that formalizes project CRS, resolution,
-and alignment.
-1. Open the **Processing Toolbox** again.
-2. Navigate to: **GDAL → Vector Conversion → Rasterize (vector to raster)**
-3. Set **Output raster size units** to *Georeferenced units*.
-4. Specify:
-   - **Horizontal resolution** (e.g., 30 m for Landsat‑scale inputs)
-   - **Vertical resolution** (same as above)
-5. Ensure the CRS matches your projected CRS.
-
----
-
-**Task 4 — Save the Reference Raster**<br>
-**Goal:** Export the raster that anchors all future grids and data alignment.
-- Save the output as something like: **ref_extent.tif**
-
-This file will be used during world‑grid generation and forms the fixed spatial
-reference for all aligned rasters.
-
----
-
-**Result**<br>
-You now have a **reference extent raster** that defines:
-
-- The **immutable project extent**
-- The **project CRS**
-- The **pixel size**
-- The **origin and alignment**
+### Step 3 — Rasterize the Extent
+1. Go to **Raster → Conversion → Rasterize (Vector to Raster)**.
+2. Select `project_extent.shp` as the input.
+3. Set the fixed value to `1`.
+4. Choose the target resolution (e.g., `20` metres).
+5. Output format: **GeoTIFF**.
+6. Save as `reference_extent.tif`.
 
 All world grids and snapped input rasters will be anchored to this reference.
 
 ---
 
 ### Tutorial - Snapping Workflow in QGIS
-With the reference extent raster prepared, all remaining input rasters (image,
-label, and optional domain) must be reprojected and snapped to match it. The
-following example workflow uses QGIS:
+With the reference extent raster prepared, all remaining input rasters (image, label, and optional domain) must be reprojected and snapped to match it. The following example workflow uses QGIS:
 
 ---
 
 **Task 1 — Load Data**<br>
-**Goal:** Bring all relevant rasters into QGIS.
 1. Open QGIS.
 2. Drag in:
    - The **reference extent raster**.
@@ -360,37 +233,25 @@ following example workflow uses QGIS:
 ---
 
 **Task 2 — Open the Align Rasters Tool**<br>
-**Goal:** Use GDAL’s alignment utility inside QGIS.
 1. Open the **Processing Toolbox**.
-2. Navigate to:
-   **GDAL → Raster Alignment → Align rasters**
+2. Navigate to: **GDAL → Raster Alignment → Align rasters**.
 
 ---
 
 **Task 3 — Set Up Alignment Parameters**<br>
-**Goal:** Configure the tool so the input raster snaps exactly to the reference.
-1. **Input layer:**
-   Select the raster you wish to align (image, label, or domain).
-
-2. **Reference layer:**
-   Choose the **reference extent raster**.
-
+1. **Input layer:** Select the raster you wish to align (image, label, or domain).
+2. **Reference layer:** Choose the **reference extent raster**.
 3. **Output raster size:**
    - Target resolution: **Layer resolution** (inherits reference pixel size)
    - Target CRS: automatically taken from the reference raster
-
 4. **Output alignment:**
    - Enable **Match pixel alignment**
    - Enable **Clip to reference layer extent**
 
 ---
-**Task 4 — Save the Aligned Raster**<br>
-**Goal:** Export the snapped version.
 
-- Save as:
-  - `image_aligned.tif`
-  - `labels_aligned.tif`
-  - `domain_aligned.tif` (if applicable)
+**Task 4 — Save the Aligned Raster**<br>
+Save as `image_aligned.tif`, `labels_aligned.tif`, and `domain_aligned.tif`.
 
 ---
 
@@ -398,12 +259,4 @@ following example workflow uses QGIS:
 Run the alignment process for each input raster individually.
 
 **Result**<br>
-All rasters now share:
-- The **same CRS**
-- The **same pixel resolution**
-- The **same pixel origin and alignment**
-- The **same spatial bounds**
-
-They are now fully compatible with the world grid and the rest of the pipeline.
-
----
+All rasters now share the same CRS, pixel resolution, origin, and spatial bounds, fully compatible with the world grid and project pipelines.
