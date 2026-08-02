@@ -68,3 +68,38 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
     assert saved_report['harmonized_sources']['sentinel2'] == '/path/to/s2.tif'
     assert saved_report['composite_raster'] == '/path/to/comp.tif'
     assert saved_report['valid_mask_raster'] == '/path/to/mask.tif'
+
+
+def test_harmonization_logger_add_provenance(tmp_path):
+    '''
+    Given: A source file on disk and an initialized HarmonizationLogger.
+    When: Calling `add_source_provenance`.
+    Then: Records file size_bytes, mtime, and absolute path in report summary.
+    '''
+    out_dpath = str(tmp_path / 'prov_out')
+    os.makedirs(out_dpath, exist_ok=True)
+    sample_file = tmp_path / 'sample_raw.tif'
+    sample_file.write_bytes(b'dummy_content_bytes')
+
+    report_file = os.path.join(out_dpath, 'etl_report.json')
+    logger = etl_logger.HarmonizationLogger(
+        name='test_provenance',
+        log_file=report_file,
+        enable_file_log=False
+    )
+    logger.init_summary(
+        target_crs='EPSG:3161',
+        target_resolution=20.0,
+        output_dpath=out_dpath
+    )
+
+    logger.add_source_provenance('sentinel2', str(sample_file))
+    logger.close()
+
+    with open(report_file, 'r', encoding='utf-8') as f:
+        report = json.load(f)
+
+    prov = report['provenance']['sentinel2']
+    assert prov['size_bytes'] == len(b'dummy_content_bytes')
+    assert 'mtime' in prov
+    assert prov['path'] == os.path.abspath(str(sample_file))

@@ -24,45 +24,18 @@
 # standard imports
 import json
 import os
-# third-party imports
-import numpy
 # local imports
 import landseg.configs as configs
 import landseg.execution.executor as executor
 
 
 # ----- test cases
-def test_execute_pipeline_data_harmonize(dummy_geotiff_factory, tmp_path):
+def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
     '''
-    Given: A `RootConfig` with pipeline.name='data-harmonize' and raw inputs in EPSG:32618.
-    When: Calling `execute_pipeline`.
-    Then: Warps features and labels to EPSG:3161 at 20m and writes etl_report.json.
+    Given: Pre-generated dummy data paths for raw Sentinel-2, DEM, and landcover in EPSG:32618.
+    When: Calling `execute_pipeline` with pipeline.name='data-harmonize'.
+    Then: Warps features and labels to EPSG:3161 at 20m and writes etl_report.json and VRT outputs.
     '''
-    s2_path = dummy_geotiff_factory(
-        filename='raw_sentinel2_utm18.tif',
-        width=30,
-        height=30,
-        bands=10,
-        crs='EPSG:32618',
-        dtype=numpy.uint16
-    )
-    dem_path = dummy_geotiff_factory(
-        filename='raw_dem_utm18.tif',
-        width=30,
-        height=30,
-        bands=1,
-        crs='EPSG:32618',
-        dtype=numpy.float32
-    )
-    label_path = dummy_geotiff_factory(
-        filename='raw_label_utm18.tif',
-        width=30,
-        height=30,
-        bands=1,
-        crs='EPSG:32618',
-        dtype=numpy.uint8
-    )
-
     out_dpath = str(tmp_path / 'etl_out')
 
     root_cfg = configs.RootConfig()
@@ -71,11 +44,11 @@ def test_execute_pipeline_data_harmonize(dummy_geotiff_factory, tmp_path):
     root_cfg.etl.target_resolution = 20.0
     root_cfg.etl.output_dpath = out_dpath
     root_cfg.etl.features = {
-        'sentinel2': str(s2_path),
-        'dem': str(dem_path)
+        'sentinel2': dummy_data_paths.raw_sentinel2,
+        'dem': dummy_data_paths.raw_dem
     }
     root_cfg.etl.labels = {
-        'label': str(label_path)
+        'landcover': dummy_data_paths.raw_landcover
     }
 
     report = executor.execute_pipeline(root_cfg)
@@ -90,3 +63,5 @@ def test_execute_pipeline_data_harmonize(dummy_geotiff_factory, tmp_path):
     with open(report_file, 'r', encoding='utf-8') as f:
         saved_report = json.load(f)
     assert saved_report['status'] == 'SUCCESS'
+    assert os.path.exists(os.path.join(out_dpath, 'harmonized_image_composite.vrt'))
+    assert os.path.exists(os.path.join(out_dpath, 'valid_pixel_mask.vrt'))

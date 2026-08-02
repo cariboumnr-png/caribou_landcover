@@ -23,6 +23,7 @@
 
 # third-party imports
 import numpy
+import pytest
 import rasterio
 # local imports
 import landseg.etl.raster_ops as raster_ops
@@ -61,6 +62,17 @@ def test_stack_canonical_raster(dummy_geotiff_factory, tmp_path):
         assert dst.height == 20
 
 
+def test_stack_canonical_raster_empty_sources_raises_error(tmp_path):
+    '''
+    Given: An empty list of source raster paths.
+    When: Invoking `stack_canonical_raster`.
+    Then: Raises ValueError.
+    '''
+    out_composite = str(tmp_path / 'empty_composite.vrt')
+    with pytest.raises(ValueError, match='source_paths list cannot be empty.'):
+        raster_ops.stack_canonical_raster([], out_composite)
+
+
 def test_unify_nodata_mask(dummy_geotiff_factory, tmp_path):
     '''
     Given: A multi-band composite GeoTIFF with nodata flags.
@@ -81,5 +93,29 @@ def test_unify_nodata_mask(dummy_geotiff_factory, tmp_path):
     with rasterio.open(out_mask) as dst:
         assert dst.count == 1
         assert dst.dtypes[0] == 'uint8'
+        assert dst.width == 20
+        assert dst.height == 20
+
+
+def test_unify_nodata_mask_gtiff_output(dummy_geotiff_factory, tmp_path):
+    '''
+    Given: A multi-band composite GeoTIFF.
+    When: Invoking `unify_nodata_mask` with a .tif destination path.
+    Then: Creates a 1-band GeoTIFF mask file directly.
+    '''
+    comp_path = dummy_geotiff_factory(
+        filename='comp_gtiff.tif',
+        width=20,
+        height=20,
+        bands=2,
+        dtype=numpy.uint8
+    )
+
+    out_mask = str(tmp_path / 'valid_mask.tif')
+    raster_ops.unify_nodata_mask(str(comp_path), out_mask)
+
+    with rasterio.open(out_mask) as dst:
+        assert dst.count == 1
+        assert dst.driver == 'GTiff'
         assert dst.width == 20
         assert dst.height == 20
