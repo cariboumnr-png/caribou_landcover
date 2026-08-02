@@ -127,8 +127,12 @@ def test_build_single_block_success(dummy_geotiff_factory):
     When: Running build_single_block.
     Then: Return a DataBlock containing calculated indices and labels.
     '''
-    img_path = str(dummy_geotiff_factory('image.tif', 16, 16, 5))
-    lbl_path = str(dummy_geotiff_factory('label.tif', 16, 16, 1))
+    img_path = str(dummy_geotiff_factory(
+        filename='image.tif', width=16, height=16, bands=5
+    ))
+    lbl_path = str(dummy_geotiff_factory(
+        filename='label.tif', width=16, height=16, bands=1
+    ))
 
     window = alias.RasterWindow(col_off=4, row_off=4, width=8, height=8) # type: ignore
 
@@ -173,8 +177,12 @@ def test_build_single_block_defaults(dummy_geotiff_factory):
     When: Running build_single_block with default options.
     Then: Return a block containing only the original image bands.
     '''
-    img_path = str(dummy_geotiff_factory('image2.tif', 16, 16, 5))
-    lbl_path = str(dummy_geotiff_factory('label2.tif', 16, 16, 1))
+    img_path = str(dummy_geotiff_factory(
+        filename='image2.tif', width=16, height=16, bands=5
+    ))
+    lbl_path = str(dummy_geotiff_factory(
+        filename='label2.tif', width=16, height=16, bands=1
+    ))
 
     window = alias.RasterWindow(col_off=4, row_off=4, width=8, height=8) # type: ignore
     label_specs = {
@@ -218,8 +226,12 @@ def test_build_blocks_orchestrator(
     When: Running build_blocks orchestrator.
     Then: Save built DataBlocks to the output path.
     '''
-    img_path = str(dummy_geotiff_factory('image.tif', 16, 16, 5))
-    lbl_path = str(dummy_geotiff_factory('label.tif', 16, 16, 1))
+    img_path = str(dummy_geotiff_factory(
+        filename='image.tif', width=16, height=16, bands=5
+    ))
+    lbl_path = str(dummy_geotiff_factory(
+        filename='label.tif', width=16, height=16, bands=1
+    ))
 
     inputs = assembler.BlockBuildingInput(
         output_root=str(tmp_path / 'blocks'),
@@ -287,8 +299,12 @@ def test_build_test_block_success(dummy_geotiff_factory, tmp_path):
     When: Running raster_assembler.
     Then: Return path to serialized DataBlock with valid coverage.
     '''
-    img_path = str(dummy_geotiff_factory('image.tif', 16, 16, 5))
-    lbl_path = str(dummy_geotiff_factory('label.tif', 16, 16, 1))
+    img_path = str(dummy_geotiff_factory(
+        filename='image.tif', width=16, height=16, bands=5
+    ))
+    lbl_path = str(dummy_geotiff_factory(
+        filename='label.tif', width=16, height=16, bands=1
+    ))
 
     with rasterio.open(lbl_path, 'r+') as src:
         arr = numpy.ones((1, 16, 16), dtype=numpy.uint8)
