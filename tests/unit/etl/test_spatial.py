@@ -19,6 +19,8 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=protected-access
+
 '''Unit tests for spatial geometry definition and raster warping.'''
 
 # third-party imports
@@ -45,6 +47,22 @@ def test_canvas_spec_dimensions():
     assert spec.crs == 'EPSG:3161'
 
 
+def test_create_canvas_fallback_bounds():
+    '''
+    Given: Target CRS and resolution without a reference raster.
+    When: Invoking `create_canvas`.
+    Then: Constructs `CanvasSpec` using default spatial bounds.
+    '''
+    spec = spatial.create_canvas(
+        target_crs='EPSG:3161',
+        target_resolution=20.0
+    )
+    assert spec.crs == 'EPSG:3161'
+    assert spec.resolution == 20.0
+    assert spec.width == 512
+    assert spec.height == 512
+
+
 def test_from_reference_raster(dummy_geotiff_factory):
     '''
     Given: A reference GeoTIFF file in EPSG:3161.
@@ -58,7 +76,7 @@ def test_from_reference_raster(dummy_geotiff_factory):
         bands=1,
         dtype=numpy.float32
     )
-    spec = spatial.from_reference_raster(str(ref_path))
+    spec = spatial._from_reference_raster(str(ref_path))
     assert spec.crs == 'EPSG:3161'
     assert spec.resolution == 20.0
     assert spec.width == 100
