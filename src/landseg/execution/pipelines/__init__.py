@@ -38,6 +38,7 @@ __all__ = [
     'get',
     'default_action',
     'evaluate',
+    'harmonize',
     'ingest',
     'overfit',
     'prepare',
@@ -51,6 +52,7 @@ __all__ = [
 if typing.TYPE_CHECKING:
     from ._registry import get
     from .default import default_action
+    from .data_harmonize import harmonize
     from .data_ingest import ingest
     from .data_prepare import prepare
     from .diagnose_overfit import overfit
@@ -66,6 +68,9 @@ def __getattr__(name: str):
 
     if name in {'default_action'}:
         return getattr(importlib.import_module('.default', __package__), name)
+
+    if name in {'harmonize'}:
+        return getattr(importlib.import_module('.data_harmonize', __package__), name)
 
     if name in {'overfit'}:
         return getattr(importlib.import_module('.diagnose_overfit', __package__), name)

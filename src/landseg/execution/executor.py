@@ -61,7 +61,7 @@ def _validate_upstream_pipelines(
     '''Verify if upstream pipelines have completed successfully.'''
 
     # no checks if at the start of the pipeline chain
-    if pipeline_name in ('default', 'data-ingest'):
+    if pipeline_name in ('default', 'data-harmonize', 'data-ingest'):
         return
 
     # fetch data pipeline artifacts paths
