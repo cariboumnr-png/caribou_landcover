@@ -53,6 +53,7 @@ def dummy_data_paths():
         testing.generate_dummy_data(in_dir)
     return paths
 
+
 @pytest.fixture
 def dummy_geotiff_factory(tmp_path):
     '''
@@ -60,30 +61,37 @@ def dummy_geotiff_factory(tmp_path):
 
     Returns a function that creates a GeoTIFF and returns its file path.
     '''
-    def _create_dummy_geotiff(
+    def _create_dummy_geotiff( # pylint: disable=too-many-arguments
+        *,
         filename='dummy.tif',
         width=16,
         height=16,
         bands=3,
-        dtype=numpy.uint8
+        crs='EPSG:3161',
+        transform=None,
+        dtype=numpy.uint8,
+        data_gen_func=None
     ):
         file_path = tmp_path / filename
+        tf = transform or rasterio.transform.from_origin(500000.0, 6000000.0, 20.0, 20.0)
 
         config = testing.TIFFConfig(
             shape=(height, width),
             bands=bands,
-            crs='+proj=latlong',
-            transform=rasterio.transform.from_origin(0.5, 0.5, 1, 1),
+            crs=crs,
+            transform=tf,
             dtype=dtype
-        ) # use a non-identity transform to avoid GDAL warning
+        )
 
-        def _data_gen_func(shape, _):
+        def _default_gen(shape, _):
             return numpy.random.randint(0, 256, shape).astype(dtype)
+
+        gen = data_gen_func or _default_gen
 
         testing.create_dummy_geotiff(
             str(file_path),
             config=config,
-            data_gen_func=_data_gen_func
+            data_gen_func=gen
         )
 
         return file_path

@@ -1,0 +1,104 @@
+# =========================================================================== #
+#           Copyright © His Majesty the King in right of Ontario,           #
+#         as represented by the Minister of Natural Resources, 2026.          #
+#                                                                             #
+#                      © King's Printer for Ontario, 2026.                    #
+#                                                                             #
+#       Licensed under the Apache License, Version 2.0 (the 'License');       #
+#          you may not use this file except in compliance with the            #
+#                                  License.                                   #
+#                  You may obtain a copy of the License at:                   #
+#                                                                             #
+#                  http://www.apache.org/licenses/LICENSE-2.0                 #
+#                                                                             #
+#    Unless required by applicable law or agreed to in writing, software      #
+#     distributed under the License is distributed on an 'AS IS' BASIS,       #
+#      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or        #
+#                                   implied.                                  #
+#       See the License for the specific language governing permissions       #
+#                       and limitations under the License.                    #
+# =========================================================================== #
+
+'''Unit tests for spatial warping and grid snapping.'''
+
+# third-party imports
+import numpy
+import rasterio
+# local imports
+import landseg.etl.canvas as canvas_mod
+import landseg.etl.warp as warp_mod
+
+
+# ----- test cases
+def test_warp_sentinel2_to_lambert(dummy_geotiff_factory, tmp_path):
+    '''
+    Given: A 10-band Sentinel-2 composite in UTM Zone 17N (EPSG:32617).
+    When: Warping to target canvas in EPSG:3161 at 20m resolution.
+    Then: Output GeoTIFF has 10 bands in EPSG:3161 with exact canvas dimensions.
+    '''
+    s2_path = dummy_geotiff_factory(
+        filename='sentinel2_10band_utm17.tif',
+        width=50,
+        height=50,
+        bands=10,
+        crs='EPSG:32617',
+        dtype=numpy.uint16
+    )
+    canvas = canvas_mod.CanvasSpec(
+        crs='EPSG:3161',
+        resolution=20.0,
+        bounds=(500000.0, 600000.0, 501000.0, 601000.0) # 50px x 50px
+    )
+
+    out_path = str(tmp_path / 'warped_s2.tif')
+    warp_mod.warp_to_canvas(
+        input_path=str(s2_path),
+        output_path=out_path,
+        canvas=canvas,
+        is_categorical=False
+    )
+
+    with rasterio.open(out_path) as dst:
+        assert dst.crs.to_string() == 'EPSG:3161'
+        assert dst.count == 10
+        assert dst.width == 50
+        assert dst.height == 50
+
+
+def test_warp_categorical_labels_preserves_integer_values(dummy_geotiff_factory, tmp_path):
+    '''
+    Given: A 5-class integer landcover label mask in EPSG:32617.
+    When: Warping using nearest-neighbor categorical resampling.
+    Then: Output contains strictly integer class IDs (1-5, 255) without interpolation.
+    '''
+    def _label_gen(shape, _):
+        return numpy.random.randint(1, 6, shape).astype(numpy.uint8)
+
+    label_path = dummy_geotiff_factory(
+        filename='labels_5class_utm17.tif',
+        width=50,
+        height=50,
+        bands=1,
+        crs='EPSG:32617',
+        dtype=numpy.uint8,
+        data_gen_func=_label_gen
+    )
+    canvas = canvas_mod.CanvasSpec(
+        crs='EPSG:3161',
+        resolution=20.0,
+        bounds=(500000.0, 600000.0, 501000.0, 601000.0)
+    )
+
+    out_path = str(tmp_path / 'warped_labels.tif')
+    warp_mod.warp_to_canvas(
+        input_path=str(label_path),
+        output_path=out_path,
+        canvas=canvas,
+        is_categorical=True
+    )
+
+    with rasterio.open(out_path) as dst:
+        data = dst.read(1)
+        unique_vals = numpy.unique(data)
+        for val in unique_vals:
+            assert val in (1, 2, 3, 4, 5, 255)
