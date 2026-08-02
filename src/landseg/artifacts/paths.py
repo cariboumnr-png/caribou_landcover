@@ -115,6 +115,35 @@ class ArtifactPaths:
     def transform(self):
         return TransformPaths(os.path.join(self.root, 'transform'))
 
+    @property
+    def etl(self):
+        return ETLPaths(os.path.join(self.root, 'harmonized'))
+
+# artifacts/etl/
+@dataclasses.dataclass
+class ETLPaths:
+    '''Paths for data harmonization ETL artifacts.'''
+    root: str
+
+    def harmonized_raster(self, name: str) -> str:
+        '''Return path for harmonized source Virtual Raster.'''
+        return os.path.join(self.root, f'harmonized_{name}.vrt')
+
+    @property
+    def composite_raster(self) -> str:
+        '''Return path for canonical multi-channel feature composite Virtual Raster.'''
+        return os.path.join(self.root, 'harmonized_image_composite.vrt')
+
+    @property
+    def valid_mask_raster(self) -> str:
+        '''Return path for 1-band boolean valid pixel mask Virtual Raster.'''
+        return os.path.join(self.root, 'valid_pixel_mask.vrt')
+
+    @property
+    def report(self) -> str:
+        '''Return path for ETL execution summary report JSON.'''
+        return os.path.join(self.root, 'etl_report.json')
+
 # artifacts/foundation/
 @dataclasses.dataclass
 class FoundationPaths:

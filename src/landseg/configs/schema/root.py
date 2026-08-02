@@ -69,6 +69,8 @@ class RootConfig:
     study: sec.StudyConfig = field(default_factory=sec.StudyConfig)
     # pipeline specific CLI flags
     pipeline: sec.PipelineConfig = field(default_factory=sec.PipelineConfig)
+    # etl settings
+    etl: sec.ETLConfig = field(default_factory=sec.ETLConfig)
 
     @property
     def as_dict(self) -> dict[str, typing.Any]:
@@ -76,6 +78,7 @@ class RootConfig:
 
     def validate_all(self) -> None:
         # To be completed for all sections
+        self.etl.validate()
         self.foundation.validate()
         self.transform.validate()
         self.models.validate()
