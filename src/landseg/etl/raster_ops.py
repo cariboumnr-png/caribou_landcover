@@ -29,6 +29,7 @@ import xml.etree.ElementTree
 # third-party imports
 import numpy
 import rasterio
+import rasterio.shutil
 import rasterio.vrt
 
 
@@ -102,14 +103,7 @@ def unify_nodata_mask(
 
             with rasterio.open(raw_tif) as mask_src:
                 with rasterio.vrt.WarpedVRT(mask_src) as vrt:
-                    vrt_xml = vrt.to_xml()
-                    vrt_bytes = (
-                        vrt_xml.encode('utf-8')
-                        if isinstance(vrt_xml, str)
-                        else vrt_xml
-                    )
-                    with open(output_mask_path, 'wb') as f:
-                        f.write(vrt_bytes)
+                    rasterio.shutil.copy(vrt, output_mask_path, driver='VRT')
         else:
             meta['driver'] = 'GTiff'
             with rasterio.open(output_mask_path, 'w', **meta) as dst:

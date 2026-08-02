@@ -20,7 +20,7 @@
 # =========================================================================== #
 
 '''
-Spatial canvas specification and grid reprojection operations.
+Spatial grid specification and raster warping operations.
 '''
 
 # standard imports
@@ -28,64 +28,100 @@ import dataclasses
 import os
 # third-party imports
 import rasterio
+import rasterio.enums
+import rasterio.shutil
 import rasterio.transform
 import rasterio.vrt
-from rasterio.warp import Resampling
 
-
-# ----- public types
+# Public Dataclasses
 @dataclasses.dataclass(frozen=True)
 class CanvasSpec:
-    '''Spatial target canvas definition for raster harmonization.'''
+    '''Target spatial grid specification defining CRS, resolution, and extent.'''
     crs: str
     resolution: float
-    bounds: tuple[float, float, float, float] # (minx, miny, maxx, maxy)
+    bounds: tuple[float, float, float, float] # (xmin, ymin, xmax, ymax)
 
     @property
     def width(self) -> int:
-        '''Calculate width in pixels.'''
+        '''Calculated canvas width in pixels.'''
         return int(round((self.bounds[2] - self.bounds[0]) / self.resolution))
 
     @property
     def height(self) -> int:
-        '''Calculate height in pixels.'''
+        '''Calculated canvas height in pixels.'''
         return int(round((self.bounds[3] - self.bounds[1]) / self.resolution))
 
     @property
-    def transform(self) -> rasterio.Affine:
-        '''Calculate affine transform matrix.'''
-        return rasterio.transform.from_bounds(
-            *self.bounds,
-            width=self.width,
-            height=self.height
+    def transform(self) -> rasterio.transform.Affine:
+        '''Calculated affine transform for top-left origin grid.'''
+        return rasterio.transform.from_origin(
+            self.bounds[0], self.bounds[3], self.resolution, self.resolution
         )
 
 
 # ----- public functions
-def from_reference_raster(
-    raster_path: str,
+def create_canvas(
     *,
+    target_crs: str,
+    target_resolution: float,
+    reference_raster: str | None = None,
+    default_bounds: tuple[float, float, float, float] | None = None
+) -> CanvasSpec:
+    '''
+    Create `CanvasSpec` from a reference raster file or fallback bounds.
+
+    Args:
+        target_crs:
+            Coordinate Reference System string (e.g. 'EPSG:3161').
+        target_resolution:
+            Target pixel resolution in meters.
+        reference_raster:
+            Optional path to reference raster dataset.
+        default_bounds:
+            Fallback spatial bounds tuple (xmin, ymin, xmax, ymax).
+
+    Returns:
+        Configured `CanvasSpec` instance.
+    '''
+    if reference_raster and os.path.exists(reference_raster):
+        return _from_reference_raster(
+            reference_raster,
+            target_crs=target_crs,
+            target_resolution=target_resolution
+        )
+
+    # EPSG:3161 default bounds
+    if default_bounds is None:
+        default_bounds = (500000.0, 600000.0, 510240.0, 610240.0)
+
+    return CanvasSpec(
+        crs=target_crs,
+        resolution=target_resolution,
+        bounds=default_bounds
+    )
+
+
+def _from_reference_raster(
+    raster_path: str,
     target_crs: str | None = None,
     target_resolution: float | None = None
 ) -> CanvasSpec:
     '''
-    Derive `CanvasSpec` from a reference GeoTIFF file.
-
-    Args:
-        raster_path:
-            Path to the reference GeoTIFF file.
-        target_crs:
-            Optional target CRS override.
-        target_resolution:
-            Optional target spatial resolution override in meters.
-
-    Returns:
-        Configured `CanvasSpec` instance matching the reference raster.
+    Construct `CanvasSpec` from a reference raster dataset file path.
     '''
     with rasterio.open(raster_path) as src:
-        bounds_tuple = (src.bounds.left, src.bounds.bottom, src.bounds.right, src.bounds.top)
-        crs = target_crs if target_crs is not None else src.crs.to_string()
-        res_val = target_resolution if target_resolution is not None else src.res[0]
+        crs = target_crs or src.crs.to_string()
+        res_val = (
+            target_resolution
+            if target_resolution is not None
+            else src.res[0]
+        )
+        bounds_tuple = (
+            src.bounds.left,
+            src.bounds.bottom,
+            src.bounds.right,
+            src.bounds.top
+        )
 
     return CanvasSpec(
         crs=crs,
@@ -123,11 +159,11 @@ def warp_to_canvas(
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     if is_categorical or resampling_method == 'nearest':
-        resample_alg = Resampling.nearest
+        resample_alg = rasterio.enums.Resampling.nearest
     elif resampling_method == 'cubic':
-        resample_alg = Resampling.cubic
+        resample_alg = rasterio.enums.Resampling.cubic
     else:
-        resample_alg = Resampling.bilinear
+        resample_alg = rasterio.enums.Resampling.bilinear
 
     with rasterio.open(input_path) as src:
         nodata_val = (
@@ -144,10 +180,6 @@ def warp_to_canvas(
             resampling=resample_alg,
             nodata=nodata_val
         ) as vrt:
-            vrt_xml = vrt.to_xml()
-            vrt_bytes = vrt_xml.encode('utf-8') if isinstance(vrt_xml, str) else vrt_xml
-
-            with open(output_path, 'wb') as f:
-                f.write(vrt_bytes)
+            rasterio.shutil.copy(vrt, output_path, driver='VRT')
 
     return os.path.abspath(output_path)
