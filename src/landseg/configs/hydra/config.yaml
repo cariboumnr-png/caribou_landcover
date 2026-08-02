@@ -1,6 +1,8 @@
 # Main entry to the config tree
 defaults:
   - _self_
+  # etl
+  - etl: default
   # data foundation
   - foundation/grid: default
   - foundation/domains: default
