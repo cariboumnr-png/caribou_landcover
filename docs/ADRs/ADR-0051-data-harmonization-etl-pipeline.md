@@ -1,6 +1,6 @@
 # ADR-0051: Introduce Upstream Data Harmonization (ETL) Pipeline
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-02
 
 ---
@@ -21,28 +21,28 @@ Requiring users to manually reproject and snap rasters in external GIS applicati
 
 ## 2. Decision
 
-We will introduce an isolated, upstream **Data Harmonization (ETL) Submodule** (`landseg.etl`) and register a dedicated CLI pipeline entry point (`pipeline=data-harmonize`).
+We introduced an isolated, upstream **Data Harmonization (ETL) Submodule** (`landseg.etl`) and registered a dedicated CLI pipeline entry point (`pipeline=data-harmonize`).
 
 ### 2.1. Upstream Pipeline Boundary & Pipeline Registration
-* A new pipeline flag `pipeline=data-harmonize` will be registered in `landseg.execution.pipelines`.
-* `data-harmonize` will execute prior to `data-ingest` in the workflow execution chain. It will transform raw, inconsistent geospatial sources into canonical, aligned rasters anchored to a defined `CanvasSpec`.
+* A new pipeline flag `pipeline=data-harmonize` was registered in `landseg.execution.pipelines`.
+* `data-harmonize` executes prior to `data-ingest` in the workflow execution chain. It transforms raw, inconsistent geospatial sources into canonical, aligned rasters anchored to a defined `CanvasSpec`.
 
 ### 2.2. Core Submodule Components (`src/landseg/etl/`)
-The `landseg.etl` package will be structured into four focused sub-modules:
-1. `canvas.py`: Defines `CanvasSpec` (target CRS, target resolution, global spatial extent, and top-left pixel anchor).
+The `landseg.etl` package was structured into focused sub-modules:
+1. `canvas.py` / `spatial.py`: Defines `CanvasSpec` and canvas resolution helper `create_canvas` (target CRS, target resolution, global spatial extent, and top-left pixel anchor).
 2. `warp.py`: Enforces spatial reprojection and pixel grid snapping (`targetAlignedPixels=True`) using Rasterio and GDAL.
-   * **Categorical Data (Labels, Domain Masks)**: Will use **Nearest Neighbor** resampling (`Resampling.nearest`) to prevent class label corruption or interpolating invalid class IDs.
-   * **Continuous Data (Optical Imagery, DEMs, LiDAR metrics)**: Will use **Bilinear** or **Cubic** resampling.
+   * **Categorical Data (Labels, Domain Masks)**: Uses **Nearest Neighbor** resampling (`Resampling.nearest`) to prevent class label corruption or interpolating invalid class IDs.
+   * **Continuous Data (Optical Imagery, DEMs, LiDAR metrics)**: Uses **Bilinear** or **Cubic** resampling.
 3. `stacker.py`: Combines separate, aligned single-band or multi-band source rasters into an ordered multi-channel composite raster.
 4. `nodata.py`: Unifies disparate upstream nodata flags (`-9999`, `65535`, `0`, `NaN`) into a standardized valid-pixel mask layer.
 
 ### 2.3. Virtual Raster (GDAL VRT) Integration
 To optimize Databricks cloud storage and compute costs:
-* `data-harmonize` will construct lightweight **GDAL Virtual Rasters (`.vrt`)** that encapsulate spatial reprojection and windowed alignment metadata without allocating massive temporary intermediate GeoTIFF files on cloud storage.
-* `data-ingest` will read windowed data blocks directly from the generated `.vrt` canvas during block assembly.
+* `data-harmonize` constructs lightweight **GDAL Virtual Rasters (`.vrt`)** that encapsulate spatial reprojection and windowed alignment metadata without allocating massive temporary intermediate GeoTIFF files on cloud storage.
+* `data-ingest` reads windowed data blocks directly from the generated `.vrt` canvas during block assembly.
 
 ### 2.4. Configuration Schema Extension
-An `EtlConfig` section will be added to the structured configuration contracts (`src/landseg/configs/schema/sections/etl.py`) and Hydra composition tree, allowing users to configure target CRS, resolution, reference extent, and source path mappings in `configs/user.yaml`.
+An `EtlConfig` section was added to the structured configuration contracts (`src/landseg/configs/schema/sections/etl.py`) and Hydra composition tree, allowing users to configure target CRS, resolution, reference extent, and source path mappings in `configs/user.yaml`.
 
 ---
 
@@ -62,7 +62,7 @@ An `EtlConfig` section will be added to the structured configuration contracts (
 
 ## 4. Implementation Strategy & Modular Roadmap
 
-1. **Phase 1**: Add `EtlConfig` to `src/landseg/configs/schema/sections/` and update Hydra defaults.
-2. **Phase 2**: Implement `src/landseg/etl/` (`canvas.py`, `warp.py`, `stacker.py`, `nodata.py`, `orchestrator.py`).
-3. **Phase 3**: Register `data-harmonize` in `src/landseg/execution/pipelines/` and add pipeline dependency validation in `executor.py`.
-4. **Phase 4**: Add Tier 1 and Tier 2 unit tests under `tests/unit/etl/`.
+1. **Phase 1**: Added `EtlConfig` to `src/landseg/configs/schema/sections/` and updated Hydra defaults.
+2. **Phase 2**: Implemented `src/landseg/etl/` (`canvas.py`, `warp.py`, `stacker.py`, `nodata.py`, `spatial.py`).
+3. **Phase 3**: Registered `data-harmonize` in `src/landseg/execution/pipelines/` and added pipeline orchestration in `data_harmonize.py`.
+4. **Phase 4**: Added unit tests under `tests/unit/etl/`.
