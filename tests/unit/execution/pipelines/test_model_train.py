@@ -98,7 +98,7 @@ def test_build_session_runner_invalid_mode_raises_value_error(
             return []
 
     mock_model = typing.cast(core.MultiheadModelLike, DummyModel())
-    paths = train_pipeline.artifacts.ResultsPaths(str(tmp_path / 'results'))
+    paths = train_pipeline.artifacts.SessionPaths(str(tmp_path / 'results'))
     paths.init()
     logger = train_pipeline.session.SessionLogger(
         'test', log_file=paths.summary
