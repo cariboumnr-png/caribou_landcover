@@ -52,10 +52,11 @@ indépendante sans couplage séquentiel strict.
 ├── artifacts/                                   # Généré par l'exécution des pipelines
 │   │
 │   ├── harmonized/                              # Produit par le pipeline 'data-harmonize'
-│   │   ├── harmonized_<name>.vrt                # Raster virtuel source unique réprojeté
-│   │   ├── harmonized_image_composite.vrt       # Raster virtuel composite multicanal empilé
-│   │   ├── valid_pixel_mask.vrt                 # Raster virtuel de masque de pixels valides booléen à 1 bande
-│   │   └── etl_report.json                      # Rapport de synthèse d'exécution ETL
+│   │   └── run_0001/                            # Répertoire d'exécution ETL sérialisé
+│   │       ├── harmonized_<name>.vrt            # Raster virtuel source unique réprojeté
+│   │       ├── harmonized_image_composite.vrt   # Raster virtuel composite multicanal empilé
+│   │       ├── valid_pixel_mask.vrt             # Raster virtuel de masque de pixels valides booléen à 1 bande
+│   │       └── etl_report.json                  # Rapport de synthèse d'exécution ETL
 │   │
 │   ├── foundation/                              # Produit par le pipeline 'data-ingest'
 │   │   ├── world_grids/

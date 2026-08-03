@@ -46,7 +46,7 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
     etl_cfg = config.etl
     out_dpath = os.path.abspath(etl_cfg.output_dpath)
     etl_paths = artifacts.ETLPaths(out_dpath)
-    os.makedirs(out_dpath, exist_ok=True)
+    etl_paths.init()
 
     logger = etl.HarmonizationLogger(
         name='data-harmonize',

@@ -47,18 +47,27 @@ def test_artifact_paths_hierarchy():
     assert art.session.results_root == os.path.join(r, 'results')
 
 
-def test_etl_paths():
+def test_etl_paths(tmp_path):
     '''
-    Given: An ETL root directory string.
-    When: Accessing `ETLPaths` property endpoints and harmonized raster builder.
-    Then: Return expected harmonized raster VRTs and etl_report.json file paths.
+    Given: An ETL root directory path.
+    When: Initializing `ETLPaths` across runs.
+    Then: Return expected run-isolated harmonized raster VRTs and etl_report.json file paths.
     '''
-    e = os.path.join('/tmp', 'exp', 'harmonized')
+    e = str(tmp_path)
     etl_paths = paths_mod.ETLPaths(root=e)
-    assert etl_paths.harmonized_raster('dem') == os.path.join(e, 'harmonized_dem.vrt')
-    assert etl_paths.composite_raster == os.path.join(e, 'harmonized_image_composite.vrt')
-    assert etl_paths.valid_mask_raster == os.path.join(e, 'valid_pixel_mask.vrt')
-    assert etl_paths.report == os.path.join(e, 'etl_report.json')
+    etl_paths.init()
+
+    assert etl_paths.run_id == 'run_0001'
+    r = etl_paths.effective_root
+    assert etl_paths.harmonized_raster('dem') == os.path.join(r, 'harmonized_dem.vrt')
+    assert etl_paths.composite_raster == os.path.join(r, 'harmonized_image_composite.vrt')
+    assert etl_paths.valid_mask_raster == os.path.join(r, 'valid_pixel_mask.vrt')
+    assert etl_paths.report == os.path.join(r, 'etl_report.json')
+
+    # second init auto-increments run_id
+    etl_paths_2 = paths_mod.ETLPaths(root=e)
+    etl_paths_2.init()
+    assert etl_paths_2.run_id == 'run_0002'
 
 
 def test_foundation_paths():

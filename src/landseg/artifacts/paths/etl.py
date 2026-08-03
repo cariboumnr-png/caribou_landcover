@@ -35,18 +35,47 @@ import os
 class ETLPaths:
     '''Paths for data harmonization ETL artifacts.'''
     root: str
+    run_id: str = ''
+    run_folder: str = ''
+
+    def init(self, trace_to_last: bool = False):
+        '''Initialize an ETL run folder tree.'''
+        if not self.run_id:
+            i = 1
+            while True:
+                candidate_id = f'run_{i:04d}'
+                candidate_folder = os.path.join(self.root, candidate_id)
+                if not os.path.exists(candidate_folder):
+                    break
+                i += 1
+            if trace_to_last and i > 1:
+                i -= 1
+                self.run_id = f'run_{i:04d}'
+            else:
+                self.run_id = f'run_{i:04d}'
+            self.run_folder = os.path.join(self.root, self.run_id)
+
+        os.makedirs(self.effective_root, exist_ok=True)
+
+    @property
+    def effective_root(self) -> str:
+        return self.run_folder if self.run_folder else self.root
 
     def harmonized_raster(self, name: str) -> str:
-        return os.path.join(self.root, f'harmonized_{name}.vrt')
+        return os.path.join(self.effective_root, f'harmonized_{name}.vrt')
 
     @property
     def composite_raster(self) -> str:
-        return os.path.join(self.root, 'harmonized_image_composite.vrt')
+        return os.path.join(self.effective_root, 'harmonized_image_composite.vrt')
 
     @property
     def valid_mask_raster(self) -> str:
-        return os.path.join(self.root, 'valid_pixel_mask.vrt')
+        return os.path.join(self.effective_root, 'valid_pixel_mask.vrt')
 
     @property
     def report(self) -> str:
-        return os.path.join(self.root, 'etl_report.json')
+        return os.path.join(self.effective_root, 'etl_report.json')
+
+    @property
+    def config(self) -> str:
+        return os.path.join(self.effective_root, 'config.json')
