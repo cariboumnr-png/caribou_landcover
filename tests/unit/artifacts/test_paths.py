@@ -29,6 +29,7 @@ Unit tests for `landseg.artifacts.paths`.
 import os
 # local imports
 import landseg.artifacts.paths as paths_mod
+import landseg.artifacts.paths.foundation as f_mod
 
 
 # ----- `ArtifactPaths` & Foundation tests
@@ -36,12 +37,37 @@ def test_artifact_paths_hierarchy():
     '''
     Given: An experiment root directory string.
     When: Instantiating `ArtifactPaths`.
-    Then: Return joined child `foundation` and `transform` namespaces.
+    Then: Return joined child `foundation`, `transform`, `etl`, and `session` namespaces.
     '''
     r = os.path.join('/tmp', 'exp')
     art = paths_mod.ArtifactPaths(root=r)
     assert art.foundation.root == os.path.join(r, 'foundation')
     assert art.transform.root == os.path.join(r, 'transform')
+    assert art.etl.root == os.path.join(r, 'harmonized')
+    assert art.session.results_root == os.path.join(r, 'results')
+
+
+def test_etl_paths(tmp_path):
+    '''
+    Given: An ETL root directory path.
+    When: Initializing `ETLPaths` across runs.
+    Then: Return expected run-isolated harmonized raster VRTs and etl_report.json file paths.
+    '''
+    e = str(tmp_path)
+    etl_paths = paths_mod.ETLPaths(root=e)
+    etl_paths.init()
+
+    assert etl_paths.run_id == 'run_0001'
+    r = etl_paths.effective_root
+    assert etl_paths.harmonized_raster('dem') == os.path.join(r, 'harmonized_dem.vrt')
+    assert etl_paths.composite_raster == os.path.join(r, 'harmonized_image_composite.vrt')
+    assert etl_paths.valid_mask_raster == os.path.join(r, 'valid_pixel_mask.vrt')
+    assert etl_paths.report == os.path.join(r, 'etl_report.json')
+
+    # second init auto-increments run_id
+    etl_paths_2 = paths_mod.ETLPaths(root=e)
+    etl_paths_2.init()
+    assert etl_paths_2.run_id == 'run_0002'
 
 
 def test_foundation_paths():
@@ -78,7 +104,7 @@ def test_data_blocks_paths():
     Then: Return expected model dev and test holdout artifact paths.
     '''
     b = os.path.join('/tmp', 'exp', 'foundation', 'data_blocks')
-    db = paths_mod._DataBlocks(root=b)
+    db = f_mod._DataBlocks(root=b)
 
     d = os.path.join(b, 'model_dev')
     assert db.dev.blocks == os.path.join(d, 'blocks')
@@ -116,35 +142,35 @@ def test_transform_paths():
     assert t_paths.schema == os.path.join(t, 'schema.json')
 
 
-# ----- `ResultsPaths` tests
-def test_results_paths_init_and_checkpoints(tmp_path):
+# ----- `SessionPaths` tests
+def test_session_paths_init_and_checkpoints(tmp_path):
     '''
     Given: A results root directory path.
-    When: Initializing `ResultsPaths` across runs and tracing options.
+    When: Initializing `SessionPaths` across runs and tracing options.
     Then: Auto-increment run IDs and build checkpoint paths.
     '''
-    results = paths_mod.ResultsPaths(results_root=str(tmp_path))
-    results.init()
+    session_paths = paths_mod.SessionPaths(results_root=str(tmp_path))
+    session_paths.init()
 
-    assert results.run_id == 'run_0001'
-    assert os.path.isdir(results.checkpoints)
-    assert os.path.isdir(results.logs)
-    assert os.path.isdir(results.plots)
-    assert os.path.isdir(results.previews)
+    assert session_paths.run_id == 'run_0001'
+    assert os.path.isdir(session_paths.checkpoints)
+    assert os.path.isdir(session_paths.logs)
+    assert os.path.isdir(session_paths.plots)
+    assert os.path.isdir(session_paths.previews)
 
-    c = results.checkpoints
-    r = results.run_folder
-    assert results.best_checkpoint('model') == os.path.join(c, 'model_best.pt')
-    assert results.last_checkpoint('model') == os.path.join(c, 'model_last.pt')
-    assert results.phase_status == os.path.join(c, 'status.json')
-    assert results.config == os.path.join(r, 'config.json')
+    c = session_paths.checkpoints
+    r = session_paths.run_folder
+    assert session_paths.best_checkpoint('model') == os.path.join(c, 'model_best.pt')
+    assert session_paths.last_checkpoint('model') == os.path.join(c, 'model_last.pt')
+    assert session_paths.phase_status == os.path.join(c, 'status.json')
+    assert session_paths.config == os.path.join(r, 'config.json')
 
     # second run initialization auto-increments run_id
-    results_2 = paths_mod.ResultsPaths(results_root=str(tmp_path))
+    results_2 = paths_mod.SessionPaths(results_root=str(tmp_path))
     results_2.init()
     assert results_2.run_id == 'run_0002'
 
     # trace_to_last option targets previous run
-    results_last = paths_mod.ResultsPaths(results_root=str(tmp_path))
+    results_last = paths_mod.SessionPaths(results_root=str(tmp_path))
     results_last.init(trace_to_last=True)
     assert results_last.run_id == 'run_0002'

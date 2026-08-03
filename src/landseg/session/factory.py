@@ -88,7 +88,7 @@ class SessionBuildContext:
     '''Context for session construction.'''
     device: str
     eval_dataset: typing.Literal['val', 'test'] = 'val'
-    session_paths: artifacts.ResultsPaths | None = None
+    session_paths: artifacts.SessionPaths | None = None
 
 # -------------------------------Public Function-------------------------------
 def build_overfit_session(

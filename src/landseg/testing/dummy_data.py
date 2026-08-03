@@ -81,13 +81,25 @@ class TIFFPaths:
         return f'{self.input_root}/data/sample_test_label.tif'
 
     @property
+    def raw_sentinel2(self) -> str:
+        return f'{self.input_root}/raw/sample_sentinel2.tif'
+
+    @property
+    def raw_dem(self) -> str:
+        return f'{self.input_root}/raw/sample_dem.tif'
+
+    @property
+    def raw_landcover(self) -> str:
+        return f'{self.input_root}/raw/sample_landcover.tif'
+
+    @property
     def config(self) -> str:
         return f'{self.input_root}/data/sample_config.json'
 
     @property
     def all_paths_exist(self) -> bool:
         return all(
-            os.path.exists(p) for p in[
+            os.path.exists(p) for p in [
                 self.extent,
                 self.domain_1,
                 self.domain_2,
@@ -95,6 +107,9 @@ class TIFFPaths:
                 self.dev_label,
                 self.test_image,
                 self.test_label,
+                self.raw_sentinel2,
+                self.raw_dem,
+                self.raw_landcover,
                 self.config
             ]
         )
@@ -221,7 +236,6 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     )
 
     # dev and test images w/ 4 bands: DEM+RGB
-
     print(f'Creating dev image: {paths.dev_image}')
     create_dummy_geotiff(
         paths.dev_image,
@@ -270,6 +284,53 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             bands=1,
             crs=crs,
             transform=test_transform,
+            dtype=numpy.uint8,
+        ),
+        data_gen_func=_gen_label_data,
+    )
+
+    # raw input rasters for ETL data-harmonize pipeline (in EPSG:32618)
+    utm_crs = 'EPSG:32618'
+    utm_transform = rasterio.transform.from_origin(
+        600000.0, 5000000.0, 10.0, 10.0
+    )
+
+    print(f'Creating raw Sentinel-2: {paths.raw_sentinel2}')
+    create_dummy_geotiff(
+        paths.raw_sentinel2,
+        config=TIFFConfig(
+            shape=shape,
+            bands=10,
+            crs=utm_crs,
+            transform=utm_transform,
+            dtype=numpy.uint16,
+        ),
+        data_gen_func=lambda s, b: numpy.random.randint(
+            100, 3000, size=s, dtype=numpy.uint16
+        ),
+    )
+
+    print(f'Creating raw DEM: {paths.raw_dem}')
+    create_dummy_geotiff(
+        paths.raw_dem,
+        config=TIFFConfig(
+            shape=shape,
+            bands=1,
+            crs=utm_crs,
+            transform=utm_transform,
+            dtype=numpy.float32,
+        ),
+        data_gen_func=lambda s, _: _gen_image_data(s, 1),
+    )
+
+    print(f'Creating raw Landcover Label: {paths.raw_landcover}')
+    create_dummy_geotiff(
+        paths.raw_landcover,
+        config=TIFFConfig(
+            shape=shape,
+            bands=1,
+            crs=utm_crs,
+            transform=utm_transform,
             dtype=numpy.uint8,
         ),
         data_gen_func=_gen_label_data,

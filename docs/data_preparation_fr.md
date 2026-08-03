@@ -2,383 +2,248 @@
 
 [English](./data_preparation.md) | [Français](./data_preparation_fr.md)
 
-Dernière mise à jour : 2026-04-07
+Dernière mise à jour : 2026-08-02
 
 ---
 
-## Aperçu
+## Vue d'ensemble
 
-Des workflows de machine learning géospatiaux efficaces commencent par une préparation des données rigoureuse et cohérente. Avant toute modélisation, tout entraînement ou toute expérimentation, tous les rasters d’entrée doivent être normalisés en termes de SCR, résolution, emprise et alignement afin qu’ils se comportent de manière prévisible tout au long du pipeline. Garantir cette harmonisation de base réduit grandement la complexité en aval et prévient les erreurs liées aux systèmes de référence spatiale incompatibles ou aux pixels mal alignés.
+Des flux de travail efficaces en apprentissage automatique géospatial commencent par une préparation minutieuse et cohérente des données. Avant toute modélisation, entraînement ou expérimentation, tous les rasters d'entrée doivent être standardisés en termes de SCR (CRS), de résolution, d'étendue et d'alignement afin de se comporter de manière prévisible tout au long du pipeline. L'harmonisation de ces propriétés fondamentales dès le départ réduit considérablement la complexité en aval et évite les erreurs liées à des systèmes de référence spatiale incompatibles ou des pixels mal alignés.
 
-Une partie centrale de cette standardisation est la définition d'une étendue spatiale statique servant de canevas pour le pavage et l'indexation déterministe. Une fois cette étendue établie, tous les ensembles de données destinés à l'entraînement, à l'inférence ou à la production future doivent être calés ou reprojetés pour correspondre à son système de coordonnées de référence (CRS) et à sa taille de pixel, en utilisant des outils SIG externes tels que QGIS, ArcGIS ou GDAL.
+Un élément central de cette standardisation est la définition d'une étendue spatiale statique servant de canevas pour le tuilage et l'indexation déterministe. Une fois l'étendue établie, tous les jeux de données destinés à l'entraînement, à l'inférence ou à la production future doivent être calés ou réprojetés pour correspondre à son SCR et à sa taille de pixel. Les utilisateurs peuvent préparer les rasters en externe à l'aide d'outils SIG tels que QGIS, ArcGIS ou GDAL (voir le tutoriel ci-dessous), ou utiliser le pipeline ETL `data-harmonize` intégré au projet (`python scripts/run.py pipeline=data-harmonize`) pour réprojeter et composer automatiquement les GeoTIFF bruts.
 
-Ce guide décrit les étapes recommandées pour créer un raster de référence, imposer un alignement cohérent entre les jeux de données et exporter des rasters propres et compatibles avec la grille afin de constituer une base fiable pour toute analyse ou modélisation ultérieure.
+Ce guide décrit les étapes recommandées pour créer un raster de référence, appliquer un alignement cohérent sur tous les jeux de données et exporter des rasters propres et compatibles avec la grille, constituant une base solide pour toutes les analyses et modélisations ultérieures.
 
 ---
 
-## Contenu
+## Sommaire
 
 - [Définition de la grille mondiale](#définition-de-la-grille-mondiale)
-- [Spécification des rasters d’entrée](#spécification-des-rasters-dentrée)
-  - [Raster d’image](#raster-dimage)
-  - [Raster d’étiquettes](#raster-détiquettes)
-  - [Raster de domaine (optionnel)](#raster-de-domaine-optionnel)
-- [Exigences d’alignement des rasters](#exigences-dalignement-des-rasters)
-- [Fichier JSON de configuration des données](#fichier-json-de-configuration-des-données)
-- [Structure de dossier requise pour le projet](#structure-de-dossier-requise-pour-le-projet)
+- [Spécification des rasters de données d'entrée](#spécification-des-rasters-de-données-dentrée)
+  - [Raster d'image](#raster-dimage)
+  - [Raster de labels](#raster-de-labels)
+  - [Raster de domaine (Optionnel)](#raster-de-domaine-optionnel)
+- [Exigences d'alignement des rasters](#exigences-dalignement-des-rasters)
+- [JSON de configuration des données](#json-de-configuration-des-données)
+- [Disposition de la structure des dossiers du projet](#disposition-de-la-structure-des-dossiers-du-projet)
 
 ---
 
 ## Définition de la grille mondiale
 
-La grille mondiale doit être définie dans un SCR projeté afin que les coordonnées des tuiles et les dimensions des pixels correspondent à des unités linéaires (ex. mètres). Le point de départ consiste à établir **l’emprise du projet** — la zone complète englobant à la fois la région d’entraînement et toutes les régions de prédiction prévues. Cette emprise doit être considérée comme **immuable pour l’ensemble du projet**, garantissant que toutes les étapes ultérieures de préparation des données se réfèrent au même domaine spatial.
+La grille mondiale doit être définie dans un SCR projeté afin que les coordonnées des tuiles et les dimensions des pixels correspondent à des unités linéaires (par exemple, des mètres). Le point de départ consiste à établir **l'étendue du projet**—la zone complète englobant à la fois la région d'entraînement et toutes les régions de prédiction prévues. Cette étendue doit être considérée comme **immutable pour l'ensemble du projet**, garantissant que toutes les étapes ultérieures de préparation des données fassent référence au même domaine spatial.
 
-Une fois l’emprise fixée, les utilisateurs peuvent générer une ou plusieurs **grilles mondiales** comme artefacts stables et versionnés pour répondre à différents besoins expérimentaux. Par exemple, les grilles peuvent varier selon la taille des tuiles (affectant le champ de vision du modèle) ou inclure/ommettre un recouvrement des tuiles pour étudier les effets de bord. Bien que les grilles puissent changer selon les expériences, elles doivent rester ancrées au même SCR, à la même résolution et à la même origine définis par l’emprise du projet. Ce projet suppose que les rasters sont toujours ancrés en **haut‑gauche**.
+Une fois l'étendue fixée, les utilisateurs peuvent générer une ou plusieurs **grilles mondiales** en tant qu'artefacts stables et versionnés pour différents besoins expérimentaux. Par exemple, les grilles peuvent varier selon la taille des tuiles (affectant le champ de vision du modèle) ou inclure/omettre un chevauchement de tuiles pour étudier les effets de bord. Bien que les grilles puissent changer d'une expérience à l'autre, elles doivent toutes rester ancrées au même SCR, à la même résolution et à la même origine définis par l'étendue du projet. Ce projet suppose que les rasters sont toujours ancrés **en haut à gauche**.
 
-L’emprise de la grille peut être fournie de deux manières :
-- Définition manuelle utilisant une origine haut‑gauche et un nombre spécifié de tuiles horizontalement et verticalement.
-- Définition via un raster de référence (préférée), où un raster créé dans des outils SIG courants (QGIS, ArcGIS, GDAL) fournit le SCR, la résolution des pixels, l’emprise et l’origine pour construire la grille.
+L'étendue de la grille peut être fournie de deux manières :
 
-Après la définition de l’emprise du projet, les grilles mondiales sont dérivées de celle‑ci dans le pipeline (module `landseg.geopipe.foundation.world_grids`) afin de former des schémas de tuilage reproductibles et versionnés utilisés pour toute expérimentation et production.
+  - Définition manuelle à l'aide d'une origine en haut à gauche et d'un nombre spécifié de tuiles dans les directions horizontale et verticale.
+  - Définition par raster de référence (préférée), où un raster créé dans des outils SIG courants (QGIS, ArcGIS, GDAL) fournit le SCR, la résolution en pixels, l'étendue et l'origine pour construire la grille.
 
-[Aller](#tutoriel---créer-un-raster-de-référence) au tutoriel expliquant comment créer un raster de référence dans QGIS.
+Après la définition de l'étendue du projet, les grilles mondiales en sont dérivées au cours du pipeline (module `landseg.geopipe.foundation.world_grids`) pour former des schémas de tuilage reproductibles et versionnés utilisés tout au long de l'expérimentation et de la production.
 
-<img src="./images/extent_reference_fr.png" alt="raster de référence" width="800">
+[Sauter](#tutoriel---créer un raster de référence) au tutoriel sur la création d'un raster de référence dans QGIS.
 
-**Figure 1**. Création d’un raster de référence d’emprise.
+<img src="./images/extent_reference.png" alt="extent_reference" width="800">
 
----
-
-## Spécification des rasters d’entrée
-
-### Raster d’image
-Les rasters d’image utilisés pour l’entraînement et la prédiction proviennent généralement de plateformes satellitaires comme *Landsat*, accessibles soit via le portail USGS EarthExplorer, soit via Google Earth Engine (GEE). Choisissez le workflow avec lequel vous êtes le plus à l’aise.
-
-**Remarque :** la sélection de scènes, la mosaïque, le masquage nuageux et autres décisions de QA/QC ne sont pas couvertes dans ce cadre, car elles dépendent fortement des besoins du projet et de l’expertise de l’utilisateur.
-
-Pour les utilisateurs GEE, nous recommandons d’explorer le workflow **Best Available Pixel (BAP)**, qui fournit des outils pour produire des composites annuels de haute qualité. Une implémentation largement adoptée est disponible ici : https://github.com/saveriofrancini/bap. Le compositing BAP permet de produire des rasters stables dans le temps et sans nuages, adaptés aux modèles de ML.
-
-Quel que soit le chemin de traitement, l’image finale doit contenir au moins les six bandes optiques Landsat standard, nécessaires au calcul des indices spectraux du projet. Les utilisateurs doivent également ajouter une couche MNT, reséchantillonnée et alignée aux mêmes propriétés raster que les données optiques. En plus de ce composite minimal à 7 canaux, vous pouvez ajouter d'autres canaux.
-
-<img src="./images/example_image_raster.png" alt="exemple de raster d’étiquettes" width="800">
-
-**Figure 2**. Exemple de raster d’image.
+**Figure 1**. Création du raster de référence d'étendue.
 
 ---
 
-### Raster d’étiquettes
-Les rasters d’étiquettes sont entièrement définis par l’utilisateur, selon sa connaissance du domaine, ses sources de données et les objectifs du projet. Ce cadre ne prescrit aucun schéma de classification spécifique : il attend simplement un raster contenant les étiquettes de couverture terrestre ou de segmentation pertinentes pour votre workflow.
+## Spécification des rasters de données d'entrée
 
-Comme le projet est conçu pour la segmentation de couverture terrestre, le raster d’étiquettes doit contenir :
-- Des IDs de classes de type `Integer`.
-- Une valeur `NoData` clairement définie.
-- Toute classe que l’utilisateur souhaite ignorer durant l’entraînement.
+### Raster d'image
+Les rasters d'images utilisés pour l'entraînement et la prédiction du modèle proviennent généralement de plateformes satellitaires telles que *Landsat*, accessibles soit par le [portail USGS EarthExplorer](https://earthexplorer.usgs.gov/), soit par [Google Earth Engine (GEE)](https://earthengine.google.com/). Vous pouvez choisir le flux de travail avec lequel vous êtes le plus à l'aise.
 
-Durant la préparation des données, les valeurs `NoData` et les classes ignorées sont automatiquement converties en un seul label d’ignorance (généralement 255, configurable). Cela garantit une gestion propre des pixels non valides durant l’entraînement et l’inférence.
+>**Remarque :** la sélection des scènes, le mosaïquage, le masquage des nuages et les autres décisions QA/QC restent en dehors du périmètre de ce framework, car ils dépendent fortement des exigences spécifiques au projet et de l'expertise de l'utilisateur.
 
-De nombreux systèmes de classification réels comportent un nombre de classes élevé ou déséquilibré. Pour permettre des stratégies d’entraînement plus gérables, ce cadre propose une hiérarchie optionnelle parent–enfant :
-- Les classes parent sont des groupes plus larges.
-- Les classes enfant sont les catégories fines appartenant à chaque parent.
+Pour les utilisateurs de GEE, nous recommandons d'explorer le flux de travail **Best Available Pixel (BAP)**, qui fournit des outils flexibles pour assembler des composites annuels de haute qualité. Une mise en œuvre largement adoptée est disponible ici : <https://github.com/saveriofrancini/bap>. Le compositage de type BAP permet de produire des rasters temporellement stables et sans nuages adaptés aux modèles ML en aval.
 
-Cette hiérarchie permet notamment :
-1. D’entraîner un modèle initial sur des groupes parent pour apprendre la structure générale.
-2. De raffiner le modèle en se concentrant sur certains parents et leurs classes enfant.
+Le composite d'image d'entrée est flexible : les utilisateurs peuvent fournir n'importe quel ensemble de canaux raster, sans exigence rigide quant au nombre ou à l'ordre des bandes. Les caractéristiques dérivées optionnelles—telles que les indices spectraux (par ex. NDVI, NDWI) ou les couches topographiques issues d'un MNE (par ex. pente, aspect)—sont calculées automatiquement par les pipelines en aval *uniquement si* les bandes optiques ou la couche d'élévation requises sont répertoriées dans `image_band_map`. Les utilisateurs peuvent fournir autant ou aussi peu de canaux que leur application l'exige.
 
-Si vous souhaitez utiliser cette approche hiérarchique, fournissez un fichier JSON définissant les relations parent–enfant.
+<img src="./images/example_image_raster.png" alt="example_image_raster" width="800">
 
-<img src="./images/example_label_raster_fr.png" alt="exemple de raster d'image" width="800">
-
-**Figure 3**. Exemple de raster d’étiquettes.
+**Figure 2**. Exemple de raster d'image.
 
 ---
 
-### Raster de domaine (optionnel)
-Le raster de domaine est **optionnel** et peut être inclus lorsque l’étude bénéficie de la définition de sous‑régions écologiques, géographiques ou de gestion. Le domaine peut représenter toute partition pertinente — écozones, limites administratives, régimes de perturbation, strates biophysiques, etc.
+### Raster de labels
+Les rasters de labels sont entièrement définis par l'utilisateur, car le système d'étiquetage provient des connaissances du domaine de l'utilisateur, de ses sources de données et des objectifs du projet. Ce framework ne prescrit aucun schéma de classification spécifique ; il s'attend plutôt à ce que les utilisateurs fournissent un raster contenant les labels de couverture du sol ou de segmentation pertinents pour leur flux de travail.
 
-Le raster de domaine doit être **entier**, chaque valeur entière représentant une catégorie de domaine. Aucune pré‑transformation n’est nécessaire : durant l’entraînement, le framework convertit automatiquement le raster de domaine brut vers les représentations internes selon la stratégie de conditionnement choisie.
+Comme le projet est conçu pour la segmentation de la couverture du sol, le raster de labels doit contenir :
 
-<img src="./images/example_domain_raster_fr.png" alt="exemple de raster de domaine" width="800">
+  - Des identifiants de classe `Entier`, représentant les catégories de couverture du sol.
+  - Une valeur `NoData` clairement définie.
+  - Toutes les classes que l'utilisateur a l'intention d'ignorer pendant l'entraînement (par exemple, l'eau, les nuages, les zones non classées).
 
-**Figure 4**. Exemple de raster de domaine.
+Pendant la préparation des données, `NoData` et les classes à ignorer spécifiées par l'utilisateur sont automatiquement convertis en un seul indice de label ignoré (généralement 255, configurable par l'utilisateur). Cela garantit un traitement propre des pixels invalides ou indésirables tout au long de l'entraînement et de l'inférence.
+
+Dans de nombreux systèmes de classification réels, le nombre de classes de couverture du sol brutes peut être élevé, déséquilibré ou difficile à modéliser efficacement en une seule passe. Pour soutenir des stratégies d'entraînement plus gérables et étagées, ce framework fournit une hiérarchie de labels parent–enfant optionnelle à deux niveaux :
+
+  - Les classes parents représentent des groupes généralisés plus larges.
+  - Les classes enfants représentent les catégories brutes à plus fine échelle appartenant à chaque groupe parent.
+
+Cette hiérarchie permet des flux de travail tels que :
+
+  1. L'entraînement d'un modèle initial sur des groupes parents grossiers pour apprendre la structure globale.
+  2. L'affinage du modèle en se concentrant sur certains groupes parents sélectionnés et en s'entraînant sur les classes enfants complètes qui leur sont associées.
+
+Si vous souhaitez utiliser cette approche hiérarchique, vous devez fournir une configuration JSON qui définit les correspondances parent–enfant. Le format et l'utilisation de cette configuration sont décrits plus loin dans le guide.
+
+<img src="./images/example_label_raster.png" alt="example_label_raster" width="800">
+
+**Figure 3**. Exemple de raster de labels.
 
 ---
 
-## Exigences d’alignement des rasters
+### Raster de domaine (Optionnel)
+Un raster de domaine est un jeu de données ***optionnel*** qui peut être inclus lorsque l'étude bénéficie de la spécification de sous-régions écologiques, géographiques ou de gestion. Le domaine peut représenter n'importe quel découpage défini par l'utilisateur et pertinent pour le projet—écozones, limites administratives, régimes de perturbation, strates biophysiques ou autres divisions contextuelles. Bien qu'optionnel pour l'entraînement, un raster de domaine devrait idéalement **couvrir à la fois la région d'entraînement et la zone de prédiction prévue** pour assurer un conditionnement cohérent sur l'ensemble de l'étendue du projet.
 
-Tous les rasters d’entrée — image, étiquettes et domaine optionnel — doivent être **alignés** au raster de référence. Cela garantit qu’ils partagent :
-- Le **même SCR projeté**
-- La **même résolution de pixel**
-- La **même origine et le même alignement**
+Le raster de domaine doit être à **valeurs entières**, chaque entier représentant une catégorie de domaine unique. Les utilisateurs n'ont pas besoin de prétraiter ces valeurs au-delà de s'assurer de leur exactitude ; pendant l'entraînement, le framework convertit automatiquement le raster de domaine brut dans les représentations internes requises par la stratégie de conditionnement choisie.
 
-Tous les rasters doivent aussi être entièrement **inclus dans l’emprise** du projet.
+Comme le traitement du domaine a lieu dans la configuration d'entraînement—et non lors de l'étape de préparation des données—ce guide exige uniquement que les utilisateurs fournissent un raster de domaine propre, encodé en entiers et aligné sur l'étendue du projet et le raster de référence.
 
-[Aller](#tutoriel---workflow-dalignement-dans-qgis) au tutoriel sur l’alignement des rasters dans QGIS.
+<img src="./images/example_domain_raster.png" alt="example_domain_raster" width="800">
+
+**Figure 4**. Exemple de raster de domaine.
 
 ---
 
-## Fichier JSON de configuration des données
+## Exigences d'alignement des rasters
 
-Ce fichier JSON accompagne les rasters d’entrée. Il définit l’ordre des bandes, le comportement des étiquettes et, éventuellement, les groupes parent–enfant.
+Tous les rasters d'entrée—image, label et domaine optionnel—doivent être **alignés** sur le raster de référence du projet créé lors de la définition de la grille mondiale. Cela garantit que chaque raster partage :
 
-### Champs obligatoires
-(Key / Purpose / Notes — Conservés sans traduction pour stabilité technique)
+- **Le même SCR projeté**
+- **La même résolution en pixels**
+- **La même origine et le même alignement de pixels**
 
-| Key | Purpose (FR) | Notes (FR) |
-|-----|--------------|------------|
-| band_map | Définit l’ordre des bandes de l’image composite | Doit être basé sur une indexation à partir de 0 |
-| label_num_classes | Nombre d’identifiants bruts de labels | Tout schéma de numérotation est accepté |
-| label_to_ignore | Labels bruts à exclure | Sera remappé vers ignore_label |
-| label_reclass_map | Regroupement parent→enfant des classes (optionnel) | Permet l’apprentissage hiérarchique |
+Le calage sur le raster de référence garantit que les limites des pixels correspondent exactement, ce qui est essentiel pour un tuilage déterministe, un appariement correct label-image et des expériences reproductibles.
 
-**Exemple:**
+Tous les rasters doivent également se trouver **entièrement dans les limites** de l'étendue du projet. Toutes les données s'étendant au-delà de l'étendue du raster de référence seront découpées ou éliminées lors de l'alignement.
+
+[Sauter](#tutoriel---flux de travail d'alignement dans qgis) au tutoriel sur l'alignement des rasters sur un raster de référence dans QGIS.
+
+---
+
+## JSON de configuration des données
+
+Un fichier JSON de configuration des données accompagne les rasters d'entrée. Il définit l'ordre des bandes, les spécifications des labels et le remappage optionnel des classes.
+
+### Champs de configuration principaux
+| Key | Purpose (FR) | Notes |
+|-----|--------------|-------|
+| `image_band_map` | Définit l'ordre des canaux du composite d'image | Doit être une correspondance d'indexation commençant à 0 |
+| `label_specs` | Définit les spécifications de labels de chaque tâche | Contient `num_cls`, `ignore_cls` et `reclass_map` |
+
+**Exemple :**
 ```json
 {
-  "band_map": {
+  "image_band_map": {
     "dem": 0, "blue": 1, "green": 2,
     "red": 3, "nir": 4, "swir1": 5, "swir2": 6
   },
-  "label_num_classes": 8,
-  "label_to_ignore": [7, 8],
-  "label_reclass_map": {
-    "1": [1, 2],
-    "2": [3, 4],
-    "3": [5, 6]
+  "label_specs": {
+    "main_task": {
+      "num_cls": 8,
+      "ignore_cls": [0, 255],
+      "reclass_map": {
+        "1": 1, "2": 1,
+        "3": 2, "4": 2,
+        "5": 3, "6": 3
+      }
+    }
   }
 }
 ```
 
-### Champs optionnels de documentation
-Ces éléments améliorent l’interprétabilité et la visualisation, mais ne sont pas requis par le pipeline de prétraitement.
+### Champs de métadonnées optionnels
+Ces éléments améliorent l'interprétabilité et la visualisation, mais ne sont pas requis par le pipeline de prétraitement.
 
 | Key | Purpose (FR) |
 |-----|--------------|
-| label_class_name        | Noms lisibles par l’humain pour les labels bruts     |
-| label_reclass_name      | Noms lisibles par l’humain pour les classes parent   |
-| label_reclass_color_map | Couleurs RVB pour les classes parent (aperçu visuel) |
-
-**Exemple:**
-```json
-{
-  "label_class_name": {
-    "1": "ISL", "2": "WAT",
-    "3": "FOR_NEW", "4": "FOR_OLD",
-    "5": "TMS", "6": "OMS",
-    "7": "RCK", "8": "UCL"
-  },
-  "label_reclass_name": {
-    "1": "water",
-    "2": "forest",
-    "3": "wetland"
-  },
-  "label_reclass_color_map": {
-    "1": [51, 108, 230],
-    "2": [25, 114, 19],
-    "3": [195, 208, 54]
-  }
-}
-```
+| `label_class_name` | Noms lisibles par l'humain pour les catégories de labels bruts |
+| `label_reclass_name` | Noms lisibles par l'humain pour les classes parents |
+| `label_reclass_color_map` | Tableaux de couleurs RVB pour l'aperçu visuel des classes |
 
 **Règles clés**
-  - Les indices de bandes doivent commencer à 0.
-  - Les identifiants de labels peuvent utiliser n’importe quel système de numérotation.
-  - label_reclass_map est optionnel; à utiliser seulement si vous exploitez un entraînement hiérarchique.
-  - Les champs comme dem_pad sont volontairement omis (en révision).
-
-**Résumé**
-
-Vous avez seulement besoin de :
-  - `band_map`
-  - `label_num_classes`
-  - `label_to_ignore`
-  - `ignore_label`
-  - `label_reclass_map` (optionnel)
-
-Tout le reste est un métadonné facultatif visant à améliorer la lisibilité ou la visualisation.
+- Les indices de bandes dans `image_band_map` doivent commencer à 0.
+- Les valeurs de `ignore_cls` (telles que `0` ou `255`) sont automatiquement gérées lors de l'ingestion des données.
+- `reclass_map` est optionnel ; à utiliser uniquement si vous exploitez un regroupement de classes parent-enfant.
 
 ---
 
-## Structure de dossier requise pour le projet
+## Disposition de la structure des dossiers du projet
 
-Une fois que tous les rasters de données et le fichier JSON de configuration correspondant sont préparés, ils doivent suivre une **structure de dossiers fixe et prévisible**.
-Le système attend **exactement** la structure suivante :
+Les rasters d'entrée, les artefacts de pipeline générés et les résultats d'exécution de session sont organisés au sein d'un répertoire racine d'expérience structuré (`<exp_root>`).
 
-```
-<exp_root>/                           # emplacement choisi par l'utilisateur
-├── input/
-│   ├── extent_reference/
-│   │    └── example_extent.tif
-│   │
-│   ├── domain_knowledge/
-│   │    └── example_domain_1.tif
-│   │    └── example_domain_2.tif
-│   │    └── ... (vous pouvez en ajouter d'autres)
-│   │
-│   └── <dataset_name>/               # nom de dataset défini par l'utilisateur
-│        ├── dev/
-│        │    ├── example_image.tif
-│        │    └── example_label.tif
-│        │
-│        ├── test/                    # optionnel
-│        │    ├── example_image.tif
-│        │    └── example_label.tif
-│        │
-│        └── example_config.json
-...
-```
+Pour l'arborescence complète et détaillée des dossiers d'entrée, d'artefacts et de résultats d'entraînement, consultez :
+- [Structure et Arborescence du Répertoire des Expériences et Artefacts](./experiment_directory_layout_fr.md) ([English](./experiment_directory_layout.md))
 
-Cette structure prévisible permet au pipeline de **localiser automatiquement** les données d’entraînement, les labels, les rasters de domaine et les fichiers de configuration, sans que l’utilisateur ait à spécifier manuellement les chemins.
-
-### Résumé du rôle des dossiers
-
-- **extent_reference/**
-  Contient un raster de référence unique qui définit le **SCR (CRS) du projet, la taille des pixels, l’origine et l’étendue**.
-  Tous les autres rasters doivent être **alignés sur ce fichier**.
-
-- **domain_knowledge/**
-  Contient un nombre quelconque de *rasters de domaine* utilisés comme couches **catégorielles ou contextuelles**.
-  Ces fichiers sont traités comme une bibliothèque ; le modèle n’en utilise qu’un pour les **valeurs d’ID** et un pour les **valeurs vectorielles**, sélectionnés ultérieurement dans le fichier de configuration.
-
-- **<dataset_name>/**
-  Un dossier nommé par l’utilisateur contenant les rasters utilisés pour **l’entraînement et les tests**.
-
-  - **dev/**
-    Contient les rasters d’image et de label utilisés pour **l’entraînement du modèle**.
-
-  - **test/** (optionnel)
-    Contient les rasters d’image et de label utilisés pour **l’évaluation ou la validation**.
-
-  - **/config.json**
-    La **configuration JSON** qui définit l’ordre des bandes, la gestion des labels et l’éventuel **regroupement hiérarchique parent–enfant des classes**.
-
-### Règles importantes
-
-1. La structure à l’intérieur de `exp_root` doit rester **exactement telle qu’indiquée**.
-2. Seuls `exp_root` et `dataset_name` sont définis par l’utilisateur.
-3. Les noms de fichiers dans chaque dossier peuvent varier, mais **les noms des dossiers ne doivent pas être modifiés**.
-4. Le système construit automatiquement les chemins complets à partir de cette structure ; vous **n’avez pas besoin de fournir les chemins des répertoires dans la configuration YAML**.
-5. Des fichiers manquants ou une organisation incorrecte des dossiers entraîneront des **erreurs lors de la préparation des données ou de l’entraînement**.
+> **Génération de données factices** : Pour alimenter un environnement de test local avec un ensemble complet de GeoTIFFs synthétiques, exécutez :
+> ```bash
+> python scripts/generate_dummy_data.py
+> ```
 
 ---
 
-## Annexe
+## Tutoriel - Créer un raster de référence
 
-### Tutoriel - Créer un Raster de Référence
-Dans ce guide, nous allons créer un raster de référence dans QGIS en suivant les étapes suivantes :
-
-**Tâche 1 — Définir votre zone d’étude**
-**Objectif :** Identifier la zone spatiale totale à modéliser.
-1. Déterminer l’ensemble de la zone couvrant :
-   - Votre **région d’entraînement**, et
-   - Toutes les **régions prévues pour la prédiction**.
-2. Choisir un **SCR projeté** (unités en mètres recommandées).
+### Étape 1 — Sélectionner le SCR projeté
+1. Ouvrez QGIS.
+2. Dans le coin inférieur droit, cliquez sur le bouton SCR.
+3. Sélectionnez votre système projeté local (par exemple, `EPSG:3161`).
 
 ---
 
-**Tâche 2 — Créer un polygone d’étendue**
-**Objectif :** Construire un polygone vectoriel représentant l’étendue du projet.
-*(À sauter si vous avez déjà un polygone approprié.)*
-1. Ouvrir la **Boîte à outils de traitements**.
-2. Naviguer vers : **Vectoriel → Géométrie vectorielle → Créer une couche à partir de l’étendue**
-3. Générer un polygone couvrant entièrement votre zone d’étude.
+### Étape 2 — Créer la couche d'étendue
+1. Allez dans **Couche → Créer une couche → Nouvelle couche de fichier de forme (Shapefile)**.
+2. Définissez le type de géométrie sur **Polygone**.
+3. Dessinez un polygone englobant qui couvre entièrement :
+   - Toutes les imageries d'entraînement
+   - Toutes les régions de prédiction prévues
+4. Enregistrez le fichier sous le nom `project_extent.shp`.
 
 ---
 
-**Tâche 3 — Convertir le polygone d’étendue en raster**
-**Objectif :** Produire le raster de référence définissant le SCR du projet, la résolution et l’alignement.
-1. Rouvrir la **Boîte à outils de traitements**.
-2. Aller à : **GDAL → Conversion vectorielle → Rasteriser (vecteur vers raster)**
-3. Définir **Unités de taille du raster de sortie** sur *Unités géoréférencées*.
-4. Spécifier :
-   - **Résolution horizontale** (ex. 30 m pour des données de type Landsat)
-   - **Résolution verticale** (même valeur que ci‑dessus)
-5. Vérifier que le SCR correspond à votre SCR projeté.
+### Étape 3 — Rasteriser l'étendue
+1. Allez dans **Raster → Conversion → Rasteriser (Vecteur vers Raster)**.
+2. Sélectionnez `project_extent.shp` comme entrée.
+3. Définissez la valeur fixe sur `1`.
+4. Choisissez la résolution cible (par exemple, `20` mètres).
+5. Format de sortie : **GeoTIFF**.
+6. Enregistrez sous le nom `reference_extent.tif`.
 
 ---
 
-**Tâche 4 — Enregistrer le raster de référence**
-**Objectif :** Exporter le raster qui servira d’ancrage à toutes les futures grilles et à l’alignement des données.
-- Enregistrer la sortie sous un nom tel que : **ref_extent.tif**
+### Tutoriel - Flux de travail d'alignement dans QGIS
 
-Ce fichier sera utilisé lors de la génération de la grille mondiale et constituera la référence spatiale fixe pour tous les rasters alignés.
-
----
-
-**Résultat**
-Vous disposez maintenant d’un **raster d’étendue de référence** qui définit :
-
-- L’**étendue immuable du projet**
-- Le **SCR du projet**
-- La **taille des pixels**
-- L’**origine et l’alignement**
-
-Toutes les grilles mondiales et tous les rasters d’entrée ajustés seront ancrés à cette référence.
+**Tâche 1 — Charger les données**<br>
+1. Ouvrez QGIS.
+2. Glissez-déposez :
+   - Le **raster d'étendue de référence**.
+   - Votre **raster d'image**.
+   - Votre **raster de labels**.
+   - Votre **raster de domaine** (optionnel).
 
 ---
 
-### Tutoriel - Workflow d’Alignement dans QGIS
-Avec le raster d’étendue de référence prêt, tous les rasters d’entrée restants (image, labels et domaine optionnel) doivent être reprojetés et ajustés pour correspondre à ce dernier. Le workflow suivant montre comment le faire dans QGIS :
+**Tâche 2 — Ouvrir l'outil d'alignement**<br>
+1. Ouvrez la **Boîte d'outils de traitement**.
+2. Naviguez vers : **GDAL → Alignement raster → Aligner les rasters**.
 
 ---
 
-**Tâche 1 — Charger les données**
-**Objectif :** Charger tous les rasters pertinents dans QGIS.
-1. Ouvrir QGIS.
-2. Glisser‑déposer :
-   - Le **raster d’étendue de référence**
-   - Votre **raster d’image**
-   - Votre **raster de labels**
-   - Votre **raster de domaine** (optionnel)
-
----
-
-**Tâche 2 — Ouvrir l’outil Align Rasters**
-**Objectif :** Utiliser l’outil d’alignement GDAL intégré dans QGIS.
-1. Ouvrir la **Boîte à outils de traitements**.
-2. Naviguer vers :
-   **GDAL → Alignement de raster → Aligner les rasters**
-
----
-
-**Tâche 3 — Configurer les paramètres d’alignement**
-**Objectif :** Configurer l’outil pour que le raster d’entrée s’aligne exactement sur la référence.
-1. **Couche en entrée :**
-   Sélectionner le raster à aligner (image, labels ou domaine).
-
-2. **Couche de référence :**
-   Choisir le **raster d’étendue de référence**.
-
+**Tâche 3 — Configurer les paramètres d'alignement**<br>
+1. **Couche d'entrée :** Sélectionnez le raster à aligner.
+2. **Couche de référence :** Choisissez le **raster d'étendue de référence**.
 3. **Taille du raster de sortie :**
-   - Résolution cible : **Résolution de la couche** (reprend la taille de pixel de la référence)
-   - SCR cible : automatiquement hérité du raster de référence
-
+   - Résolution cible : **Résolution de la couche**
+   - SCR cible : automatiquement extrait du raster de référence
 4. **Alignement de sortie :**
-   - Activer **Faire correspondre l’alignement des pixels**
-   - Activer **Découper selon l’étendue de la couche de référence**
+   - Activez **Faire correspondre l'alignement des pixels**
+   - Activez **Découper selon l'étendue de la couche de référence**
 
 ---
 
-**Tâche 4 — Enregistrer le raster aligné**
-**Objectif :** Exporter la version ajustée.
-- Enregistrer sous :
-  - `image_aligned.tif`
-  - `labels_aligned.tif`
-  - `domain_aligned.tif` (si applicable)
-
----
-
-**Tâche 5 — Répéter pour tous les rasters**
-Répéter le processus d’alignement pour chaque raster d’entrée individuellement.
-
----
-
-**Résultat**
-Tous les rasters partagent désormais :
-
-- Le **même SCR**
-- La **même résolution de pixel**
-- La **même origine et le même alignement**
-- Les **mêmes limites spatiales**
-
-Ils sont maintenant totalement compatibles avec la grille mondiale et le reste du pipeline.
-
----
+**Tâche 4 — Enregistrer le raster aligné**<br>
+Enregistrez sous `image_aligned.tif`, `labels_aligned.tif` et `domain_aligned.tif`.

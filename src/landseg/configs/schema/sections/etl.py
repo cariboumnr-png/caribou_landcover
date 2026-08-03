@@ -19,51 +19,41 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=missing-class-docstring
+# pylint: disable=missing-function-docstring
+
 '''
-Top-level namespace for `landseg.adapters.api`.
-
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
+Data harmonization ETL schema
 '''
-from __future__ import annotations
-import importlib
-import typing
 
-__all__ = [
-    # classes
-    'DataHarmonizationConfigurator',
-    'DataIngestionConfigurator',
-    'DataPreparationConfigurator',
-    'TrainingSessionConfigurator',
-    'StudySweepConfigurator',
-    # functions
-    'run'
-    # types
-]
+# standard imports
+import dataclasses
 
-# for static check
-if typing.TYPE_CHECKING:
-    from .api import run
-    from .configurators import (
-        DataHarmonizationConfigurator,
-        DataIngestionConfigurator,
-        DataPreparationConfigurator,
-        TrainingSessionConfigurator,
-        StudySweepConfigurator
-    )
+# alias
+field = dataclasses.field
 
-def __getattr__(name: str):
 
-    if name in {'run'}:
-        return getattr(importlib.import_module('.api', __package__), name)
+# -------------------------------`ETLConfig` schema-------------------------------
+@dataclasses.dataclass
+class ETLConfig:
+    target_crs: str = 'EPSG:3161'
+    target_resolution: float = 20.0
+    reference_raster: str = ''
+    resampling_continuous: str = 'bilinear'
+    resampling_categorical: str = 'nearest'
+    features: dict[str, str] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
+    output_dpath: str = 'experiment/harmonized'
 
-    if name in {
-        'DataHarmonizationConfigurator',
-        'DataIngestionConfigurator',
-        'DataPreparationConfigurator',
-        'TrainingSessionConfigurator',
-        'StudySweepConfigurator'
-    }:
-        return getattr(importlib.import_module('.configurators', __package__), name)
+    @property
+    def sources(self) -> dict[str, str]:
+        '''Return combined dictionary of all feature and label source rasters.'''
+        combined = dict(self.features)
+        combined.update(self.labels)
+        return combined
 
-    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+    def validate(self) -> None:
+        if self.target_resolution <= 0.0:
+            raise ValueError('target_resolution must be positive.')
+        if not self.target_crs:
+            raise ValueError('target_crs cannot be empty.')

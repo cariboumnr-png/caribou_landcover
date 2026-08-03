@@ -25,6 +25,7 @@
 import numpy
 import pytest
 import rasterio
+import rasterio.transform
 # local imports
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.foundation.domain_maps.mapper as domain_mapper
@@ -39,7 +40,15 @@ def test_map_domain_to_grid_success(dummy_geotiff_factory):
     Then: Remap labels to zero-based range [0, 1] and return
         tile dictionary package.
     '''
-    raster_path = str(dummy_geotiff_factory('categorical.tif', 16, 16, 1, dtype=numpy.int16))
+    tf = rasterio.transform.from_origin(0.5, 0.5, 1.0, 1.0)
+    raster_path = str(dummy_geotiff_factory(
+        filename='categorical.tif',
+        width=16,
+        height=16,
+        bands=1,
+        transform=tf,
+        dtype=numpy.int16
+    ))
 
     # override raster content to contain explicit integer categories 10 and 11
     # write to band 1
@@ -83,7 +92,15 @@ def test_map_domain_to_grid_wrong_base(dummy_geotiff_factory):
     When: Running `map_domain_to_grid` with expected `index_base=11`.
     Then: Raise a ValueError indicating base mismatch.
     '''
-    raster_path = str(dummy_geotiff_factory('categorical.tif', 16, 16, 1, dtype=numpy.int16))
+    tf = rasterio.transform.from_origin(0.5, 0.5, 1.0, 1.0)
+    raster_path = str(dummy_geotiff_factory(
+        filename='categorical.tif',
+        width=16,
+        height=16,
+        bands=1,
+        transform=tf,
+        dtype=numpy.int16
+    ))
     with rasterio.open(raster_path, 'r+') as dst:
         arr = dst.read(1)
         arr[...] = 10
@@ -111,7 +128,15 @@ def test_map_domain_to_grid_empty(dummy_geotiff_factory):
     When: Running `map_domain_to_grid`.
     Then: Raise a ValueError due to lack of valid categories.
     '''
-    raster_path = str(dummy_geotiff_factory('categorical.tif', 16, 16, 1, dtype=numpy.int16))
+    tf = rasterio.transform.from_origin(0.5, 0.5, 1.0, 1.0)
+    raster_path = str(dummy_geotiff_factory(
+        filename='categorical.tif',
+        width=16,
+        height=16,
+        bands=1,
+        transform=tf,
+        dtype=numpy.int16
+    ))
     with rasterio.open(raster_path, 'r+') as dst:
         nodata_val = int(dst.nodata) if dst.nodata is not None else -1
         arr = dst.read(1)

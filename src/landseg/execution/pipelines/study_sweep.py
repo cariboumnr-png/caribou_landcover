@@ -68,7 +68,7 @@ def sweep(config: configs.RootConfig):
 def _runner_builder(config: configs.RootConfig) -> tuple[str, StepRunner]:
     '''Build a continuous training session runner.'''
     # init run io folder tree
-    paths = artifacts.ResultsPaths(f'{config.execution.exp_root}/results')
+    paths = artifacts.SessionPaths(f'{config.execution.exp_root}/results')
     paths.init(trace_to_last=False)
 
     # save running config per session

@@ -66,7 +66,7 @@ class BaseRunnerConfig:
         verbose: Enable verbose console output during execution.
         ...
     '''
-    artifacts_paths: artifacts.ResultsPaths
+    artifacts_paths: artifacts.SessionPaths
     metric_name: str = 'iou'
     track_heads: dict[str, float] | None = None
     track_mode: str = 'max'

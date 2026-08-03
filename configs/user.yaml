@@ -1,20 +1,37 @@
 # =============================================================================
 # USER CONFIGURATION
 # -----------------------------------------------------------------------------
-# This file provides inputs for the three sequential experiment pipelines:
+# This file provides inputs for the sequential experiment pipelines:
 #
+#   0. data-harmonize: Harmonizes raw inputs (S2, DEM, Labels) into canonical VRTs.
 #   1. data-ingest: Ingests datasets, grid references, & domains.
-#      - Typically run once (unless raw input datasets/rasters change).
-#
 #   2. data-prepare: Handles block splits & class balancing.
-#      - The middle preparation layer, occasionally adjusted.
-#
 #   3. model-train: Configures model structure & session params.
-#      - Modified frequently during iterative modeling/hyperparameter tuning.
 # =============================================================================
 
 # Root directory for experiment outputs, logs, and checkpoints
 exp_root: ./experiment
+
+data-harmonize:
+  # ---------------------------------------------------------------------------
+  # Spatial Target & Resampling Rules
+  # ---------------------------------------------------------------------------
+  target_crs: EPSG:3161
+  target_resolution: 20.0
+  reference_raster: null
+  resampling_continuous: bilinear
+  resampling_categorical: nearest
+
+  # ---------------------------------------------------------------------------
+  # Input Source Rasters (Features & Ground-Truth Labels)
+  # ---------------------------------------------------------------------------
+  features:
+    sentinel2: ./experiment/input/raw/sample_sentinel2.tif
+    dem: ./experiment/input/raw/sample_dem.tif
+  labels:
+    landcover: ./experiment/input/raw/sample_landcover.tif
+
+  output_dpath: ./experiment/harmonized
 
 data-ingest:
   # ---------------------------------------------------------------------------

@@ -19,51 +19,41 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=missing-function-docstring
+
 '''
-Top-level namespace for `landseg.adapters.api`.
-
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
+Root entrypoint for all artifact path namespaces.
 '''
-from __future__ import annotations
-import importlib
-import typing
 
-__all__ = [
-    # classes
-    'DataHarmonizationConfigurator',
-    'DataIngestionConfigurator',
-    'DataPreparationConfigurator',
-    'TrainingSessionConfigurator',
-    'StudySweepConfigurator',
-    # functions
-    'run'
-    # types
-]
+# standard imports
+import dataclasses
+import os
+# local imports
+import landseg.artifacts.paths as paths
 
-# for static check
-if typing.TYPE_CHECKING:
-    from .api import run
-    from .configurators import (
-        DataHarmonizationConfigurator,
-        DataIngestionConfigurator,
-        DataPreparationConfigurator,
-        TrainingSessionConfigurator,
-        StudySweepConfigurator
-    )
 
-def __getattr__(name: str):
+# ----- `ArtifactPaths` definition
+@dataclasses.dataclass
+class ArtifactPaths:
+    '''Root entrypoint for all artifact path namespaces.'''
+    root: str
 
-    if name in {'run'}:
-        return getattr(importlib.import_module('.api', __package__), name)
+    @property
+    def foundation(self) -> paths.FoundationPaths:
+        '''Return FoundationPaths container.'''
+        return paths.FoundationPaths(os.path.join(self.root, 'foundation'))
 
-    if name in {
-        'DataHarmonizationConfigurator',
-        'DataIngestionConfigurator',
-        'DataPreparationConfigurator',
-        'TrainingSessionConfigurator',
-        'StudySweepConfigurator'
-    }:
-        return getattr(importlib.import_module('.configurators', __package__), name)
+    @property
+    def transform(self) -> paths.TransformPaths:
+        '''Return TransformPaths container.'''
+        return paths.TransformPaths(os.path.join(self.root, 'transform'))
 
-    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+    @property
+    def etl(self) -> paths.ETLPaths:
+        '''Return ETLPaths container.'''
+        return paths.ETLPaths(os.path.join(self.root, 'harmonized'))
+
+    @property
+    def session(self) -> paths.SessionPaths:
+        '''Return SessionPaths container.'''
+        return paths.SessionPaths(results_root=os.path.join(self.root, 'results'))

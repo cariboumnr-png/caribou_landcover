@@ -45,6 +45,9 @@ class BaseConfigurator:
         self._cfg.foundation.datablocks.name = dataset_name
         # set artifact output dirpaths
         self._cfg.execution.exp_root = experiment_root
+        self._cfg.etl.output_dpath = (
+            f'{experiment_root}/artifacts/harmonized'
+        )
         self._cfg.foundation.output_dpath = (
             f'{experiment_root}/artifacts/{dataset_name}/foundation'
         )
@@ -58,6 +61,8 @@ class BaseConfigurator:
     def running_root_config(self) -> configs.RootConfig:
         '''Validate and return the `RootConfig`,'''
         match self._cfg.pipeline.name:
+            case 'data-harmonize':
+                self._cfg.etl.validate()
             case 'data-ingest':
                 self._cfg.foundation.validate()
             case 'data-prepare':

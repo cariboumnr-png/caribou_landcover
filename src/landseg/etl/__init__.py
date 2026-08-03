@@ -19,78 +19,42 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-# pylint: disable=too-many-return-statements
-
 '''
-Top-level namespace for `landseg.execution.pipelines`.
-
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
+Top-level namespace for `landseg.etl`.
 '''
 
+# standard imports
 from __future__ import annotations
 import importlib
 import typing
 
 __all__ = [
     # classes
+    'CanvasSpec',
+    'HarmonizationLogger',
     # functions
-    'get',
-    'default_action',
-    'evaluate',
-    'harmonize',
-    'ingest',
-    'overfit',
-    'prepare',
-    'sweep',
-    'train',
-    'analyze'
+    'create_canvas',
+    'warp_to_canvas',
+    'stack_canonical_raster',
+    'unify_nodata_mask',
     # typing
 ]
 
 # for static check
 if typing.TYPE_CHECKING:
-    from ._registry import get
-    from .default import default_action
-    from .data_harmonize import harmonize
-    from .data_ingest import ingest
-    from .data_prepare import prepare
-    from .diagnose_overfit import overfit
-    from .model_evaluate import evaluate
-    from .model_train import train
-    from .study_sweep import sweep
-    from .study_analysis import analyze
+    from .logger import HarmonizationLogger
+    from .spatial import CanvasSpec, create_canvas, warp_to_canvas
+    from .raster_ops import stack_canonical_raster, unify_nodata_mask
 
 def __getattr__(name: str):
 
-    if name in {'get'}:
-        return getattr(importlib.import_module('._registry', __package__), name)
+    if name in {'HarmonizationLogger'}:
+        return getattr(importlib.import_module('.logger', __package__), name)
 
-    if name in {'default_action'}:
-        return getattr(importlib.import_module('.default', __package__), name)
+    if name in {'CanvasSpec', 'create_canvas', 'warp_to_canvas'}:
+        return getattr(importlib.import_module('.spatial', __package__), name)
 
-    if name in {'harmonize'}:
-        return getattr(importlib.import_module('.data_harmonize', __package__), name)
-
-    if name in {'overfit'}:
-        return getattr(importlib.import_module('.diagnose_overfit', __package__), name)
-
-    if name in {'ingest'}:
-        return getattr(importlib.import_module('.data_ingest', __package__), name)
-
-    if name in {'prepare'}:
-        return getattr(importlib.import_module('.data_prepare', __package__), name)
-
-    if name in {'evaluate'}:
-        return getattr(importlib.import_module('.model_evaluate', __package__), name)
-
-    if name in {'train'}:
-        return getattr(importlib.import_module('.model_train', __package__), name)
-
-    if name in {'sweep'}:
-        return getattr(importlib.import_module('.study_sweep', __package__), name)
-
-    if name in {'analyze'}:
-        return getattr(importlib.import_module('.study_analysis', __package__), name)
+    if name in {'stack_canonical_raster', 'unify_nodata_mask'}:
+        return getattr(importlib.import_module('.raster_ops', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

@@ -20,54 +20,48 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.adapters.api.configurators`.
+Top-level namespace for `landseg.artifacts.paths`.
 
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
+Exposes artifact and session path dataclasses for all pipelines.
 '''
+
+# standard imports
 from __future__ import annotations
 import importlib
 import typing
 
 __all__ = [
-    # classes
-    'BaseConfigurator',
-    'DataHarmonizationConfigurator',
-    'DataIngestionConfigurator',
-    'DataPreparationConfigurator',
-    'TrainingSessionConfigurator',
-    'StudySweepConfigurator'
-    # functions
-    # types
+    'ArtifactPaths',
+    'ETLPaths',
+    'FoundationPaths',
+    'SessionPaths',
+    'TransformPaths',
 ]
 
 # for static check
 if typing.TYPE_CHECKING:
-    from .base import BaseConfigurator
-    from .data_harmonize import DataHarmonizationConfigurator
-    from .data_ingest import DataIngestionConfigurator
-    from .data_prepare import DataPreparationConfigurator
-    from .model_train import TrainingSessionConfigurator
-    from .study_sweep import StudySweepConfigurator
+    from .etl import ETLPaths
+    from .foundation import FoundationPaths
+    from .root import ArtifactPaths
+    from .session import SessionPaths
+    from .transform import TransformPaths
+
 
 def __getattr__(name: str):
 
-    if name in {'BaseConfigurator'}:
-        return getattr(importlib.import_module('.base', __package__), name)
+    if name in {'ETLPaths'}:
+        return getattr(importlib.import_module('.etl', __package__), name)
 
-    if name in {'DataHarmonizationConfigurator'}:
-        return getattr(importlib.import_module('.data_harmonize', __package__), name)
+    if name in {'FoundationPaths'}:
+        return getattr(importlib.import_module('.foundation', __package__), name)
 
-    if name in {'DataIngestionConfigurator'}:
-        return getattr(importlib.import_module('.data_ingest', __package__), name)
+    if name in {'SessionPaths'}:
+        return getattr(importlib.import_module('.session', __package__), name)
 
-    if name in {'DataPreparationConfigurator'}:
-        return getattr(importlib.import_module('.data_prepare', __package__), name)
+    if name in {'ArtifactPaths'}:
+        return getattr(importlib.import_module('.root', __package__), name)
 
-    if name in {'TrainingSessionConfigurator'}:
-        return getattr(importlib.import_module('.model_train', __package__), name)
-
-    if name in {'StudySweepConfigurator'}:
-        return getattr(importlib.import_module('.study_sweep', __package__), name)
+    if name in {'TransformPaths'}:
+        return getattr(importlib.import_module('.transform', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

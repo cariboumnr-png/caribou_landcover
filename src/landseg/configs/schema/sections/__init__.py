@@ -41,6 +41,7 @@ __all__ = [
     'SessionConfig',
     'StudyConfig',
     'PipelineConfig',
+    'ETLConfig',
     # functions
     # typing
 ]
@@ -54,6 +55,7 @@ if typing.TYPE_CHECKING:
     from .session import SessionConfig
     from .study import StudyConfig
     from .pipeline import PipelineConfig
+    from .etl import ETLConfig
 
 def __getattr__(name: str):
 
@@ -77,5 +79,8 @@ def __getattr__(name: str):
 
     if name in {'PipelineConfig'}:
         return getattr(importlib.import_module('.pipeline', __package__), name)
+
+    if name in {'ETLConfig'}:
+        return getattr(importlib.import_module('.etl', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

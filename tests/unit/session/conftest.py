@@ -50,7 +50,7 @@ def session_config():
 
 @pytest.fixture
 def mock_session_paths(tmp_path):
-    return artifacts.ResultsPaths(f'{tmp_path}/temp_results/')
+    return artifacts.SessionPaths(f'{tmp_path}/temp_results/')
 
 
 @pytest.fixture

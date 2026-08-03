@@ -139,17 +139,24 @@ def _translate_model_train(
     }
     _apply_mapping(rt, translated, mapping)
 
-    # infer active heads for phase from head weights
-    # sanity - these two should have the same heads
+    # infer active heads for phase from active_tasks or head weights
+    active_tasks = rt.get('active_tasks', None)
     loss_heads = rt.get('head_loss_weights', {})
     metrics_heads = rt.get('head_metrics_weights', {})
     if loss_heads and metrics_heads and set(loss_heads) != set(metrics_heads):
         raise ValueError('Different heads between loss and metrics weights')
 
+    if active_tasks is not None:
+        active_heads = list(active_tasks)
+    elif loss_heads:
+        active_heads = list(loss_heads.keys())
+    else:
+        active_heads = None
+
     phase = {
         'name': 'demo-train',
         'num_epochs': rt['epochs'],
-        'active_heads': list(loss_heads.keys()) if loss_heads else None
+        'active_heads': active_heads
     }
     _set_paths(
         translated,

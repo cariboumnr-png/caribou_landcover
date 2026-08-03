@@ -35,13 +35,18 @@ def test_build_grid_ref(dummy_geotiff_factory):
     Then: Correctly parse reference bounds and resolutions, and
         construct the GridLayout.
     '''
-    ref_path = str(dummy_geotiff_factory('ref_raster.tif', 16, 16, 1))
+    ref_path =dummy_geotiff_factory(
+        filename='ref_raster.tif',
+        width=16,
+        height=16,
+        bands=1
+    )
 
     # set up grid parameters for ref mode
     config = grid_builder.GridParameters(
         mode='ref',
         crs='EPSG:32617',
-        ref_fpath=ref_path,
+        ref_fpath=str(ref_path),
         origin=(0.0, 0.0),
         pixel_size=(10.0, 10.0),
         grid_extent=None,
