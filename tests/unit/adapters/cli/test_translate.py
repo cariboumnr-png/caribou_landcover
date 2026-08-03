@@ -32,11 +32,31 @@ import landseg.adapters.cli.translate as translate_mod
 
 
 # ----- `translate_user_config` tests
+def test_translate_user_config_data_harmonize():
+    '''
+    Given: A user configuration `DictConfig` with `data-harmonize` settings.
+    When: `translate_user_config` is executed.
+    Then: Map fields to `etl` structure including output_dpath.
+    '''
+    user_cfg = omegaconf.OmegaConf.create({
+        'data-harmonize': {
+            'target_crs': 'EPSG:3161',
+            'target_resolution': 20.0,
+            'output_dpath': '/path/exp/harmonized',
+        },
+    })
+    result = translate_mod.translate_user_config(user_cfg)
+
+    assert result.etl.target_crs == 'EPSG:3161'
+    assert result.etl.target_resolution == 20.0
+    assert result.etl.output_dpath == '/path/exp/harmonized'
+
+
 def test_translate_user_config_data_ingest():
     '''
     Given: A user configuration `DictConfig` with `data-ingest` settings.
     When: `translate_user_config` is executed.
-    Then: Map fields to `foundation` grid, domain, and datablocks structures.
+    Then: Map fields to `foundation` grid, domain, datablocks, and output_dpath structures.
     '''
     user_cfg = omegaconf.OmegaConf.create({
         'data-ingest': {
@@ -44,6 +64,7 @@ def test_translate_user_config_data_ingest():
             'tile_size': 256,
             'dataset_name': 'test_ds',
             'dev_image': '/path/dev_img.tif',
+            'output_dpath': '/path/exp/artifacts/foundation',
         },
     })
     result = translate_mod.translate_user_config(user_cfg)
@@ -53,13 +74,14 @@ def test_translate_user_config_data_ingest():
     assert result.foundation.grid.tile_specs.size_col == 256
     assert result.foundation.datablocks.name == 'test_ds'
     assert result.foundation.datablocks.filepaths.dev_image == '/path/dev_img.tif'
+    assert result.foundation.output_dpath == '/path/exp/artifacts/foundation'
 
 
 def test_translate_user_config_data_prepare():
     '''
     Given: A user configuration `DictConfig` with `data-prepare` settings.
     When: `translate_user_config` is called.
-    Then: Map fields to `transform` partition, catalog, and scoring.
+    Then: Map fields to `transform` partition, catalog, scoring, and output_dpath.
     '''
     user_cfg = omegaconf.OmegaConf.create({
         'data-prepare': {
@@ -67,6 +89,7 @@ def test_translate_user_config_data_prepare():
             'test_ratio': 0.1,
             'target_head': 'cover',
             'rebuild': True,
+            'output_dpath': '/path/exp/artifacts/transform',
         },
     })
     result = translate_mod.translate_user_config(user_cfg)
@@ -75,13 +98,14 @@ def test_translate_user_config_data_prepare():
     assert result.transform.partition.test_ratio == 0.1
     assert result.transform.catalog.focal_target == 'cover'
     assert result.transform.rebuild is True
+    assert result.transform.output_dpath == '/path/exp/artifacts/transform'
 
 
 def test_translate_user_config_model_train():
     '''
     Given: A user configuration `DictConfig` with `model-train` settings.
     When: `translate_user_config` is invoked with epochs and active tasks.
-    Then: Map fields to models and curriculum orchestration phases.
+    Then: Map fields to models, session output_dpath, and curriculum orchestration phases.
     '''
     user_cfg = omegaconf.OmegaConf.create({
         'model-train': {
@@ -90,6 +114,7 @@ def test_translate_user_config_model_train():
             'batch_size': 32,
             'epochs': 25,
             'active_tasks': ['cover', 'canopy'],
+            'output_dpath': '/path/exp/results',
         },
     })
     result = translate_mod.translate_user_config(user_cfg)
@@ -97,6 +122,7 @@ def test_translate_user_config_model_train():
     assert result.models.model_body == 'unet'
     assert result.session.data_loader.patch_size == 128
     assert result.session.data_loader.batch_size == 32
+    assert result.session.output_dpath == '/path/exp/results'
     phases = result.session.orchestration.curriculum.single.phases
     assert len(phases) == 1
     assert phases[0].num_epochs == 25

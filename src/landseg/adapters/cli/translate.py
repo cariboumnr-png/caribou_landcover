@@ -33,6 +33,7 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
 
     translated: dict[str, typing.Any] = {
         'execution': {},
+        'etl': {},
         'foundation': {
             'grid': {
                 'extent': {},
@@ -65,6 +66,9 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
     if 'exp_root' in raw:
         _set_paths(translated, ['execution.exp_root'], raw['exp_root'])
 
+    if 'data-harmonize' in raw:
+        _translate_data_harmonize(raw['data-harmonize'], translated)
+
     if 'data-ingest' in raw:
         _translate_data_ingest(raw['data-ingest'], translated)
 
@@ -75,6 +79,26 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
         _translate_model_train(raw['model-train'], translated)
 
     return omegaconf.OmegaConf.create(translated)
+
+
+def _translate_data_harmonize(
+    etl: omegaconf.DictConfig,
+    translated: dict
+) -> None:
+    '''Map data-harmonize settings to etl fields.'''
+
+    mapping = {
+        'target_crs': ['etl.target_crs'],
+        'target_resolution': ['etl.target_resolution'],
+        'reference_raster': ['etl.reference_raster'],
+        'resampling_continuous': ['etl.resampling_continuous'],
+        'resampling_categorical': ['etl.resampling_categorical'],
+        'features': ['etl.features'],
+        'labels': ['etl.labels'],
+        'output_dpath': ['etl.output_dpath'],
+    }
+    _apply_mapping(etl, translated, mapping)
+
 
 def _translate_data_ingest(
     fdn: omegaconf.DictConfig,
@@ -103,8 +127,10 @@ def _translate_data_ingest(
         'test_label': ['foundation.datablocks.filepaths.test_label'],
         'dataset_config': ['foundation.datablocks.filepaths.config'],
         'rebuild': ['foundation.rebuild'],
+        'output_dpath': ['foundation.output_dpath'],
     }
     _apply_mapping(fdn, translated, mapping)
+
 
 def _translate_data_prepare(
     tf: omegaconf.DictConfig,
@@ -118,8 +144,10 @@ def _translate_data_prepare(
         'target_head': ['transform.catalog.focal_target'],
         'reward_classes': ['transform.scoring.reward'],
         'rebuild': ['transform.rebuild'],
+        'output_dpath': ['transform.output_dpath'],
     }
     _apply_mapping(tf, translated, mapping)
+
 
 def _translate_model_train(
     rt: omegaconf.DictConfig,
@@ -136,6 +164,7 @@ def _translate_model_train(
         'batch_size': ['session.data_loader.batch_size'],
         'head_loss_weights': ['session.engine_tasks.head_weights'],
         'head_metrics_weights': ['session.orchestration.monitor.track_heads'],
+        'output_dpath': ['session.output_dpath'],
     }
     _apply_mapping(rt, translated, mapping)
 

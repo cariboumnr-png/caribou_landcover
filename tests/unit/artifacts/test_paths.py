@@ -30,6 +30,7 @@ import os
 # local imports
 import landseg.artifacts.paths as paths_mod
 import landseg.artifacts.paths.foundation as f_mod
+import landseg.configs as configs_mod
 
 
 # ----- `ArtifactPaths` & Foundation tests
@@ -44,7 +45,46 @@ def test_artifact_paths_hierarchy():
     assert art.foundation.root == os.path.join(r, 'foundation')
     assert art.transform.root == os.path.join(r, 'transform')
     assert art.etl.root == os.path.join(r, 'harmonized')
-    assert art.session.results_root == os.path.join(r, 'results')
+    assert art.session.root == os.path.join(r, 'results')
+
+
+def test_artifact_paths_custom_overrides():
+    '''
+    Given: Explicit per-pipeline sub-root path overrides.
+    When: Instantiating `ArtifactPaths` with sub-root parameters.
+    Then: Prioritize custom sub-root paths over central exp_root defaults.
+    '''
+    art = paths_mod.ArtifactPaths(
+        root='/tmp/exp',
+        etl_root='/custom/etl',
+        foundation_root='/custom/foundation',
+        transform_root='/custom/transform',
+        session_root='/custom/session'
+    )
+    assert art.etl.root == '/custom/etl'
+    assert art.foundation.root == '/custom/foundation'
+    assert art.transform.root == '/custom/transform'
+    assert art.session.root == '/custom/session'
+
+
+def test_artifact_paths_from_config():
+    '''
+    Given: A resolved `RootConfig` instance with explicit output directories.
+    When: Instantiating `ArtifactPaths` via `from_config`.
+    Then: Correctly extract root and stage output directory paths.
+    '''
+    cfg = configs_mod.RootConfig()
+    cfg.execution.exp_root = '/tmp/exp'
+    cfg.etl.output_dpath = '/tmp/exp/artifacts/harmonized'
+    cfg.foundation.output_dpath = '/tmp/exp/artifacts/foundation'
+    cfg.transform.output_dpath = '/tmp/exp/artifacts/transform'
+    cfg.session.output_dpath = '/tmp/exp/results'
+    art = paths_mod.ArtifactPaths.from_config(cfg)
+    assert art.root == '/tmp/exp'
+    assert art.etl.root == '/tmp/exp/artifacts/harmonized'
+    assert art.foundation.root == '/tmp/exp/artifacts/foundation'
+    assert art.transform.root == '/tmp/exp/artifacts/transform'
+    assert art.session.root == '/tmp/exp/results'
 
 
 def test_etl_paths(tmp_path):
@@ -149,7 +189,7 @@ def test_session_paths_init_and_checkpoints(tmp_path):
     When: Initializing `SessionPaths` across runs and tracing options.
     Then: Auto-increment run IDs and build checkpoint paths.
     '''
-    session_paths = paths_mod.SessionPaths(results_root=str(tmp_path))
+    session_paths = paths_mod.SessionPaths(root=str(tmp_path))
     session_paths.init()
 
     assert session_paths.run_id == 'run_0001'
@@ -166,11 +206,11 @@ def test_session_paths_init_and_checkpoints(tmp_path):
     assert session_paths.config == os.path.join(r, 'config.json')
 
     # second run initialization auto-increments run_id
-    results_2 = paths_mod.SessionPaths(results_root=str(tmp_path))
+    results_2 = paths_mod.SessionPaths(root=str(tmp_path))
     results_2.init()
     assert results_2.run_id == 'run_0002'
 
     # trace_to_last option targets previous run
-    results_last = paths_mod.SessionPaths(results_root=str(tmp_path))
+    results_last = paths_mod.SessionPaths(root=str(tmp_path))
     results_last.init(trace_to_last=True)
     assert results_last.run_id == 'run_0002'

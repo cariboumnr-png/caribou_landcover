@@ -13,6 +13,7 @@
 exp_root: ./experiment
 
 data-harmonize:
+  output_dpath: ./experiment/harmonized
   # ---------------------------------------------------------------------------
   # Spatial Target & Resampling Rules
   # ---------------------------------------------------------------------------
@@ -31,9 +32,9 @@ data-harmonize:
   labels:
     landcover: ./experiment/input/raw/sample_landcover.tif
 
-  output_dpath: ./experiment/harmonized
 
 data-ingest:
+  output_dpath: ./experiment/artifacts/foundation
   # ---------------------------------------------------------------------------
   # Spatial Reference & Grid Tiling Details
   # ---------------------------------------------------------------------------
@@ -81,6 +82,7 @@ data-ingest:
   rebuild: false
 
 data-prepare:
+  output_dpath: ./experiment/artifacts/transform
   # ---------------------------------------------------------------------------
   # Dataset Splitting & Class Balancing
   # ---------------------------------------------------------------------------
@@ -96,6 +98,7 @@ data-prepare:
   rebuild: false
 
 model-train:
+  output_dpath: ./experiment/results
   # ---------------------------------------------------------------------------
   # Model Architecture & Training Hyperparameters
   # ---------------------------------------------------------------------------
@@ -115,12 +118,12 @@ model-train:
   # Larger values increase a head's contribution to the total training loss,
   # causing the model to place more emphasis on optimizing that head.
   # Set to {} or null to weight all heads equally during training.
-  head_loss_weights: {polytype_groups: 1.0, lastdep: 1.0, leadspc_groups: 1.0}
+  head_loss_weights: {}
   # Validation metric weights for each prediction head.
   # Larger values increase a head's influence on the aggregated validation score,
   # making it more important when evaluating overall model performance.
   # Set to {} or null to weight all heads equally during validation.
-  head_metrics_weights: {polytype_groups: 0.5, lastdep: 0.7, leadspc_groups: 1.0}
+  head_metrics_weights: {}
   # Note: Keys in head_loss_weights and head_metrics_weights must match exactly
   # if both are configured, e.g., ok if head_loss_weights are provided but
   # head_metrics_weights are set to {} or null

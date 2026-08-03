@@ -34,9 +34,9 @@ class DataPreparationConfigurator(configurators.BaseConfigurator):
     def __init__(
         self,
         experiment_root: str,
-        dataset_name: str,
+        dataset_name: str = 'sample_data',
     ):
-        super().__init__(experiment_root, dataset_name, 'data-prepare')
+        super().__init__(experiment_root, 'data-prepare', dataset_name)
 
     def set_partition(
         self,

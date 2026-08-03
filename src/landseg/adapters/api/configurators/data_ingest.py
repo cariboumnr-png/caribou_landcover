@@ -34,9 +34,9 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
     def __init__(
         self,
         experiment_root: str,
-        dataset_name: str,
+        dataset_name: str = 'sample_data',
     ):
-        super().__init__(experiment_root, dataset_name, 'data-ingest')
+        super().__init__(experiment_root, 'data-ingest', dataset_name)
 
     def set_grid(
         self,

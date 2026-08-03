@@ -57,11 +57,12 @@ def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
     assert report['target_crs'] == 'EPSG:3161'
     assert report['target_resolution'] == 20.0
 
-    report_file = os.path.join(out_dpath, 'etl_report.json')
+    run_dir = os.path.join(out_dpath, report.get('run_id', 'run_0001'))
+    report_file = os.path.join(run_dir, 'etl_report.json')
     assert os.path.exists(report_file)
 
     with open(report_file, 'r', encoding='utf-8') as f:
         saved_report = json.load(f)
     assert saved_report['status'] == 'SUCCESS'
-    assert os.path.exists(os.path.join(out_dpath, 'harmonized_image_composite.vrt'))
-    assert os.path.exists(os.path.join(out_dpath, 'valid_pixel_mask.vrt'))
+    assert os.path.exists(os.path.join(run_dir, 'harmonized_image_composite.vrt'))
+    assert os.path.exists(os.path.join(run_dir, 'valid_pixel_mask.vrt'))

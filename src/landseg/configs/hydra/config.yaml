@@ -4,9 +4,7 @@ defaults:
   # etl
   - etl: default
   # data foundation
-  - foundation/grid: default
-  - foundation/domains: default
-  - foundation/datablocks: default
+  - foundation: default
   # data transfrom
   - transform: default
   # data specs

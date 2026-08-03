@@ -44,8 +44,8 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
         Summary report dictionary of the ETL execution.
     '''
     etl_cfg = config.etl
-    out_dpath = os.path.abspath(etl_cfg.output_dpath)
-    etl_paths = artifacts.ETLPaths(out_dpath)
+    artifact_paths = artifacts.ArtifactPaths.from_config(config)
+    etl_paths = artifact_paths.etl
     etl_paths.init()
 
     logger = etl.HarmonizationLogger(
@@ -63,8 +63,7 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
     logger.init_summary(
         run_id=etl_paths.run_id,
         target_crs=canvas_spec.crs,
-        target_resolution=canvas_spec.resolution,
-        output_dpath=out_dpath
+        target_resolution=canvas_spec.resolution
     )
     logger.set_grid_shape(canvas_spec.height, canvas_spec.width)
     logger.log(

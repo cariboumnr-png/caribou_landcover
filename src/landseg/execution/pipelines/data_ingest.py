@@ -47,7 +47,8 @@ def ingest(config: configs.RootConfig):
     '''
 
     # artifact paths
-    paths = artifacts.FoundationPaths(config.foundation.output_dpath)
+    artifact_paths = artifacts.ArtifactPaths.from_config(config)
+    paths = artifact_paths.foundation
 
     # init a FoundationLogger with summary
     logger = foundation.FoundationLogger(

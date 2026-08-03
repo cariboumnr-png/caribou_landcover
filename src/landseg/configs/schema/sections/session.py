@@ -241,12 +241,13 @@ class _OrchestrationConfig:
 # session composite
 @dataclasses.dataclass
 class SessionConfig:
-    mode: str = 'continuous'
     data_loader: _DataLoaderConfig = field(default_factory=_DataLoaderConfig)
     engine_exec: _EngineExecConfig = field(default_factory=_EngineExecConfig)
     engine_optim: _OptimConfig = field(default_factory=_OptimConfig)
     engine_tasks: _TasksConfig = field(default_factory=_TasksConfig)
     orchestration: _OrchestrationConfig = field(default_factory=_OrchestrationConfig)
+    mode: str = 'continuous'
+    output_dpath: str = '${execution.exp_root}/results/'
 
     def __post_init__(self):
         # allow_early_stop=True is invalid for curriculum

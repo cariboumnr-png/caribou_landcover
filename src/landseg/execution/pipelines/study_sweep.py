@@ -68,7 +68,8 @@ def sweep(config: configs.RootConfig):
 def _runner_builder(config: configs.RootConfig) -> tuple[str, StepRunner]:
     '''Build a continuous training session runner.'''
     # init run io folder tree
-    paths = artifacts.SessionPaths(f'{config.execution.exp_root}/results')
+    artifact_paths = artifacts.ArtifactPaths.from_config(config)
+    paths = artifact_paths.session
     paths.init(trace_to_last=False)
 
     # save running config per session
@@ -93,10 +94,6 @@ def _runner_builder(config: configs.RootConfig) -> tuple[str, StepRunner]:
             logger.log_sep()
 
             # collect artifacts and build `DataSpecs`
-            artifact_paths = artifacts.ArtifactPaths(
-                f'{config.execution.exp_root}/artifacts/'
-                f'{config.foundation.datablocks.name}'
-            )
             dataspecs = geopipe.build_dataspec(
                 artifact_paths,
                 mode='default',

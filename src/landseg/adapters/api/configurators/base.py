@@ -34,8 +34,8 @@ class BaseConfigurator:
     def __init__(
         self,
         experiment_root: str,
-        dataset_name: str,
-        pipeline_name: str
+        pipeline_name: str,
+        dataset_name: str = 'sample_data'
     ):
         '''Initialize the configurator'''
 
@@ -45,15 +45,9 @@ class BaseConfigurator:
         self._cfg.foundation.datablocks.name = dataset_name
         # set artifact output dirpaths
         self._cfg.execution.exp_root = experiment_root
-        self._cfg.etl.output_dpath = (
-            f'{experiment_root}/artifacts/harmonized'
-        )
-        self._cfg.foundation.output_dpath = (
-            f'{experiment_root}/artifacts/{dataset_name}/foundation'
-        )
-        self._cfg.transform.output_dpath = (
-            f'{experiment_root}/artifacts/{dataset_name}/transform'
-        )
+        self._cfg.etl.output_dpath = f'{experiment_root}/artifacts/harmonized'
+        self._cfg.foundation.output_dpath = f'{experiment_root}/artifacts/foundation'
+        self._cfg.transform.output_dpath = f'{experiment_root}/artifacts/transform'
         # set pipeline name
         self._cfg.pipeline.name = pipeline_name
 

@@ -45,7 +45,8 @@ def evaluate(config: configs.RootConfig):
         config: RootConfig with model, trainer, and runner settings.
     '''
     # init run io folder tree
-    session_paths = artifacts.SessionPaths(f'{config.execution.exp_root}/results')
+    artifact_paths = artifacts.ArtifactPaths.from_config(config)
+    session_paths = artifact_paths.session
     session_paths.init()
 
     # parse evaluation pipeline configs
@@ -80,10 +81,6 @@ def evaluate(config: configs.RootConfig):
         logger.log_sep()
 
         # collect artifacts and build `DataSpecs`
-        artifact_paths = artifacts.ArtifactPaths(
-            f'{config.execution.exp_root}/artifacts/'
-            f'{config.foundation.datablocks.name}'
-        )
         dataspecs = geopipe.build_dataspec(
             artifact_paths,
             mode='test_only' if split == 'test' else 'val_only',

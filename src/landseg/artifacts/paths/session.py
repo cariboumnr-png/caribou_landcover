@@ -35,7 +35,7 @@ import os
 class SessionPaths:
     '''Root entry of a training run.'''
 
-    results_root: str
+    root: str
     run_id: str = ''
     run_folder: str = ''
 
@@ -83,14 +83,14 @@ class SessionPaths:
         # find the latest run number
         while True:
             self.run_id = f'run_{i:04d}'
-            self.run_folder = os.path.join(self.results_root, self.run_id)
+            self.run_folder = os.path.join(self.root, self.run_id)
             if not os.path.exists(self.run_folder):
                 break
             i += 1
         # if trace to the last folder
         if trace_to_last:
             self.run_id = f'run_{i - 1:04d}'
-            self.run_folder = os.path.join(self.results_root, self.run_id)
+            self.run_folder = os.path.join(self.root, self.run_id)
 
         # create all subfolders if not already exist
         os.makedirs(self.checkpoints, exist_ok=True)

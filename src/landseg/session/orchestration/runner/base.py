@@ -166,7 +166,7 @@ class BaseRunner(abc.ABC):
         return self.epoch_runner.evaluator
 
     @property
-    def paths(self) -> artifacts.ResultsPaths:
+    def paths(self) -> artifacts.SessionPaths:
         '''Return the run-level artifacts file paths class.'''
         return self.config.artifacts_paths
 

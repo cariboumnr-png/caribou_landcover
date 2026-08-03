@@ -34,9 +34,9 @@ class TrainingSessionConfigurator(configurators.BaseConfigurator):
     def __init__(
         self,
         experiment_root: str,
-        dataset_name: str,
+        dataset_name: str = 'sample_data',
     ):
-        super().__init__(experiment_root, dataset_name, 'model-train')
+        super().__init__(experiment_root, 'model-train', dataset_name)
 
     def set_model(
         self,

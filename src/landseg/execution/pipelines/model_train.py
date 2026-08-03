@@ -53,7 +53,8 @@ def train(config: configs.RootConfig) -> None:
         config: RootConfig with model, trainer, and runner settings.
     '''
     # init session results paths and create run io folder tree
-    ss_paths = artifacts.SessionPaths(f'{config.execution.exp_root}/results')
+    artifact_paths = artifacts.ArtifactPaths.from_config(config)
+    ss_paths = artifact_paths.session
     ss_paths.init(config.session.orchestration.schedule.resume_from_last)
 
     # persist running config as JSON
@@ -82,10 +83,6 @@ def train(config: configs.RootConfig) -> None:
         # collect artifacts and build `DataSpecs`
         logger.log('INFO', '[START] Data specifications setup')
         start_t = time.perf_counter()
-        artifact_paths = artifacts.ArtifactPaths(
-            f'{config.execution.exp_root}/artifacts/'
-            f'{config.foundation.datablocks.name}'
-        )
         dataspecs = geopipe.build_dataspec(
             artifact_paths,
             mode='default',
@@ -173,7 +170,7 @@ def _build_session_runner(
     config: configs.RootConfig,
     dataspecs: core.DataSpecs,
     model: core.MultiheadModelLike,
-    ss_paths: artifacts.ResultsPaths,
+    ss_paths: artifacts.SessionPaths,
     logger: session.SessionLogger
 ) -> typing.Any:
     '''Build the session runner based on mode.'''

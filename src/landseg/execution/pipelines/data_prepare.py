@@ -46,7 +46,8 @@ def prepare(config: configs.RootConfig):
     '''
 
     # artifact paths
-    transform_paths = artifacts.TransformPaths(config.transform.output_dpath)
+    artifact_paths = artifacts.ArtifactPaths.from_config(config)
+    transform_paths = artifact_paths.transform
 
     # init a TransformLogger
     logger = transform.TransformLogger(

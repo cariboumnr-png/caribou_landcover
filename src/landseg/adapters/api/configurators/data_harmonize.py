@@ -35,9 +35,9 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
     def __init__(
         self,
         experiment_root: str,
-        dataset_name: str = 'default',
+        dataset_name: str = 'sample_data',
     ):
-        super().__init__(experiment_root, dataset_name, 'data-harmonize')
+        super().__init__(experiment_root, 'data-harmonize', dataset_name)
 
     def set_canvas(
         self,

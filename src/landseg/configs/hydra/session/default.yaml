@@ -8,3 +8,4 @@ defaults:
   - orchestration: default
 
 mode: continuous # continuous | curriculum
+output_dpath: ${execution.exp_root}/results/

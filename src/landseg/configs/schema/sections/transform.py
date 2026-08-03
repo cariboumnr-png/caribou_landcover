@@ -81,10 +81,7 @@ class DataTransform:
     scoring: _Scoring = field(default_factory=_Scoring)
     hydration: _Hydration = field(default_factory=_Hydration)
     rebuild: bool = False
-    output_dpath: str = (
-        '${execution.exp_root}/artifacts/'
-        '${foundation.datablocks.name}/transform'
-    )
+    output_dpath: str = '${execution.exp_root}/artifacts/transform'
 
     def validate(self):
         self.catalog.validate()
