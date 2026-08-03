@@ -25,8 +25,10 @@ Subclass wrapper of Logger to handle structured execution summaries.
 
 # standard imports
 from __future__ import annotations
+import datetime
 import typing
 # local imports
+import landseg._constants as c
 import landseg.artifacts as artifacts
 import landseg.utils as utils
 
@@ -49,11 +51,17 @@ class FoundationLogger(utils.Logger):
         super().__init__(*args, **kwargs)
         self.summary: IngestReportSchema | None = None
 
-    def init_summary(self, run_id: str, timestamp: str) -> None:
+    def init_summary(
+        self,
+        *,
+        run_id: str = '',
+        timestamp: str | None = None
+    ) -> None:
         '''Initialize the structured run report summary dictionary.'''
+        t = timestamp or datetime.datetime.now().strftime(c.TF_ISO8601)
         self.summary = {
             'run_id': run_id,
-            'timestamp': timestamp,
+            'timestamp': t,
             'status': 'SUCCESS',
             'world_grid': None,
             'domain_maps': [],

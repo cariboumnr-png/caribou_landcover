@@ -61,6 +61,7 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
     )
 
     logger.init_summary(
+        run_id=etl_paths.run_id,
         target_crs=canvas_spec.crs,
         target_resolution=canvas_spec.resolution,
         output_dpath=out_dpath

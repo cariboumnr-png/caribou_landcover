@@ -46,7 +46,7 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths):
         log_file=report_file,
         enable_file_log=False
     )
-    logger.init_summary('test_run_dev', '2026-07-08T18:00:00Z')
+    logger.init_summary(run_id='test_run_dev', timestamp='2026-07-08T18:00:00Z')
 
     # Prepare world grid from the reference raster
     grid_config = foundation.GridParameters(
@@ -125,7 +125,7 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths):
         log_file=report_file,
         enable_file_log=False
     )
-    logger.init_summary('test_run_test', '2026-07-08T18:00:00Z')
+    logger.init_summary(run_id='test_run_test', timestamp='2026-07-08T18:00:00Z')
 
     # Prepare world grid from the reference raster
     grid_config = foundation.GridParameters(

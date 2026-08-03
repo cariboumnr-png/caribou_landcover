@@ -26,10 +26,7 @@ Splits raw blocks into train/val(/test), computes train-only band
 statistics, normalizes all splits, and emits the final dataset schema.
 '''
 
-# standard imports
-import datetime
 # local imports
-import landseg._constants as c
 import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.geopipe.transform as transform
@@ -57,8 +54,7 @@ def prepare(config: configs.RootConfig):
         log_file=transform_paths.report,
         enable_file_log=False
     )
-    time_stamp = datetime.datetime.now().strftime(c.TF_ISO8601)
-    logger.init_summary(f'prepare_{time_stamp}', time_stamp)
+    logger.init_summary(run_id='prepare')
 
     try:
         logger.log_sep()

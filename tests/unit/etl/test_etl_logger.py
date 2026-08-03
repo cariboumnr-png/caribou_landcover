@@ -46,8 +46,7 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
     )
     logger.init_summary(
         target_crs='EPSG:3161',
-        target_resolution=20.0,
-        output_dpath=out_dpath
+        target_resolution=20.0
     )
     logger.set_grid_shape(500, 500)
     logger.add_harmonized_source('sentinel2', '/path/to/s2.tif')
@@ -90,7 +89,6 @@ def test_harmonization_logger_add_provenance(tmp_path):
     logger.init_summary(
         target_crs='EPSG:3161',
         target_resolution=20.0,
-        output_dpath=out_dpath
     )
 
     logger.add_source_provenance('sentinel2', str(sample_file))

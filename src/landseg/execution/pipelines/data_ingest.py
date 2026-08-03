@@ -26,10 +26,7 @@ Prepares the world grid, materializes domain knowledge, and builds
 the immutable raw block catalogue for later experiments.
 '''
 
-# standard imports
-import datetime
 # local imports
-import landseg._constants as c
 import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.geopipe.foundation as foundation
@@ -58,8 +55,7 @@ def ingest(config: configs.RootConfig):
         log_file=paths.report,
         enable_file_log=False
     )
-    time_stamp = datetime.datetime.now().strftime(c.TF_ISO8601)
-    logger.init_summary(f'ingest_{time_stamp}', time_stamp)
+    logger.init_summary(run_id='ingest')
     assert logger.summary # typing
 
     try:

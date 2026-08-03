@@ -54,9 +54,15 @@ class SessionLogger(utils.Logger):
         super().__init__(*arg, **kwargs)
         self.summary: SessionSummary | None = None
 
-    def init_summary(self, *, run_id: str, pipeline: str):
+    def init_summary(
+        self,
+        *,
+        run_id: str,
+        pipeline: str,
+        timestamp: str | None = None
+    ) -> None:
         '''Initialize the structured session summary dictionary.'''
-        t = datetime.datetime.now().strftime(c.TF_ISO8601)
+        t = timestamp or datetime.datetime.now().strftime(c.TF_ISO8601)
         self.summary = {
             'run_id': run_id,
             'pipeline': pipeline,

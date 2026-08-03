@@ -25,9 +25,11 @@ Subclass wrapper of Logger to handle structured ETL harmonization execution summ
 
 from __future__ import annotations
 # standard imports
+import datetime
 import os
 import typing
 # local imports
+import landseg._constants as c
 import landseg.artifacts as artifacts
 import landseg.utils as utils
 
@@ -45,12 +47,17 @@ class HarmonizationLogger(utils.Logger):
 
     def init_summary(
         self,
-        target_crs: str,
-        target_resolution: float,
-        output_dpath: str
+        *,
+        run_id: str = '',
+        target_crs: str = '',
+        target_resolution: float = 0.0,
+        timestamp: str | None = None
     ) -> None:
         '''Initialize the structured ETL run report summary.'''
+        t = timestamp or datetime.datetime.now().strftime(c.TF_ISO8601)
         self.summary = {
+            'run_id': run_id,
+            'timestamp': t,
             'status': 'SUCCESS',
             'target_crs': target_crs,
             'target_resolution': target_resolution,
@@ -58,8 +65,7 @@ class HarmonizationLogger(utils.Logger):
             'provenance': {},
             'harmonized_sources': {},
             'composite_raster': '',
-            'valid_mask_raster': '',
-            'output_dpath': output_dpath
+            'valid_mask_raster': ''
         }
 
     def set_grid_shape(self, height: int, width: int) -> None:
@@ -101,8 +107,7 @@ class HarmonizationLogger(utils.Logger):
             self.summary['status'] = status
 
     def on_close(self) -> None:
-        '''Persist the collected summary JSON report.'''
-        if self.summary is not None and self.summary.get('output_dpath'):
-            report_path = artifacts.ETLPaths(self.summary['output_dpath']).report
-            ctrl = artifacts.Controller(report_path)
+        '''Persist the collected summary JSON report directly to log_file.'''
+        if self.summary is not None and self.log_file:
+            ctrl = artifacts.Controller(self.log_file)
             ctrl.persist(self.summary)
