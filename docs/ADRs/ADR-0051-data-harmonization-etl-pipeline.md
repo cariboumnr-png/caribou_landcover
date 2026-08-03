@@ -44,6 +44,10 @@ To optimize Databricks cloud storage and compute costs:
 ### 2.4. Configuration Schema Extension
 An `EtlConfig` section was added to the structured configuration contracts (`src/landseg/configs/schema/sections/etl.py`) and Hydra composition tree, allowing users to configure target CRS, resolution, reference extent, and source path mappings in `configs/user.yaml`.
 
+### 2.5. Programmatic API & Interactive Notebook Integration
+* Implemented `DataHarmonizationConfigurator` in `landseg.adapters.api.configurators.data_harmonize` to allow fluent Python configuration of canvas settings, feature layers, and label mappings.
+* Added [`notebooks/00_data_harmonization.ipynb`](../../notebooks/00_data_harmonization.ipynb) to provide an interactive, Databricks-ready notebook demonstration for running the ETL data harmonization pipeline.
+
 ---
 
 ## 3. Consequences
@@ -53,6 +57,7 @@ An `EtlConfig` section was added to the structured configuration contracts (`src
 * **Separation of Concerns**: Keeps `data-ingest` focused strictly on tile/block assembly while delegating spatial reprojection to `data-harmonize`.
 * **Resource & Storage Efficiency**: Using GDAL VRTs eliminates intermediate disk I/O passes and minimizes cloud storage bloat.
 * **Label Integrity**: Enforcing nearest-neighbor resampling for categorical inputs guarantees class ID safety.
+* **Interactive Accessibility**: Provides interactive Jupyter/Databricks notebook support via `DataHarmonizationConfigurator`.
 
 ### Negative
 * **Pipeline Execution Chain Depth**: Adds one additional pipeline stage (`data-harmonize`) prior to `data-ingest`.
@@ -66,3 +71,4 @@ An `EtlConfig` section was added to the structured configuration contracts (`src
 2. **Phase 2**: Implemented `src/landseg/etl/` (`canvas.py`, `warp.py`, `stacker.py`, `nodata.py`, `spatial.py`).
 3. **Phase 3**: Registered `data-harmonize` in `src/landseg/execution/pipelines/` and added pipeline orchestration in `data_harmonize.py`.
 4. **Phase 4**: Added unit tests under `tests/unit/etl/`.
+5. **Phase 5**: Implemented `DataHarmonizationConfigurator` in `landseg.adapters.api` and added interactive notebook [`notebooks/00_data_harmonization.ipynb`](../../notebooks/00_data_harmonization.ipynb).
