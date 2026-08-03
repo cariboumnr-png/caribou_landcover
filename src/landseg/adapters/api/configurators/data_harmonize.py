@@ -20,50 +20,50 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.adapters.api`.
-
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
+Data harmonization ETL configurator
 '''
-from __future__ import annotations
-import importlib
+
+# standard imports
 import typing
+# local imports
+import landseg.adapters.api.configurators as configurators
 
-__all__ = [
-    # classes
-    'DataHarmonizationConfigurator',
-    'DataIngestionConfigurator',
-    'DataPreparationConfigurator',
-    'TrainingSessionConfigurator',
-    'StudySweepConfigurator',
-    # functions
-    'run'
-    # types
-]
 
-# for static check
-if typing.TYPE_CHECKING:
-    from .api import run
-    from .configurators import (
-        DataHarmonizationConfigurator,
-        DataIngestionConfigurator,
-        DataPreparationConfigurator,
-        TrainingSessionConfigurator,
-        StudySweepConfigurator
-    )
+class DataHarmonizationConfigurator(configurators.BaseConfigurator):
+    '''Configure data harmonization ETL.'''
 
-def __getattr__(name: str):
+    def __init__(
+        self,
+        experiment_root: str,
+        dataset_name: str = 'default',
+    ):
+        super().__init__(experiment_root, dataset_name, 'data-harmonize')
 
-    if name in {'run'}:
-        return getattr(importlib.import_module('.api', __package__), name)
+    def set_canvas(
+        self,
+        target_crs: str,
+        target_resolution: float,
+        reference_raster: str | None = None
+    ) -> typing.Self:
+        '''Set canvas spatial reference specs.'''
+        self._cfg.etl.target_crs = target_crs
+        self._cfg.etl.target_resolution = target_resolution
+        if reference_raster:
+            self._cfg.etl.reference_raster = reference_raster
+        return self
 
-    if name in {
-        'DataHarmonizationConfigurator',
-        'DataIngestionConfigurator',
-        'DataPreparationConfigurator',
-        'TrainingSessionConfigurator',
-        'StudySweepConfigurator'
-    }:
-        return getattr(importlib.import_module('.configurators', __package__), name)
+    def set_features(
+        self,
+        features: dict[str, str]
+    ) -> typing.Self:
+        '''Set continuous feature rasters map.'''
+        self._cfg.etl.features = features
+        return self
 
-    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+    def set_labels(
+        self,
+        labels: dict[str, str]
+    ) -> typing.Self:
+        '''Set categorical label rasters map.'''
+        self._cfg.etl.labels = labels
+        return self
