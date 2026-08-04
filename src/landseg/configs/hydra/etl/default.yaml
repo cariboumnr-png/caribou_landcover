@@ -1,10 +1,15 @@
 # @package etl
 
-target_crs: EPSG:3161
-target_resolution: 20.0
-reference_raster: ''
+canvas:
+  reference_raster: ''
+  target_crs: EPSG:3161
+  target_resolution: 20.0
+
+raw_data:
+  features: {}
+  domains: {}
+  labels: {}
+
 resampling_continuous: bilinear
 resampling_categorical: nearest
-features: {}
-labels: {}
-output_dpath: ${execution.exp_root}/harmonized
+output_dpath: ${execution.exp_root}/artifacts/harmonized

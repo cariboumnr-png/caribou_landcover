@@ -13,13 +13,17 @@
 exp_root: ./experiment
 
 data-harmonize:
-  output_dpath: ./experiment/harmonized
+  output_dpath: ./experiment/artifacts/harmonized
   # ---------------------------------------------------------------------------
-  # Spatial Target & Resampling Rules
+  # Spatial Target
   # ---------------------------------------------------------------------------
+  reference_raster: ./experiment/input/extent_reference/sample_extent.tif
   target_crs: EPSG:3161
   target_resolution: 20.0
-  reference_raster: null
+
+  # ---------------------------------------------------------------------------
+  # Resampling Rules
+  # ---------------------------------------------------------------------------
   resampling_continuous: bilinear
   resampling_categorical: nearest
 
@@ -29,6 +33,9 @@ data-harmonize:
   features:
     sentinel2: ./experiment/input/raw/sample_sentinel2.tif
     dem: ./experiment/input/raw/sample_dem.tif
+  domains:
+    domain_1: ./experiment/input/domain_knowledge/sample_domain_1.tif
+    domain_2: ./experiment/input/domain_knowledge/sample_domain_2.tif
   labels:
     landcover: ./experiment/input/raw/sample_landcover.tif
 

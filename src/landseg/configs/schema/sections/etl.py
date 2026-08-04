@@ -28,6 +28,9 @@ Data harmonization ETL schema
 
 # standard imports
 import dataclasses
+import re
+# local imports
+import landseg.configs.schema.utils as utils
 
 # alias
 field = dataclasses.field
@@ -35,25 +38,38 @@ field = dataclasses.field
 
 # -------------------------------`ETLConfig` schema-------------------------------
 @dataclasses.dataclass
-class ETLConfig:
-    target_crs: str = 'EPSG:3161'
-    target_resolution: float = 20.0
+class _Canvas:
     reference_raster: str = ''
+    target_crs: str | None = None
+    target_resolution: float | None = None
+
+
+@dataclasses.dataclass
+class _RawData:
+    features: dict[str, str] = field(default_factory=dict)
+    domains: dict[str, str] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
+
+
+@dataclasses.dataclass
+class ETLConfig:
+    canvas: _Canvas = field(default_factory=_Canvas)
+    raw_data: _RawData = field(default_factory=_RawData)
     resampling_continuous: str = 'bilinear'
     resampling_categorical: str = 'nearest'
-    features: dict[str, str] = field(default_factory=dict)
-    labels: dict[str, str] = field(default_factory=dict)
     output_dpath: str = 'experiment/harmonized'
 
-    @property
-    def sources(self) -> dict[str, str]:
-        '''Return combined dictionary of all feature and label source rasters.'''
-        combined = dict(self.features)
-        combined.update(self.labels)
-        return combined
-
     def validate(self) -> None:
-        if self.target_resolution <= 0.0:
+        utils.must_exist(self.canvas.reference_raster, 'Reference raster')
+
+        if (
+            self.canvas.target_crs and
+            not bool(re.fullmatch(r'epsg:\d+', self.canvas.target_crs, re.I))
+        ):
+            raise ValueError('Invalid CRS identifier. Must be "EPSG:...."')
+
+        if (
+            self.canvas.target_resolution and
+            self.canvas.target_resolution <= 0.0
+        ):
             raise ValueError('target_resolution must be positive.')
-        if not self.target_crs:
-            raise ValueError('target_crs cannot be empty.')

@@ -55,9 +55,9 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
     )
 
     canvas_spec = etl.create_canvas(
-        target_crs=etl_cfg.target_crs,
-        target_resolution=etl_cfg.target_resolution,
-        reference_raster=etl_cfg.reference_raster
+        reference_raster=etl_cfg.canvas.reference_raster,
+        target_crs=etl_cfg.canvas.target_crs,
+        target_resolution=etl_cfg.canvas.target_resolution
     )
 
     logger.init_summary(
@@ -74,8 +74,9 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
 
     aligned_features: list[str] = []
     try:
-        # 1. Process explicit continuous feature rasters
-        for name, path in etl_cfg.features.items():
+        # ----- continous feature rasters
+        # harmonize feature rasters
+        for name, path in etl_cfg.raw_data.features.items():
             if not path or not os.path.exists(path):
                 logger.log('INFO', f'Skipping missing feature layer: {name}')
                 continue
@@ -97,8 +98,27 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
             logger.add_harmonized_source(name, warped)
             aligned_features.append(warped)
 
-        # 2. Process explicit categorical label rasters
-        for name, path in etl_cfg.labels.items():
+        # stack feature rasters into composite if multiple exist
+        composite_path = ''
+        if len(aligned_features) > 1:
+            composite_path = etl_paths.composite_raster
+            logger.log(
+                'INFO',
+                f'Stacking {len(aligned_features)} feature layers...'
+            )
+            etl.stack_canonical_raster(aligned_features, composite_path)
+            logger.set_composite_raster(composite_path)
+
+        # generate valid pixel mask across features
+        mask_path = ''
+        if composite_path:
+            mask_path = etl_paths.valid_mask_raster
+            logger.log('INFO', f'Generating valid pixel mask raster: {mask_path}')
+            etl.unify_nodata_mask(composite_path, mask_path)
+            logger.set_valid_mask_raster(mask_path)
+
+        # ----- categorical label rasters
+        for name, path in etl_cfg.raw_data.labels.items():
             if not path or not os.path.exists(path):
                 logger.log('INFO', f'Skipping missing label layer: {name}')
                 continue
@@ -119,31 +139,36 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
             )
             logger.add_harmonized_source(name, warped)
 
-        # 3. Stack feature rasters into composite if multiple exist
-        composite_path = ''
-        if len(aligned_features) > 1:
-            composite_path = etl_paths.composite_raster
+        # -----categorical domain rasters
+        for name, path in etl_cfg.raw_data.domains.items():
+            if not path or not os.path.exists(path):
+                logger.log('INFO', f'Skipping missing domain layer: {name}')
+                continue
+
+            logger.add_source_provenance(name, path)
+            out_path = etl_paths.harmonized_raster(name)
             logger.log(
                 'INFO',
-                f'Stacking {len(aligned_features)} feature layers...'
+                f'Harmonizing domain [{name}] -> {out_path} '
+                f'(resampling: {etl_cfg.resampling_categorical})'
             )
-            etl.stack_canonical_raster(aligned_features, composite_path)
-            logger.set_composite_raster(composite_path)
-
-        # 4. Generate valid pixel mask across features
-        mask_path = ''
-        if composite_path:
-            mask_path = etl_paths.valid_mask_raster
-            logger.log('INFO', f'Generating valid pixel mask raster: {mask_path}')
-            etl.unify_nodata_mask(composite_path, mask_path)
-            logger.set_valid_mask_raster(mask_path)
+            warped = etl.warp_to_canvas(
+                input_path=path,
+                output_path=out_path,
+                canvas=canvas_spec,
+                is_categorical=True,
+                resampling_method=etl_cfg.resampling_categorical
+            )
+            logger.add_harmonized_source(name, warped)
 
         logger.set_summary_status('SUCCESS')
         logger.log('INFO', 'Data harmonization completed successfully.')
+
     except Exception as err:
         logger.set_summary_status('FAILED')
         logger.log('ERROR', f'Data harmonization failed: {err}')
         raise
+
     finally:
         report = dict(logger.summary) if logger.summary else {}
         logger.close()

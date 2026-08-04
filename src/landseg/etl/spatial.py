@@ -62,54 +62,30 @@ class CanvasSpec:
 # ----- public functions
 def create_canvas(
     *,
-    target_crs: str,
-    target_resolution: float,
-    reference_raster: str | None = None,
-    default_bounds: tuple[float, float, float, float] | None = None
+    reference_raster: str,
+    target_crs: str | None = None,
+    target_resolution: float | None = None,
 ) -> CanvasSpec:
     '''
     Create `CanvasSpec` from a reference raster file or fallback bounds.
 
     Args:
+        reference_raster:
+            File path to reference raster dataset.
         target_crs:
             Coordinate Reference System string (e.g. 'EPSG:3161').
         target_resolution:
             Target pixel resolution in meters.
-        reference_raster:
-            Optional path to reference raster dataset.
-        default_bounds:
-            Fallback spatial bounds tuple (xmin, ymin, xmax, ymax).
 
     Returns:
         Configured `CanvasSpec` instance.
     '''
-    if reference_raster and os.path.exists(reference_raster):
-        return _from_reference_raster(
-            reference_raster,
-            target_crs=target_crs,
-            target_resolution=target_resolution
+    if not os.path.exists(reference_raster):
+        raise FileNotFoundError(
+            f'Reference raster file not found: {reference_raster}'
         )
 
-    # EPSG:3161 default bounds
-    if default_bounds is None:
-        default_bounds = (500000.0, 600000.0, 510240.0, 610240.0)
-
-    return CanvasSpec(
-        crs=target_crs,
-        resolution=target_resolution,
-        bounds=default_bounds
-    )
-
-
-def _from_reference_raster(
-    raster_path: str,
-    target_crs: str | None = None,
-    target_resolution: float | None = None
-) -> CanvasSpec:
-    '''
-    Construct `CanvasSpec` from a reference raster dataset file path.
-    '''
-    with rasterio.open(raster_path) as src:
+    with rasterio.open(reference_raster) as src:
         crs = target_crs or src.crs.to_string()
         res_val = (
             target_resolution

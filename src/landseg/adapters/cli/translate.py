@@ -33,7 +33,14 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
 
     translated: dict[str, typing.Any] = {
         'execution': {},
-        'etl': {},
+        'etl': {
+            'canvas': {},
+            'raw_data': {
+                'features': {},
+                'domains': {},
+                'labels': {}
+            }
+        },
         'foundation': {
             'grid': {
                 'extent': {},
@@ -88,13 +95,14 @@ def _translate_data_harmonize(
     '''Map data-harmonize settings to etl fields.'''
 
     mapping = {
-        'target_crs': ['etl.target_crs'],
-        'target_resolution': ['etl.target_resolution'],
-        'reference_raster': ['etl.reference_raster'],
+        'target_crs': ['etl.canvas.target_crs'],
+        'target_resolution': ['etl.canvas.target_resolution'],
+        'reference_raster': ['etl.canvas.reference_raster'],
         'resampling_continuous': ['etl.resampling_continuous'],
         'resampling_categorical': ['etl.resampling_categorical'],
-        'features': ['etl.features'],
-        'labels': ['etl.labels'],
+        'features': ['etl.raw_data.features'],
+        'domains': ['etl.raw_data.domains'],
+        'labels': ['etl.raw_data.labels'],
         'output_dpath': ['etl.output_dpath'],
     }
     _apply_mapping(etl, translated, mapping)
