@@ -43,6 +43,35 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
     Returns:
         Summary report dictionary of the ETL execution.
     '''
+
+    def _process_source(
+        *,
+        source: dict[str, str],
+        tag: str,
+        resampling: str,
+        logger: etl.HarmonizationLogger,
+    ):
+        '''Process one data source.'''
+        for name, path in source:
+            if not path or not os.path.exists(path):
+                logger.log('INFO', f'Skipping missing {tag} layer: {name}')
+                continue
+
+            logger.add_source_provenance(name, path)
+            out_path = etl_paths.harmonized_raster(name)
+            logger.log('INFO',
+                f'Harmonizing {tag} layer [{name}] -> {out_path} '
+                f'(resampling: {resampling})'
+            )
+            warped = etl.warp_to_canvas(
+                input_path=path,
+                output_path=out_path,
+                canvas=canvas_spec,
+                is_categorical=True,
+                resampling_method=resampling
+            )
+            logger.add_harmonized_source(name, warped)
+
     etl_cfg = config.etl
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
     etl_paths = artifact_paths.etl
@@ -76,27 +105,12 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
     try:
         # ----- continous feature rasters
         # harmonize feature rasters
-        for name, path in etl_cfg.raw_data.features.items():
-            if not path or not os.path.exists(path):
-                logger.log('INFO', f'Skipping missing feature layer: {name}')
-                continue
-
-            logger.add_source_provenance(name, path)
-            out_path = etl_paths.harmonized_raster(name)
-            logger.log(
-                'INFO',
-                f'Harmonizing feature [{name}] -> {out_path} '
-                f'(resampling: {etl_cfg.resampling_continuous})'
-            )
-            warped = etl.warp_to_canvas(
-                input_path=path,
-                output_path=out_path,
-                canvas=canvas_spec,
-                is_categorical=False,
-                resampling_method=etl_cfg.resampling_continuous
-            )
-            logger.add_harmonized_source(name, warped)
-            aligned_features.append(warped)
+        _process_source(
+            source=etl_cfg.raw_data.features,
+            tag='feature',
+            resampling=etl_cfg.resampling_continuous,
+            logger=logger
+        )
 
         # stack feature rasters into composite if multiple exist
         composite_path = ''
@@ -113,56 +127,26 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
         mask_path = ''
         if composite_path:
             mask_path = etl_paths.valid_mask_raster
-            logger.log('INFO', f'Generating valid pixel mask raster: {mask_path}')
+            logger.log('INFO', f'Generating valid mask raster: {mask_path}')
             etl.unify_nodata_mask(composite_path, mask_path)
             logger.set_valid_mask_raster(mask_path)
 
         # ----- categorical label rasters
-        for name, path in etl_cfg.raw_data.labels.items():
-            if not path or not os.path.exists(path):
-                logger.log('INFO', f'Skipping missing label layer: {name}')
-                continue
+        _process_source(
+            source=etl_cfg.raw_data.labels,
+            tag='label',
+            resampling=etl_cfg.resampling_categorical,
+            logger=logger
+        )
 
-            logger.add_source_provenance(name, path)
-            out_path = etl_paths.harmonized_raster(name)
-            logger.log(
-                'INFO',
-                f'Harmonizing label [{name}] -> {out_path} '
-                f'(resampling: {etl_cfg.resampling_categorical})'
-            )
-            warped = etl.warp_to_canvas(
-                input_path=path,
-                output_path=out_path,
-                canvas=canvas_spec,
-                is_categorical=True,
-                resampling_method=etl_cfg.resampling_categorical
-            )
-            logger.add_harmonized_source(name, warped)
 
         # -----categorical domain rasters
-        for name, path in etl_cfg.raw_data.domains.items():
-            if not path or not os.path.exists(path):
-                logger.log('INFO', f'Skipping missing domain layer: {name}')
-                continue
-
-            logger.add_source_provenance(name, path)
-            out_path = etl_paths.harmonized_raster(name)
-            logger.log(
-                'INFO',
-                f'Harmonizing domain [{name}] -> {out_path} '
-                f'(resampling: {etl_cfg.resampling_categorical})'
-            )
-            warped = etl.warp_to_canvas(
-                input_path=path,
-                output_path=out_path,
-                canvas=canvas_spec,
-                is_categorical=True,
-                resampling_method=etl_cfg.resampling_categorical
-            )
-            logger.add_harmonized_source(name, warped)
-
-        logger.set_summary_status('SUCCESS')
-        logger.log('INFO', 'Data harmonization completed successfully.')
+        _process_source(
+            source=etl_cfg.raw_data.domains,
+            tag='domain',
+            resampling=etl_cfg.resampling_categorical,
+            logger=logger
+        )
 
     except Exception as err:
         logger.set_summary_status('FAILED')
