@@ -31,7 +31,7 @@ import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.geopipe.foundation as foundation
 
-# -------------------------------Public Function-------------------------------
+
 def ingest(config: configs.RootConfig):
     '''
     Run the ingestion pipeline.
@@ -45,7 +45,6 @@ def ingest(config: configs.RootConfig):
     Args:
         config: RootConfig with foundation settings.
     '''
-
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
     paths = artifact_paths.foundation
@@ -181,7 +180,6 @@ def ingest(config: configs.RootConfig):
                 f'[COMPLETE] Test data blocks preparation (D_{d:.2f}s)'
             )
 
-        # write config JSON sidecar upon successful execution
         artifacts.Controller[dict](paths.config).persist(config.as_dict)
 
     # propagate all exceptions here

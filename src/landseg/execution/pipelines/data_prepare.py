@@ -31,6 +31,7 @@ import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.geopipe.transform as transform
 
+
 def prepare(config: configs.RootConfig):
     '''
     Run the preparation pipeline for an experiment.
@@ -44,15 +45,14 @@ def prepare(config: configs.RootConfig):
     Args:
         config: RootConfig with transform settings.
     '''
-
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
-    transform_paths = artifact_paths.transform
+    paths = artifact_paths.transform
 
     # init a TransformLogger
     logger = transform.TransformLogger(
         name='prep',
-        log_file=transform_paths.report,
+        log_file=paths.report,
         enable_file_log=False
     )
     logger.init_summary(run_id='prepare')
@@ -67,14 +67,12 @@ def prepare(config: configs.RootConfig):
             else artifacts.LifecyclePolicy.BUILD_IF_MISSING
         )
 
-        # artifact paths
-        foundation_paths = artifacts.FoundationPaths(config.foundation.output_dpath)
 
         # parse catalog from data foundation
         parsed_catalog = transform.data_blocks_adapter(
-            foundation_paths.data_blocks.dev.catalog,
-            foundation_paths.data_blocks.dev.schema,
-            foundation_paths.data_blocks.test.catalog,
+            artifact_paths.foundation.data_blocks.dev.catalog,
+            artifact_paths.foundation.data_blocks.dev.schema,
+            artifact_paths.foundation.data_blocks.test.catalog,
             config=config.transform.catalog
         )
 
@@ -96,7 +94,7 @@ def prepare(config: configs.RootConfig):
         )
         transform.run_datablocks_partition(
             parsed_catalog,
-            transform_paths,
+            paths,
             partition_config,
             policy=policy,
             logger=logger,
@@ -109,7 +107,7 @@ def prepare(config: configs.RootConfig):
         # normalize
         logger.log('INFO', '[START] Block normalization')
         transform.run_normalize_blocks(
-            transform_paths,
+            paths,
             policy=policy,
             logger=logger
         )
@@ -120,7 +118,7 @@ def prepare(config: configs.RootConfig):
         # build schema
         logger.log('INFO', '[START] Transform schema building')
         transform.build_schema(
-            transform_paths,
+            paths,
             policy=policy,
             logger=logger
         )
@@ -129,8 +127,7 @@ def prepare(config: configs.RootConfig):
         logger.log('INFO', f'[COMPLETE] Transform schema building (D_{d:.2f}s)')
 
         # write config JSON sidecar upon successful execution
-        config_ctrl = artifacts.Controller[dict](transform_paths.config)
-        config_ctrl.persist(config.as_dict)
+        artifacts.Controller[dict](paths.config).persist(config.as_dict)
 
     except Exception as e:
         logger.set_summary_status('FAILED')
