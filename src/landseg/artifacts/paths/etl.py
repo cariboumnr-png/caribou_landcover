@@ -37,6 +37,35 @@ class ETLPaths:
     root: str
     run_id: str = ''
     run_folder: str = ''
+    _current_run_folder: str = ''
+
+    @property
+    def effective_root(self) -> str:
+        return self.run_folder if self.run_folder else self.root
+
+    @property
+    def feature_raster(self) -> str:
+        return os.path.join(self._current_run_folder, 'stacked_images.vrt')
+
+    @property
+    def label_raster(self) -> str:
+        return os.path.join(self._current_run_folder, 'stacked_labels.vrt')
+
+    @property
+    def domain_raster(self) -> str:
+        return os.path.join(self._current_run_folder, 'stacked_domains.vrt')
+
+    @property
+    def valid_mask_raster(self) -> str:
+        return os.path.join(self._current_run_folder, 'valid_pixel_mask.vrt')
+
+    @property
+    def report(self) -> str:
+        return os.path.join(self._current_run_folder, 'etl_report.json')
+
+    @property
+    def config(self) -> str:
+        return os.path.join(self._current_run_folder, 'config.json')
 
     def init(self, trace_to_last: bool = False):
         '''Initialize an ETL run folder tree.'''
@@ -54,28 +83,42 @@ class ETLPaths:
             else:
                 self.run_id = f'run_{i:04d}'
             self.run_folder = os.path.join(self.root, self.run_id)
+            self._current_run_folder = self.run_folder
 
         os.makedirs(self.effective_root, exist_ok=True)
 
-    @property
-    def effective_root(self) -> str:
-        return self.run_folder if self.run_folder else self.root
+    def get_run_folder(self, run_id: int | None = None) -> str:
+        '''
+        Return the path to a run folder.
+
+        Args:
+            run_id:
+                Integer run ID (e.g. 1 -> run_0001). If None, returns
+                the latest existing run folder.
+
+        Raises:
+            FileNotFoundError:
+                If the requested run does not exist or no run folders
+                exist.
+        '''
+        if run_id is not None:
+            folder = os.path.join(self.root, f'run_{run_id:04d}')
+            if not os.path.isdir(folder):
+                raise FileNotFoundError(f'Run folder does not exist: {folder}')
+            self._current_run_folder = folder
+            return folder
+
+        runs = sorted(
+            d for d in os.listdir(self.root)
+            if d.startswith('run_')
+            and os.path.isdir(os.path.join(self.root, d))
+        )
+
+        if not runs:
+            raise FileNotFoundError('No run folders found.')
+
+        self._current_run_folder = runs[-1]
+        return os.path.join(self.root, runs[-1])
 
     def harmonized_raster(self, name: str) -> str:
         return os.path.join(self.effective_root, f'harmonized_{name}.vrt')
-
-    @property
-    def composite_raster(self) -> str:
-        return os.path.join(self.effective_root, 'harmonized_image_composite.vrt')
-
-    @property
-    def valid_mask_raster(self) -> str:
-        return os.path.join(self.effective_root, 'valid_pixel_mask.vrt')
-
-    @property
-    def report(self) -> str:
-        return os.path.join(self.effective_root, 'etl_report.json')
-
-    @property
-    def config(self) -> str:
-        return os.path.join(self.effective_root, 'config.json')

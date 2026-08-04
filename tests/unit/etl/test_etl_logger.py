@@ -50,7 +50,7 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
     )
     logger.set_grid_shape(500, 500)
     logger.add_harmonized_source('sentinel2', '/path/to/s2.tif')
-    logger.set_composite_raster('/path/to/comp.tif')
+    logger.add_stacked_raster('stacked', '/path/to/stacked.tif')
     logger.set_valid_mask_raster('/path/to/mask.tif')
     logger.set_summary_status('SUCCESS')
 
@@ -65,7 +65,7 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
     assert saved_report['target_resolution'] == 20.0
     assert saved_report['grid_shape'] == [500, 500]
     assert saved_report['harmonized_sources']['sentinel2'] == '/path/to/s2.tif'
-    assert saved_report['composite_raster'] == '/path/to/comp.tif'
+    assert saved_report['stacked_rasters']['stacked'] == '/path/to/stacked.tif'
     assert saved_report['valid_mask_raster'] == '/path/to/mask.tif'
 
 
