@@ -34,6 +34,7 @@ import typing
 
 __all__ = [
     # classes
+    'DataConfig',
     'DataFoundation',
     'DataTransform',
     'DataSpecs',
@@ -48,6 +49,7 @@ __all__ = [
 
 # for static check
 if typing.TYPE_CHECKING:
+    from .data import DataConfig
     from .foundation import DataFoundation
     from .transform import DataTransform
     from .dataspecs import DataSpecs
@@ -58,6 +60,9 @@ if typing.TYPE_CHECKING:
     from .etl import ETLConfig
 
 def __getattr__(name: str):
+
+    if name in {'DataConfig'}:
+        return getattr(importlib.import_module('.data', __package__), name)
 
     if name in {'DataFoundation'}:
         return getattr(importlib.import_module('.foundation', __package__), name)

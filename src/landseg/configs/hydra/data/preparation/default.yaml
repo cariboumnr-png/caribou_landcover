@@ -1,0 +1,27 @@
+# catalog datablocks view settings
+catalog:
+  valid_pxs:
+    image: 0.9 # at least 90% valid image pixels
+  focal_target: null
+  non_overlapping_test_grid: true
+
+# blocks partition
+partition:
+  val_ratio: 0.1
+  test_ratio: 0.0
+  buffer_step: 1
+
+# block scoring parameters
+scoring:
+  # classes to reward (1-based)
+  reward: {}
+  # Inverse distribution alpha
+  alpha: 1.0
+  # L1 weight reward beta
+  beta: 0.0
+
+# hydration
+hydration:
+  max_skew_rate: 10.0
+
+output_dpath: ${execution.exp_root}/artifacts/transform

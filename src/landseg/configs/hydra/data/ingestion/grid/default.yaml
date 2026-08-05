@@ -1,0 +1,17 @@
+# study area extent definition
+mode: ref # ref | aoi | tiles
+crs: ''
+extent:
+  # when mode=(aoi | tiles) provide:
+  origin: [0.0, 0.0] # x, y in CRS units
+  pixel_size: [0.0, 0.0] # x, y positive magnitudes; we assume north up
+  # when mode=aoi
+  grid_extent: [0.0, 0.0] # height and width in CRS units
+  # when mode=tiles
+  grid_shape: [0, 0] # rows and cols as number of tiles
+# specs
+tile_specs:
+  size_row: 256
+  size_col: 256
+  overlap_row: 0
+  overlap_col: 0

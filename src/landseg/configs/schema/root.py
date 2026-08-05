@@ -55,12 +55,15 @@ class RootConfig:
 
     # execution configs
     execution: _ExecutionContext = field(default_factory=_ExecutionContext)
-    # raw input data and configs
+    # data ETL settings
+    data: sec.DataConfig = field(default_factory=sec.DataConfig)
+
     foundation: sec.DataFoundation = field(default_factory=sec.DataFoundation)
     # data preparation
     transform: sec.DataTransform = field(default_factory=sec.DataTransform)
     # data specfication
     dataspecs: sec.DataSpecs = field(default_factory=sec.DataSpecs)
+
     # model settings
     models: sec.ModelsConfig = field(default_factory=sec.ModelsConfig)
     # session settings
