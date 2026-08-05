@@ -31,11 +31,11 @@ import pytest
 import landseg.configs.schema.sections.data as data
 
 
-# ----- `DataTransform` tests
+# ----- `_PreparationCfg` tests
 def test_data_data_defaults_and_validation():
     '''
-    Given: A default `DataTransform` instance.
-    When: Calling `DataTransform.validate()`.
+    Given: A default `_PreparationCfg` instance.
+    When: Calling `_PreparationCfg.validate()`.
     Then: Initialize default partition ratios and rebuild flags.
     '''
     dt = data._PreparationCfg()

@@ -20,7 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.geopipe.foundation`.
+Top-level namespace for `landseg.geopipe.ingest`.
 
 Exposes selected public functions via lazy resolution to keep import
 order simple and circular-free.
@@ -52,7 +52,7 @@ if typing.TYPE_CHECKING:
 
 def __getattr__(name: str):
 
-    if name in {'FoundationLogger'}:
+    if name in {'IngestionLogger'}:
         return getattr(importlib.import_module('.common', __package__), name)
 
     if name in {'BlockBuildingParameters', 'run_blocks_building'}:

@@ -47,7 +47,7 @@ class IngestionLogger(utils.Logger):
     '''
 
     def __init__(self, *args: typing.Any, **kwargs: typing.Any):
-        '''Initialize the FoundationLogger instance.'''
+        '''Initialize the IngestionLogger instance.'''
         super().__init__(*args, **kwargs)
         self.summary: IngestReportSchema | None = None
 

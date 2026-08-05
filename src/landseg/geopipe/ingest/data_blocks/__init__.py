@@ -19,7 +19,7 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 '''
-Top-level namespace for `landseg.geopipe.foundation.data_blocks`.
+Top-level namespace for `landseg.geopipe.ingest.data_blocks`.
 
 Exposes selected public functions via lazy resolution to keep import
 order simple and circular-free.

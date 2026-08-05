@@ -43,13 +43,13 @@ def prepare(config: configs.RootConfig):
     4) Build schame for downstream consumption.
 
     Args:
-        config: RootConfig with transform settings.
+        config: RootConfig with preparation settings.
     '''
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
     paths = artifact_paths.data_preparation
 
-    # init a TransformLogger
+    # init a PreparationLogger
     logger = prepare_data.PreparationLogger(
         name='prep',
         log_file=paths.report,
@@ -68,7 +68,7 @@ def prepare(config: configs.RootConfig):
         )
 
 
-        # parse catalog from data foundation
+        # parse catalog from data ingestion stage
         parsed_catalog = prepare_data.data_blocks_adapter(
             artifact_paths.data_ingestion.data_blocks.dev.catalog,
             artifact_paths.data_ingestion.data_blocks.dev.schema,

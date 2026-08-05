@@ -87,7 +87,7 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factor
     )
 
     # Initialize pipeline path containers in temp output directory
-    paths = artifacts.FoundationPaths(str(tmp_path))
+    paths = artifacts.IngestionPaths(str(tmp_path))
 
     # Set pipeline configurations
     config = data_blocks.BlockBuildingParameters(
@@ -183,7 +183,7 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths, dummy_geotiff_facto
     )
 
     # Initialize pipeline path containers in temp output directory
-    paths = artifacts.FoundationPaths(str(tmp_path))
+    paths = artifacts.IngestionPaths(str(tmp_path))
 
     # Set pipeline configurations
     config = data_blocks.BlockBuildingParameters(

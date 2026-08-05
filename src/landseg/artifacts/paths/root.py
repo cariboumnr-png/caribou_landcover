@@ -67,13 +67,13 @@ class ArtifactPaths:
         return paths.HarmonizationPaths(r)
 
     @property
-    def data_ingestion(self) -> paths.FoundationPaths:
+    def data_ingestion(self) -> paths.IngestionPaths:
         r = (
             self.ingestion_root
             if self.ingestion_root
             else os.path.join(self.root, 'ingested_data')
         )
-        return paths.FoundationPaths(r)
+        return paths.IngestionPaths(r)
 
     @property
     def data_preparation(self) -> paths.PreparationPaths:

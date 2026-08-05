@@ -56,7 +56,7 @@ def test_translate_user_config_data_ingest():
     '''
     Given: A user configuration `DictConfig` with `data-ingest` settings.
     When: `translate_user_config` is executed.
-    Then: Map fields to `foundation` grid, domain, datablocks, and output_dpath structures.
+    Then: Map fields to `ingestion` grid, domain, datablocks, and output_dpath structures.
     '''
     user_cfg = omegaconf.OmegaConf.create({
         'data-ingest': {

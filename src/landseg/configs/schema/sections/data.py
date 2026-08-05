@@ -128,7 +128,8 @@ class _Grid:
         if self.mode != 'ref':
             raise ValueError(
                 f'Invalid grid mode: {self.mode}. '
-                'Data ingestion requires "ref" grid mode mandated by ETL.'
+                'Data ingestion requires "ref" grid mode mandated by '
+                'data harmonization.'
             )
         # crs string format (optional if derived from ref raster)
         if self.crs and not bool(re.fullmatch(r'epsg:\d+', self.crs, re.I)):

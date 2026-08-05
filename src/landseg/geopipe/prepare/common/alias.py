@@ -20,10 +20,7 @@
 # =========================================================================== #
 
 '''
-Type aliases for `geopipe.transform` for static type checking.
-
-This module centralizes common NumPy and coordinate type definitions to
-keep annotations concise and consistent across the codebase.
+Type aliases for `geopipe.prepare` for static type checking.
 '''
 
 # standard imports

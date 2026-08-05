@@ -20,7 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.etl`.
+Top-level namespace for `landseg.geopipe.harmonize`.
 '''
 
 # standard imports

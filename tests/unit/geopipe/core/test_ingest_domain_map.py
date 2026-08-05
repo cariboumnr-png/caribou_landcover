@@ -21,7 +21,7 @@
 
 # pylint: disable=protected-access
 
-'''Unit tests for domain mapping module (foundation_domain_map.py).'''
+'''Unit tests for domain mapping module (ingest_domain_map.py).'''
 
 # third-party imports
 import pytest

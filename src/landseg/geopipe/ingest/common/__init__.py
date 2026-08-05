@@ -20,10 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.geopipe.foundation.common`.
-
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
+Top-level namespace for `landseg.geopipe.ingest.common`.
 '''
 
 from __future__ import annotations

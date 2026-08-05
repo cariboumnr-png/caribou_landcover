@@ -21,7 +21,7 @@
 
 # pylint: disable=protected-access
 
-'''Unit tests for world-grid tiling utility (foundation_world_grid.py).'''
+'''Unit tests for world-grid tiling utility (ingest_world_grid.py).'''
 
 # third-party imports
 import pytest

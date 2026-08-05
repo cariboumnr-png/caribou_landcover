@@ -20,7 +20,7 @@
 # =========================================================================== #
 
 '''
-Data harmonization ETL pipeline command implementation.
+Data harmonization pipeline command implementation.
 '''
 
 # standard imports
@@ -42,7 +42,7 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
         config: Resolved root configuration object.
 
     Returns:
-        Summary report dictionary of the ETL execution.
+        Summary report dictionary of the data harmonization execution.
     '''
 
     def _process_source(

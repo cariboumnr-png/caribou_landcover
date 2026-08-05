@@ -67,8 +67,8 @@ def _validate_upstream_pipelines(
     # fetch data pipeline artifacts paths
     art_paths = artifacts.ArtifactPaths.from_config(config)
     etl_paths = art_paths.data_harmonization
-    foundation_paths = art_paths.data_ingestion
-    transform_paths = art_paths.data_preparation
+    ingest_paths = art_paths.data_ingestion
+    prepare_paths = art_paths.data_preparation
 
     try:
         etl_paths.get_run_folder()
@@ -99,7 +99,7 @@ def _validate_upstream_pipelines(
         return
 
     # pipelines downstream of data-ingest
-    ctrl_ingest = DictControl.load_json_or_fail(foundation_paths.report)
+    ctrl_ingest = DictControl.load_json_or_fail(ingest_paths.report)
     try:
         report = ctrl_ingest.fetch()
         assert report # typing guard
@@ -107,7 +107,7 @@ def _validate_upstream_pipelines(
         raise artifacts.ArtifactError(
             'Upstream pipeline "data-ingest" has not been executed yet. '
             f'Missing or invalid ingestion report at canonical path: '
-            f'{foundation_paths.report}'
+            f'{ingest_paths.report}'
         ) from e
 
     if report.get('status') != 'SUCCESS':
@@ -120,7 +120,7 @@ def _validate_upstream_pipelines(
 
     # pipelines downstream of data-prepare
     if pipeline_name != 'data-prepare':
-        ctrl_prep = DictControl.load_json_or_fail(transform_paths.report)
+        ctrl_prep = DictControl.load_json_or_fail(prepare_paths.report)
         try:
             report = ctrl_prep.fetch()
             assert report # typing guard
@@ -128,7 +128,7 @@ def _validate_upstream_pipelines(
             raise artifacts.ArtifactError(
                 'Upstream pipeline "data-prepare" has not been executed yet. '
                 f'Missing or invalid preparation report at canonical path: '
-                f'{transform_paths.report}'
+                f'{prepare_paths.report}'
             ) from e
 
         if report.get('status') != 'SUCCESS':
@@ -168,7 +168,7 @@ def _check_config_staleness(
         )
     )
 
-    # compare foundation configuration
+    # compare ingestion configuration
     if pipeline != 'data-ingest':
         diffs.update(
             _compare_config_section(

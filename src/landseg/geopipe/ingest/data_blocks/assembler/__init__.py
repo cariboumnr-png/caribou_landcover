@@ -20,7 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `geopipe.foundation.data_blocks.assembler`.
+Top-level namespace for `geopipe.ingest.data_blocks.assembler`.
 
 This submodule coordinates the preparation, construction, and
 structural validation of individual `.npz` block files. It decouples

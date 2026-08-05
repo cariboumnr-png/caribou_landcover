@@ -20,10 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.geopipe.transform.data_partition`.
-
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
+Top-level namespace for `landseg.geopipe.prepare.data_partition`.
 '''
 
 from __future__ import annotations

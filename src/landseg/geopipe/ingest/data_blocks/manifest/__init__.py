@@ -20,7 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.geopipe.foundation.data_blocks.manifest`.
+Top-level namespace for `landseg.geopipe.ingest.data_blocks.manifest`.
 
 Exposes selected public functions via lazy resolution to keep import
 order simple and circular-free.

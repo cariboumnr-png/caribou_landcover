@@ -22,7 +22,7 @@
 # pylint: disable=missing-function-docstring
 
 '''
-Canonical filesystem paths for data ingestion foundation artifacts.
+Canonical filesystem paths for data ingestion artifacts.
 '''
 
 # standard imports
@@ -30,10 +30,10 @@ import dataclasses
 import os
 
 
-# ----- `FoundationPaths` definition
+# ----- `IngestionPaths` definition
 @dataclasses.dataclass
 class IngestionPaths:
-    '''Paths for foundational datasets and knowledge artifacts.'''
+    '''Paths for ingested datasets and knowledge artifacts.'''
     root: str
 
     @property

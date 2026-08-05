@@ -45,20 +45,20 @@ def ingest(config: configs.RootConfig):
     `schema.json`.
 
     Args:
-        config: RootConfig with foundation settings.
+        config: RootConfig with ingestion settings.
     '''
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
     paths = artifact_paths.data_ingestion
-    etl_paths = artifact_paths.data_harmonization
+    harmonize_paths = artifact_paths.data_harmonization
 
-    # locate latest ETL run folder if present
+    # locate latest harmonization run folder if present
     try:
-        etl_paths.get_run_folder()
+        harmonize_paths.get_run_folder()
     except FileNotFoundError:
         pass
 
-    # init a FoundationLogger with summary
+    # init an IngestionLogger with summary
     logger = ingest_data.IngestionLogger(
         name='ingest',
         log_file=paths.report,
@@ -87,7 +87,7 @@ def ingest(config: configs.RootConfig):
         grid_config = ingest_data.GridParameters(
             mode='ref',
             crs=grid_cfg.crs,
-            ref_fpath=etl_paths.valid_mask_raster,
+            ref_fpath=harmonize_paths.valid_mask_raster,
             origin=grid_cfg.extent.origin,
             pixel_size=grid_cfg.extent.pixel_size,
             grid_extent=grid_cfg.extent.grid_extent,
@@ -108,14 +108,14 @@ def ingest(config: configs.RootConfig):
 
         # domain maps
         gid = world_grid.gid
-        if os.path.exists(etl_paths.domain_raster):
+        if os.path.exists(harmonize_paths.domain_raster):
             logger.log(
                 'INFO',
                 '[START] Domain maps preparation (canonical stacked domains)'
             )
             domain_config = [
                 ingest_data.DomainBuildingParameters(
-                    input_fpath=etl_paths.domain_raster,
+                    input_fpath=harmonize_paths.domain_raster,
                     domain_fpath=paths.domains.domain_map_fpath(
                         'stacked_domains'
                     ),
@@ -141,15 +141,15 @@ def ingest(config: configs.RootConfig):
         else:
             logger.log('INFO', '[NOTE] No domain knowledge layers provided')
 
-        # dataset config path from etl
-        data_config_fpath = etl_paths.dataset_config
+        # dataset config path from harmonization
+        data_config_fpath = harmonize_paths.dataset_config
 
         # build dev data blocks
         logger.log('INFO', '[START] Development data blocks building')
         data_blocks_config = ingest_data.BlockBuildingParameters(
             stage='dev',
-            image_fpath=etl_paths.feature_raster,
-            label_fpath=etl_paths.label_raster,
+            image_fpath=harmonize_paths.feature_raster,
+            label_fpath=harmonize_paths.label_raster,
             data_config_fpath=data_config_fpath,
             dem_pad=datablocks_cfg.image_dem_pad,
             ignore_index=datablocks_cfg.ignore_index,
@@ -169,15 +169,18 @@ def ingest(config: configs.RootConfig):
             f'[COMPLETE] Development data blocks preparation (D_{d:.2f}s)'
         )
 
-        # build test data blocks - if provided by ETL
-        if not etl_paths.has_test_data:
-            logger.log('INFO', '[NOTE] Test holdout dataset not provided by ETL')
+        # build test data blocks - if provided by harmonization stage
+        if not harmonize_paths.has_test_data:
+            logger.log(
+                'INFO',
+                '[NOTE] Test holdout dataset not provided by harmonization'
+            )
         else:
             logger.log('INFO', '[START] Test data blocks building')
             data_blocks_config = ingest_data.BlockBuildingParameters(
                 stage='test',
-                image_fpath=etl_paths.test_feature_raster,
-                label_fpath=etl_paths.test_label_raster,
+                image_fpath=harmonize_paths.test_feature_raster,
+                label_fpath=harmonize_paths.test_label_raster,
                 data_config_fpath=data_config_fpath,
                 dem_pad=datablocks_cfg.image_dem_pad,
                 ignore_index=datablocks_cfg.ignore_index,

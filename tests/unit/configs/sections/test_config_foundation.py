@@ -107,11 +107,11 @@ def test_domains_management():
     assert domains.valid_threshold == 0.7
 
 
-# ----- `_DataBlocks` & `DataFoundation` tests
+# ----- `_DataBlocks` & `_IngestionCfg` tests
 def test_datablocks_and_data_validation():
     '''
     Given: Valid `_DataBlocks` instance.
-    When: `_DataBlocks.validate()` and `DataFoundation.validate()` run.
+    When: `_DataBlocks.validate()` and `_IngestionCfg.validate()` run.
     Then: Validate data config.
     '''
     blocks = data._DataBlocks(name='test_blocks')

@@ -69,7 +69,7 @@ def run_datablocks_partition(
     '''
     Partition canonical data blocks into train/val/test splits.
 
-    Loads the foundation catalog, optionally incorporates external test
+    Loads the ingestion catalog, optionally incorporates external test
     (holdout) blocks, and performs stratified splitting followed by
     spatially safe hydration of training blocks. Writes split manifests
     and label statistics for downstream normalization and schema generation.

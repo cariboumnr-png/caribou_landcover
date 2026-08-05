@@ -20,7 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.geopipe.transform`.
+Top-level namespace for `landseg.geopipe.prepare`.
 
 Exposes selected public functions via lazy resolution to keep import
 order simple and circular-free.
@@ -58,7 +58,7 @@ def __getattr__(name: str):
     if name in {'DataBlocksView', 'data_blocks_adapter'}:
         return getattr(importlib.import_module('.adapter', __package__), name)
 
-    if name in {'TransformLogger'}:
+    if name in {'PreparationLogger'}:
         return getattr(importlib.import_module('.common', __package__), name)
 
     if name in {'PartitionParameters', 'run_datablocks_partition'}:

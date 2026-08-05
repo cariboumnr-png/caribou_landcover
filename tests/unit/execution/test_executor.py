@@ -202,8 +202,8 @@ def test_validate_upstream_pipelines_failed_ingest(tmp_path):
     '''
     etl_paths = artifacts.HarmonizationPaths(str(tmp_path))
     artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
-    foundation_paths = artifacts.FoundationPaths(str(tmp_path))
-    ctrl = artifacts.Controller(foundation_paths.report)
+    ingest_paths = artifacts.IngestionPaths(str(tmp_path))
+    ctrl = artifacts.Controller(ingest_paths.report)
     ctrl.persist({'status': 'FAILED'})
 
     config = configs.RootConfig(pipeline=secs.PipelineConfig(name='data-prepare'))
@@ -225,7 +225,7 @@ def test_validate_upstream_pipelines_success(tmp_path):
     Then: Pass silently.
     '''
     harmonization_paths = artifacts.HarmonizationPaths(str(tmp_path))
-    ingestion_paths = artifacts.FoundationPaths(str(tmp_path))
+    ingestion_paths = artifacts.IngestionPaths(str(tmp_path))
     preparation_paths = artifacts.PreparationPaths(str(tmp_path))
 
     artifacts.Controller(harmonization_paths.report).persist({'status': 'SUCCESS'})
@@ -251,7 +251,7 @@ def test_compare_config_section_missing_artifact(tmp_path):
     '''
     diff = executor._compare_config_section(
         str(tmp_path / "missing.json"),
-        "foundation",
+        "ingestion",
         secs.data._IngestionCfg(
             grid=secs.data._Grid(mode='grid'), output_dpath='out'
         )

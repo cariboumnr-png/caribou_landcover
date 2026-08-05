@@ -411,7 +411,7 @@ class _BlockDataset(torch.utils.data.Dataset):
     def _get_patches(self, arr: numpy.ndarray) -> numpy.ndarray:
         '''Patchify a square block into configured patches.'''
         # unlabelled placeholder, e.g., no-ops label array for image-only data
-        # see foundation_data_block.py
+        # see geopipe ingest data_blocks
         if arr.ndim == 1 and arr.shape == (1,):
             return arr  # keep as-is to signal 'no labels'
 

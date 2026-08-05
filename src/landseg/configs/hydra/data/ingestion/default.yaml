@@ -4,4 +4,4 @@ defaults:
   - domains: default
   - datablocks: default
 
-output_dpath: ${execution.exp_root}/artifacts/foundation
+output_dpath: ${execution.exp_root}/artifacts/ingested_data

@@ -149,7 +149,7 @@ def run_blocks_building(
         policy=policy,
     )
 
-    # update structured log if FoundationLogger wrapper is used
+    # update structured log if IngestionLogger wrapper is used
     duration = time.perf_counter() - start_time
     stats = result.stats
     report: common.DataBlocksReport = {

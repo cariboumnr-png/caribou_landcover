@@ -20,10 +20,7 @@
 # =========================================================================== #
 
 '''
-Type aliases for `geopipe.foundation` for raster I/O and grid windows.
-
-Centralizes third-party types from `rasterio` and `numpy.typing` so call sites
-have concise, consistent annotations.
+Type aliases for `geopipe.ingest` for raster I/O and grid windows.
 '''
 
 # standard imports

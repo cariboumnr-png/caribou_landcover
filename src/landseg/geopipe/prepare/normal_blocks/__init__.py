@@ -20,10 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.geopipe.transform.normal_blocks`.
-
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
+Top-level namespace for `landseg.geopipe.prepare.normal_blocks`.
 '''
 
 from __future__ import annotations

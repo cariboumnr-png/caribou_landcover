@@ -20,10 +20,10 @@
 # =========================================================================== #
 
 '''
-Typed dictionaries for JSON-based artifacts in `geopipe.transform`.
+Typed dictionaries for JSON-based artifacts in `geopipe.prepare`.
 
 This module defines structured schemas used to represent intermediate
-and final artifacts produced during dataset transformation. These
+and final artifacts produced during dataset preparation. These
 schemas standardize how dataset partitions, statistical summaries, and
 global transformation metadata are serialized to JSON.
 
