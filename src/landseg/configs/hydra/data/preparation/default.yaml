@@ -24,4 +24,4 @@ scoring:
 hydration:
   max_skew_rate: 10.0
 
-output_dpath: ${execution.exp_root}/artifacts/transform
+output_dpath: ${execution.exp_root}/artifacts/prepared_data

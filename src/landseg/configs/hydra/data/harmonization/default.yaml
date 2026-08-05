@@ -16,4 +16,4 @@ dataset_name: sample_data
 dataset_config: ''
 resampling_continuous: bilinear
 resampling_categorical: nearest
-output_dpath: ${execution.exp_root}/artifacts/harmonized
+output_dpath: ${execution.exp_root}/artifacts/harmonized_data

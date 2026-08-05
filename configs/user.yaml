@@ -13,7 +13,7 @@
 exp_root: ./experiment
 
 data-harmonize:
-  output_dpath: ./experiment/artifacts/harmonized
+  output_dpath: ./experiment/artifacts/harmonized_data
   # ---------------------------------------------------------------------------
   # Spatial Target
   # ---------------------------------------------------------------------------
@@ -50,7 +50,7 @@ data-harmonize:
 
 
 data-ingest:
-  output_dpath: ./experiment/artifacts/ingested
+  output_dpath: ./experiment/artifacts/ingested_data
   # ---------------------------------------------------------------------------
   # Spatial Reference & Grid Tiling Details
   # ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ data-ingest:
   rebuild: false
 
 data-prepare:
-  output_dpath: ./experiment/artifacts/prepared
+  output_dpath: ./experiment/artifacts/prepared_data
   # ---------------------------------------------------------------------------
   # Dataset Splitting & Class Balancing
   # ---------------------------------------------------------------------------
