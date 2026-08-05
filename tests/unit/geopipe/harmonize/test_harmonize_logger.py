@@ -19,13 +19,16 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-'''Unit tests for ETL `HarmonizationLogger` structured logger and report persistence.'''
+'''
+Unit tests for ETL `HarmonizationLogger` structured logger and report
+persistence.
+'''
 
 # standard imports
 import json
 import os
 # local imports
-import landseg.etl.logger as etl_logger
+import landseg.geopipe.harmonize.logger as etl_logger
 
 
 # ----- test cases

@@ -27,7 +27,7 @@
 import numpy
 import rasterio
 # local imports
-import landseg.etl.spatial as spatial
+import landseg.geopipe.harmonize.spatial as spatial
 
 
 # ----- test cases

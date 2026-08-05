@@ -30,7 +30,7 @@ import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
-import landseg.etl as etl
+import landseg.geopipe.harmonize as harmonize_mod
 
 
 # ----- public functions
@@ -51,7 +51,7 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
         output_composite: str,
         tag: str,
         resampling: str,
-        logger: etl.HarmonizationLogger,
+        logger: harmonize_mod.HarmonizationLogger,
     ) -> None:
         '''Process one data source.'''
         aligned: list[str] = []
@@ -61,7 +61,7 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
                 continue
 
             if tag == 'domain':
-                etl.validate_domain_raster_index(path, min_allowed=1)
+                harmonize_mod.validate_domain_raster_index(path, min_allowed=1)
 
             logger.add_source_provenance(name, path)
             out_path = paths.harmonized_raster(f'{tag}_{name}')
@@ -70,7 +70,7 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
                 f'(resampling: {resampling})'
             )
             is_cat = tag in ('dev_label', 'label', 'domain', 'test_label')
-            warped = etl.warp_to_canvas(
+            warped = harmonize_mod.warp_to_canvas(
                 input_path=path,
                 output_path=out_path,
                 canvas=canvas_spec,
@@ -80,18 +80,18 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
             aligned.append(warped)
             logger.add_harmonized_source(name, warped)
         logger.log('INFO', f'Stacking {len(aligned)} {tag} layers')
-        etl.stack_canonical_raster(aligned, output_composite)
+        harmonize_mod.stack_canonical_raster(aligned, output_composite)
 
     paths = artifacts.ArtifactPaths.from_config(config).etl
     paths.init()
 
-    canvas_spec = etl.create_canvas(
+    canvas_spec = harmonize_mod.create_canvas(
         reference_raster=config.etl.canvas.reference_raster,
         target_crs=config.etl.canvas.target_crs,
         target_resolution=config.etl.canvas.target_resolution
     )
 
-    logger = etl.HarmonizationLogger(
+    logger = harmonize_mod.HarmonizationLogger(
         name='data-harmonize',
         log_file=paths.report,
         enable_file_log=False
@@ -190,7 +190,7 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
         # ----- generate valid feature pixel mask
         mask_path = paths.valid_mask_raster
         logger.log('INFO', f'Generating valid mask raster: {mask_path}')
-        etl.unify_nodata_mask(paths.feature_raster, mask_path)
+        harmonize_mod.unify_nodata_mask(paths.feature_raster, mask_path)
         logger.set_valid_mask_raster(mask_path)
 
         artifacts.Controller[dict](paths.config).persist(config.as_dict)

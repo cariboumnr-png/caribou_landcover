@@ -26,7 +26,7 @@ import numpy
 import pytest
 import rasterio
 # local imports
-import landseg.etl.raster_ops as raster_ops
+import landseg.geopipe.harmonize.raster_ops as raster_ops
 
 
 # ----- test cases
