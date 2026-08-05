@@ -35,14 +35,10 @@ import typing
 __all__ = [
     # classes
     'DataConfig',
-    'DataFoundation',
-    'DataTransform',
-    'DataSpecs',
     'ModelsConfig',
     'SessionConfig',
     'StudyConfig',
     'PipelineConfig',
-    'ETLConfig',
     # functions
     # typing
 ]
@@ -50,28 +46,15 @@ __all__ = [
 # for static check
 if typing.TYPE_CHECKING:
     from .data import DataConfig
-    from .foundation import DataFoundation
-    from .transform import DataTransform
-    from .dataspecs import DataSpecs
     from .models import ModelsConfig
     from .session import SessionConfig
     from .study import StudyConfig
     from .pipeline import PipelineConfig
-    from .etl import ETLConfig
 
 def __getattr__(name: str):
 
     if name in {'DataConfig'}:
         return getattr(importlib.import_module('.data', __package__), name)
-
-    if name in {'DataFoundation'}:
-        return getattr(importlib.import_module('.foundation', __package__), name)
-
-    if name in {'DataTransform'}:
-        return getattr(importlib.import_module('.transform', __package__), name)
-
-    if name in {'DataSpecs'}:
-        return getattr(importlib.import_module('.dataspecs', __package__), name)
 
     if name in {'ModelsConfig'}:
         return getattr(importlib.import_module('.models', __package__), name)
@@ -84,8 +67,5 @@ def __getattr__(name: str):
 
     if name in {'PipelineConfig'}:
         return getattr(importlib.import_module('.pipeline', __package__), name)
-
-    if name in {'ETLConfig'}:
-        return getattr(importlib.import_module('.etl', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

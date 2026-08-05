@@ -50,7 +50,7 @@ data-harmonize:
 
 
 data-ingest:
-  output_dpath: ./experiment/artifacts/foundation
+  output_dpath: ./experiment/artifacts/ingested
   # ---------------------------------------------------------------------------
   # Spatial Reference & Grid Tiling Details
   # ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ data-ingest:
   rebuild: false
 
 data-prepare:
-  output_dpath: ./experiment/artifacts/transform
+  output_dpath: ./experiment/artifacts/prepared
   # ---------------------------------------------------------------------------
   # Dataset Splitting & Class Balancing
   # ---------------------------------------------------------------------------

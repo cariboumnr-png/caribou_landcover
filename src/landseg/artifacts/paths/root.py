@@ -41,9 +41,9 @@ if typing.TYPE_CHECKING:
 class ArtifactPaths:
     '''Root entrypoint for all artifact path namespaces.'''
     root: str = './experiment'
-    etl_root: str | None = None
-    foundation_root: str | None = None
-    transform_root: str | None = None
+    harmonization_root: str | None = None
+    ingestion_root: str | None = None
+    preparation_root: str | None = None
     session_root: str | None = None
 
     @classmethod
@@ -51,45 +51,41 @@ class ArtifactPaths:
         '''Construct `ArtifactPaths` from a `RootConfig` instance.'''
         return cls(
             root=config.execution.exp_root,
-            etl_root=config.etl.output_dpath,
-            foundation_root=config.foundation.output_dpath,
-            transform_root=config.transform.output_dpath,
+            harmonization_root=config.data.harmonization.output_dpath,
+            ingestion_root=config.data.ingestion.output_dpath,
+            preparation_root=config.data.preparation.output_dpath,
             session_root=config.session.output_dpath,
         )
 
     @property
-    def foundation(self) -> paths.FoundationPaths:
-        '''Return FoundationPaths container.'''
+    def data_harmonization(self) -> paths.ETLPaths:
         r = (
-            self.foundation_root
-            if self.foundation_root
-            else os.path.join(self.root, 'foundation')
-        )
-        return paths.FoundationPaths(r)
-
-    @property
-    def transform(self) -> paths.TransformPaths:
-        '''Return TransformPaths container.'''
-        r = (
-            self.transform_root
-            if self.transform_root
-            else os.path.join(self.root, 'transform')
-        )
-        return paths.TransformPaths(r)
-
-    @property
-    def etl(self) -> paths.ETLPaths:
-        '''Return ETLPaths container.'''
-        r = (
-            self.etl_root
-            if self.etl_root
-            else os.path.join(self.root, 'harmonized')
+            self.harmonization_root
+            if self.harmonization_root
+            else os.path.join(self.root, 'harmonized_data')
         )
         return paths.ETLPaths(r)
 
     @property
+    def data_ingestion(self) -> paths.FoundationPaths:
+        r = (
+            self.ingestion_root
+            if self.ingestion_root
+            else os.path.join(self.root, 'ingested_data')
+        )
+        return paths.FoundationPaths(r)
+
+    @property
+    def data_preparation(self) -> paths.TransformPaths:
+        r = (
+            self.preparation_root
+            if self.preparation_root
+            else os.path.join(self.root, 'prepared_data')
+        )
+        return paths.TransformPaths(r)
+
+    @property
     def session(self) -> paths.SessionPaths:
-        '''Return SessionPaths container.'''
         r = (
             self.session_root
             if self.session_root

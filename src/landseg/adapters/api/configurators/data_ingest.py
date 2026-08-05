@@ -45,15 +45,15 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
         crs: str = ''
     ) -> typing.Self:
         '''Set study extent and grid specs.'''
-        self._cfg.foundation.grid.mode = 'ref'
-        self._cfg.foundation.grid.crs = crs
-        self._cfg.foundation.grid.tile_specs.size_row = tile_size
-        self._cfg.foundation.grid.tile_specs.size_col = tile_size
-        self._cfg.foundation.grid.tile_specs.overlap_row = tile_overlap
-        self._cfg.foundation.grid.tile_specs.overlap_col = tile_overlap
+        self._cfg.data.ingestion.grid.mode = 'ref'
+        self._cfg.data.ingestion.grid.crs = crs
+        self._cfg.data.ingestion.grid.tile_specs.size_row = tile_size
+        self._cfg.data.ingestion.grid.tile_specs.size_col = tile_size
+        self._cfg.data.ingestion.grid.tile_specs.overlap_row = tile_overlap
+        self._cfg.data.ingestion.grid.tile_specs.overlap_col = tile_overlap
         return self
 
     def set_rebuild(self, rebuild: bool) -> typing.Self:
         '''Set whether to force rebuild ingestion artifacts.'''
-        self._cfg.foundation.rebuild = rebuild
+        self._cfg.data.ingestion.rebuild = rebuild
         return self

@@ -46,10 +46,10 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
         reference_raster: str | None = None
     ) -> typing.Self:
         '''Set canvas spatial reference specs.'''
-        self._cfg.etl.canvas.target_crs = target_crs
-        self._cfg.etl.canvas.target_resolution = target_resolution
+        self._cfg.data.harmonization.canvas.target_crs = target_crs
+        self._cfg.data.harmonization.canvas.target_resolution = target_resolution
         if reference_raster:
-            self._cfg.etl.canvas.reference_raster = reference_raster
+            self._cfg.data.harmonization.canvas.reference_raster = reference_raster
         return self
 
     def set_dev_features(
@@ -57,7 +57,7 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
         dev_features: dict[str, str]
     ) -> typing.Self:
         '''Set continuous development feature rasters map.'''
-        self._cfg.etl.raw_data.dev_features = dev_features
+        self._cfg.data.harmonization.raw_data.dev_features = dev_features
         return self
 
     def set_features(
@@ -72,7 +72,7 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
         dev_labels: dict[str, str]
     ) -> typing.Self:
         '''Set categorical development label rasters map.'''
-        self._cfg.etl.raw_data.dev_labels = dev_labels
+        self._cfg.data.harmonization.raw_data.dev_labels = dev_labels
         return self
 
     def set_labels(
@@ -88,9 +88,9 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
         dataset_name: str = 'sample_data'
     ) -> typing.Self:
         '''Set dataset metadata configuration path and name.'''
-        self._cfg.etl.dataset_config = dataset_config
-        self._cfg.etl.dataset_name = dataset_name
-        self._cfg.foundation.datablocks.name = dataset_name
+        self._cfg.data.harmonization.dataset_config = dataset_config
+        self._cfg.data.harmonization.dataset_name = dataset_name
+        self._cfg.data.ingestion.datablocks.name = dataset_name
         return self
 
     def set_test_holdout(
@@ -99,6 +99,6 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
         test_labels: dict[str, str]
     ) -> typing.Self:
         '''Set test holdout rasters map.'''
-        self._cfg.etl.raw_data.test_features = test_features
-        self._cfg.etl.raw_data.test_labels = test_labels
+        self._cfg.data.harmonization.raw_data.test_features = test_features
+        self._cfg.data.harmonization.raw_data.test_labels = test_labels
         return self

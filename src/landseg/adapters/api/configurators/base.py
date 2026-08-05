@@ -42,12 +42,12 @@ class BaseConfigurator:
         # init a default RootConfig instance
         self._cfg = configs.RootConfig()
         # set dataset name
-        self._cfg.foundation.datablocks.name = dataset_name
+        self._cfg.data.ingestion.datablocks.name = dataset_name
         # set artifact output dirpaths
         self._cfg.execution.exp_root = experiment_root
-        self._cfg.etl.output_dpath = f'{experiment_root}/artifacts/harmonized'
-        self._cfg.foundation.output_dpath = f'{experiment_root}/artifacts/foundation'
-        self._cfg.transform.output_dpath = f'{experiment_root}/artifacts/transform'
+        self._cfg.data.harmonization.output_dpath = f'{experiment_root}/artifacts/harmonized_data'
+        self._cfg.data.ingestion.output_dpath = f'{experiment_root}/artifacts/ingested_data'
+        self._cfg.data.preparation.output_dpath = f'{experiment_root}/artifacts/prepared_data'
         # set pipeline name
         self._cfg.pipeline.name = pipeline_name
 
@@ -56,11 +56,11 @@ class BaseConfigurator:
         '''Validate and return the `RootConfig`,'''
         match self._cfg.pipeline.name:
             case 'data-harmonize':
-                self._cfg.etl.validate()
+                self._cfg.data.harmonization.validate()
             case 'data-ingest':
-                self._cfg.foundation.validate()
+                self._cfg.data.ingestion.validate()
             case 'data-prepare':
-                self._cfg.transform.validate()
+                self._cfg.data.preparation.validate()
             case 'model-train':
                 self._cfg.models.validate()
                 self._cfg.session.validate()
@@ -86,8 +86,8 @@ class BaseConfigurator:
         continuous_domain: str | None,
     ) -> typing.Self:
         '''Set data source'''
-        self._cfg.dataspecs.domain_ids_name = category_domain
-        self._cfg.dataspecs.domain_vec_name = continuous_domain
+        self._cfg.data.specification.domain_ids_name = category_domain
+        self._cfg.data.specification.domain_vec_name = continuous_domain
         return self
 
     def set_tasks(
