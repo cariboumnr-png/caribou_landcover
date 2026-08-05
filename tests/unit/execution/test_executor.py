@@ -178,7 +178,7 @@ def test_validate_upstream_pipelines_missing_ingest(tmp_path):
     When: Validating upstream pipelines.
     Then: Raise an ArtifactError.
     '''
-    etl_paths = artifacts.ETLPaths(str(tmp_path))
+    etl_paths = artifacts.HarmonizationPaths(str(tmp_path))
     artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
 
     config = configs.RootConfig(pipeline=secs.PipelineConfig(name='data-prepare'))
@@ -200,7 +200,7 @@ def test_validate_upstream_pipelines_failed_ingest(tmp_path):
     When: Validating upstream pipelines.
     Then: Raise an ArtifactError about the status.
     '''
-    etl_paths = artifacts.ETLPaths(str(tmp_path))
+    etl_paths = artifacts.HarmonizationPaths(str(tmp_path))
     artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
     foundation_paths = artifacts.FoundationPaths(str(tmp_path))
     ctrl = artifacts.Controller(foundation_paths.report)
@@ -224,9 +224,9 @@ def test_validate_upstream_pipelines_success(tmp_path):
     When: Validating upstream pipelines for a downstream pipeline.
     Then: Pass silently.
     '''
-    harmonization_paths = artifacts.ETLPaths(str(tmp_path))
+    harmonization_paths = artifacts.HarmonizationPaths(str(tmp_path))
     ingestion_paths = artifacts.FoundationPaths(str(tmp_path))
-    preparation_paths = artifacts.TransformPaths(str(tmp_path))
+    preparation_paths = artifacts.PreparationPaths(str(tmp_path))
 
     artifacts.Controller(harmonization_paths.report).persist({'status': 'SUCCESS'})
     artifacts.Controller(ingestion_paths.report).persist({'status': 'SUCCESS'})

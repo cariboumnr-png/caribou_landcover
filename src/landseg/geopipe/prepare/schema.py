@@ -48,7 +48,7 @@ load = artifacts.Controller.load_json_or_fail
 
 # ----- `build_schema` execution
 def build_schema(
-    paths: artifacts.TransformPaths,
+    paths: artifacts.PreparationPaths,
     *,
     policy: artifacts.LifecyclePolicy,
     logger: common.TransformLogger

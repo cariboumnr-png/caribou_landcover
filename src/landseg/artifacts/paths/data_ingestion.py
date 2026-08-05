@@ -32,7 +32,7 @@ import os
 
 # ----- `FoundationPaths` definition
 @dataclasses.dataclass
-class FoundationPaths:
+class IngestionPaths:
     '''Paths for foundational datasets and knowledge artifacts.'''
     root: str
 

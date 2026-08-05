@@ -45,7 +45,7 @@ ImageStatsCtrl = artifacts.Controller[dict[str, geo_core.ImageBandStats]]
 
 # ----- `run_normalize_blocks` execution
 def run_normalize_blocks(
-    paths: artifacts.TransformPaths,
+    paths: artifacts.PreparationPaths,
     *,
     policy: artifacts.LifecyclePolicy,
     logger: common.TransformLogger
@@ -119,7 +119,7 @@ def run_normalize_blocks(
 def _normalize(
     splits: tuple[set[str], set[str], set[str]],
     aggregated_stats: dict[str, geo_core.ImageBandStats],
-    paths: artifacts.TransformPaths,
+    paths: artifacts.PreparationPaths,
     *,
     logger: common.TransformLogger
 ):

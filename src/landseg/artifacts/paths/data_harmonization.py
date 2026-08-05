@@ -32,7 +32,7 @@ import os
 
 # ----- `ETLPaths` definition
 @dataclasses.dataclass
-class ETLPaths:
+class HarmonizationPaths:
     '''Paths for data harmonization ETL artifacts.'''
     root: str
     run_id: str = ''

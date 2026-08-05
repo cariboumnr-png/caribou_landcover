@@ -58,13 +58,13 @@ class ArtifactPaths:
         )
 
     @property
-    def data_harmonization(self) -> paths.ETLPaths:
+    def data_harmonization(self) -> paths.HarmonizationPaths:
         r = (
             self.harmonization_root
             if self.harmonization_root
             else os.path.join(self.root, 'harmonized_data')
         )
-        return paths.ETLPaths(r)
+        return paths.HarmonizationPaths(r)
 
     @property
     def data_ingestion(self) -> paths.FoundationPaths:
@@ -76,13 +76,13 @@ class ArtifactPaths:
         return paths.FoundationPaths(r)
 
     @property
-    def data_preparation(self) -> paths.TransformPaths:
+    def data_preparation(self) -> paths.PreparationPaths:
         r = (
             self.preparation_root
             if self.preparation_root
             else os.path.join(self.root, 'prepared_data')
         )
-        return paths.TransformPaths(r)
+        return paths.PreparationPaths(r)
 
     @property
     def session(self) -> paths.SessionPaths:

@@ -47,7 +47,7 @@ SplitsSummaryCtrl = artifacts.Controller[geo_core.PartitionSummary]
 # ----- `run_datablocks_partition` execution
 def run_datablocks_partition(
     parsed_catalog: prepare_data.DataBlocksView,
-    paths: artifacts.TransformPaths,
+    paths: artifacts.PreparationPaths,
     partition_config: split.PartitionParameters,
     *,
     policy: artifacts.LifecyclePolicy,

@@ -32,36 +32,36 @@ import typing
 
 __all__ = [
     'ArtifactPaths',
-    'ETLPaths',
-    'FoundationPaths',
+    'HarmonizationPaths',
+    'IngestionPaths',
+    'PreparationPaths',
     'SessionPaths',
-    'TransformPaths',
 ]
 
 # for static check
 if typing.TYPE_CHECKING:
-    from .etl import ETLPaths
-    from .foundation import FoundationPaths
+    from .data_harmonization import HarmonizationPaths
+    from .data_ingestion import IngestionPaths
+    from .data_preparation import PreparationPaths
     from .root import ArtifactPaths
     from .session import SessionPaths
-    from .transform import TransformPaths
 
 
 def __getattr__(name: str):
 
-    if name in {'ETLPaths'}:
-        return getattr(importlib.import_module('.etl', __package__), name)
+    if name in {'HarmonizationPaths'}:
+        return getattr(importlib.import_module('.data_harmonization', __package__), name)
 
-    if name in {'FoundationPaths'}:
-        return getattr(importlib.import_module('.foundation', __package__), name)
+    if name in {'IngestionPaths'}:
+        return getattr(importlib.import_module('.data_ingestion', __package__), name)
+
+    if name in {'PreparationPaths'}:
+        return getattr(importlib.import_module('.data_preparation', __package__), name)
 
     if name in {'SessionPaths'}:
         return getattr(importlib.import_module('.session', __package__), name)
 
     if name in {'ArtifactPaths'}:
         return getattr(importlib.import_module('.root', __package__), name)
-
-    if name in {'TransformPaths'}:
-        return getattr(importlib.import_module('.transform', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

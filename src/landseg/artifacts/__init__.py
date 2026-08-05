@@ -35,12 +35,12 @@ __all__ = [
     'ArtifactError',
     'ArtifactPaths',
     'Controller',
-    'ETLPaths',
+    'HarmonizationPaths',
     'FoundationPaths',
     'LifecyclePolicy',
     'PayloadController',
     'SessionPaths',
-    'TransformPaths',
+    'PreparationPaths',
     # functions
     'load_checkpoint',
     'save_checkpoint',
@@ -52,7 +52,7 @@ __all__ = [
 if typing.TYPE_CHECKING:
     from .checkpoint import CheckpointMeta, load_checkpoint, save_checkpoint
     from .controller import ArtifactError, Controller
-    from .paths import ArtifactPaths, ETLPaths, FoundationPaths, SessionPaths, TransformPaths
+    from .paths import ArtifactPaths, HarmonizationPaths, FoundationPaths, SessionPaths, PreparationPaths
     from .payload_io import PayloadController
     from .policy import LifecyclePolicy
 

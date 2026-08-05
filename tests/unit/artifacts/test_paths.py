@@ -29,7 +29,7 @@ Unit tests for `landseg.artifacts.paths`.
 import os
 # local imports
 import landseg.artifacts.paths as paths_mod
-import landseg.artifacts.paths.foundation as f_mod
+import landseg.artifacts.paths.data_ingestion as f_mod
 import landseg.configs as configs_mod
 
 
@@ -94,7 +94,7 @@ def test_etl_paths(tmp_path):
     Then: Return expected run-isolated harmonized raster VRTs and etl_report.json file paths.
     '''
     e = str(tmp_path)
-    etl_paths = paths_mod.ETLPaths(root=e)
+    etl_paths = paths_mod.HarmonizationPaths(root=e)
     etl_paths.init()
 
     assert etl_paths.run_id == 'run_0001'
@@ -105,7 +105,7 @@ def test_etl_paths(tmp_path):
     assert etl_paths.report == os.path.join(r, 'etl_report.json')
 
     # second init auto-increments run_id
-    etl_paths_2 = paths_mod.ETLPaths(root=e)
+    etl_paths_2 = paths_mod.HarmonizationPaths(root=e)
     etl_paths_2.init()
     assert etl_paths_2.run_id == 'run_0002'
 
@@ -163,7 +163,7 @@ def test_transform_paths():
     Then: Return canonical file and folder paths for transformed datasets.
     '''
     t = os.path.join('/tmp', 'exp', 'transform')
-    t_paths = paths_mod.TransformPaths(root=t)
+    t_paths = paths_mod.PreparationPaths(root=t)
 
     assert t_paths.report == os.path.join(t, 'prep_report.json')
     assert t_paths.config == os.path.join(t, 'config.json')
