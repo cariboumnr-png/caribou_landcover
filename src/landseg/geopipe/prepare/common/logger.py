@@ -38,11 +38,11 @@ if typing.TYPE_CHECKING:
         DataPartitionReport,
         NormalizationReport,
         SchemaReport,
-        TransformReportSchema,
+        PreparationReportSchema,
     )
 
 
-class TransformLogger(utils.Logger):
+class PreparationLogger(utils.Logger):
     '''
     A specialized Logger wrapper that collects execution metrics and
     persists a structured JSON run report at shutdown.
@@ -51,7 +51,7 @@ class TransformLogger(utils.Logger):
     def __init__(self, *args: typing.Any, **kwargs: typing.Any):
         '''Initialize the TransformLogger instance.'''
         super().__init__(*args, **kwargs)
-        self.summary: TransformReportSchema | None = None
+        self.summary: PreparationReportSchema | None = None
 
     def init_summary(
         self,

@@ -50,7 +50,7 @@ def prepare(config: configs.RootConfig):
     paths = artifact_paths.data_preparation
 
     # init a TransformLogger
-    logger = prepare_data.TransformLogger(
+    logger = prepare_data.PreparationLogger(
         name='prep',
         log_file=paths.report,
         enable_file_log=False

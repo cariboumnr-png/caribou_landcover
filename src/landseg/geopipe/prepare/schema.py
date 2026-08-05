@@ -68,7 +68,7 @@ def build_schema(
     paths: _PipelinePaths,
     *,
     policy: artifacts.LifecyclePolicy,
-    logger: common.TransformLogger
+    logger: common.PreparationLogger
 ) -> None:
     '''
     Generate and persist the dataset schema JSON from data and grid.

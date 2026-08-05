@@ -43,7 +43,7 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factor
     '''
     # Setup logger and execution summary
     report_file = str(tmp_path / 'ingest_report.json')
-    logger = common.FoundationLogger(
+    logger = common.IngestionLogger(
         name='test_ingest_dev',
         log_file=report_file,
         enable_file_log=False
@@ -139,7 +139,7 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths, dummy_geotiff_facto
     '''
     # Setup logger and execution summary
     report_file = str(tmp_path / 'ingest_report.json')
-    logger = common.FoundationLogger(
+    logger = common.IngestionLogger(
         name='test_ingest_test',
         log_file=report_file,
         enable_file_log=False

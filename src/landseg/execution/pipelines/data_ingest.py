@@ -59,7 +59,7 @@ def ingest(config: configs.RootConfig):
         pass
 
     # init a FoundationLogger with summary
-    logger = ingest_data.FoundationLogger(
+    logger = ingest_data.IngestionLogger(
         name='ingest',
         log_file=paths.report,
         enable_file_log=False

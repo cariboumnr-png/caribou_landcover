@@ -64,7 +64,7 @@ def run_datablocks_partition(
     partition_config: split.PartitionParameters,
     *,
     policy: artifacts.LifecyclePolicy,
-    logger: common.TransformLogger,
+    logger: common.PreparationLogger,
 ) -> None:
     '''
     Partition canonical data blocks into train/val/test splits.

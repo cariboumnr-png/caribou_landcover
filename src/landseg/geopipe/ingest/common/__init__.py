@@ -38,7 +38,7 @@ __all__ = [
     'ManifestStats',
     'DataBlocksReport',
     'IngestReportSchema',
-    'FoundationLogger',
+    'IngestionLogger',
 ]
 
 # for static check
@@ -52,7 +52,7 @@ if typing.TYPE_CHECKING:
         DataBlocksReport,
         IngestReportSchema,
     )
-    from .logger import FoundationLogger
+    from .logger import IngestionLogger
 
 def __getattr__(name: str):
     if name in {
@@ -66,7 +66,7 @@ def __getattr__(name: str):
     }:
         return getattr(importlib.import_module('.schema', __package__), name)
 
-    if name in {'FoundationLogger'}:
+    if name in {'IngestionLogger'}:
         return getattr(importlib.import_module('.logger', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

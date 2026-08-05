@@ -49,7 +49,7 @@ class SchemaReport(typing.TypedDict):
     classes_mapped: list[str]
 
 
-class TransformReportSchema(typing.TypedDict):
+class PreparationReportSchema(typing.TypedDict):
     '''Root report mapping the entire data-prepare pipeline run.'''
     run_id: str
     timestamp: str

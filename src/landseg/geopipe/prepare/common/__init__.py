@@ -34,8 +34,8 @@ __all__ = [
     'DataPartitionReport',
     'NormalizationReport',
     'SchemaReport',
-    'TransformReportSchema',
-    'TransformLogger',
+    'PreparationReportSchema',
+    'PreparationLogger',
 ]
 
 
@@ -45,9 +45,9 @@ if typing.TYPE_CHECKING:
         DataPartitionReport,
         NormalizationReport,
         SchemaReport,
-        TransformReportSchema,
+        PreparationReportSchema,
     )
-    from .logger import TransformLogger
+    from .logger import PreparationLogger
 
 
 def __getattr__(name: str):
@@ -55,11 +55,11 @@ def __getattr__(name: str):
         'DataPartitionReport',
         'NormalizationReport',
         'SchemaReport',
-        'TransformReportSchema',
+        'PreparationReportSchema',
     }:
         return getattr(importlib.import_module('.schema', __package__), name)
 
-    if name in {'TransformLogger'}:
+    if name in {'PreparationLogger'}:
         return getattr(importlib.import_module('.logger', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

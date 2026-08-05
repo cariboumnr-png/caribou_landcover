@@ -35,7 +35,7 @@ __all__ = [
     'BlockBuildingParameters',
     'DomainBuildingParameters',
     'GridParameters',
-    'FoundationLogger',
+    'IngestionLogger',
     # functions
     'prepare_domain_maps',
     'prepare_world_grid',
@@ -45,7 +45,7 @@ __all__ = [
 
 # for static check
 if typing.TYPE_CHECKING:
-    from .common import FoundationLogger
+    from .common import IngestionLogger
     from .data_blocks import BlockBuildingParameters, run_blocks_building
     from .domain_maps import DomainBuildingParameters, prepare_domain_maps
     from .world_grids import GridParameters, prepare_world_grid

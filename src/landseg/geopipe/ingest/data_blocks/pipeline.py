@@ -75,7 +75,7 @@ def run_blocks_building(
     config: BlockBuildingParameters,
     *,
     policy: artifacts.LifecyclePolicy,
-    logger: common.FoundationLogger,
+    logger: common.IngestionLogger,
 ) -> None:
     '''
     Build canonical data blocks from rasters aligned to a world grid.

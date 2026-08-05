@@ -57,7 +57,7 @@ def prepare_domain_maps(
     domain_configs: list[DomainBuildingParameters],
     *,
     policy: artifacts.LifecyclePolicy,
-    logger: common.FoundationLogger,
+    logger: common.IngestionLogger,
 ) -> None:
     '''
     Prepare and persist domain tile maps for categorical raster(s).

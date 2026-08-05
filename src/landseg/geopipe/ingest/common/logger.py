@@ -40,7 +40,7 @@ if typing.TYPE_CHECKING:
         IngestReportSchema,
     )
 
-class FoundationLogger(utils.Logger):
+class IngestionLogger(utils.Logger):
     '''
     A specialized Logger wrapper that collects execution metrics and
     persists a structured JSON run report at shutdown.

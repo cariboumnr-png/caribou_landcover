@@ -34,7 +34,7 @@ __all__ = [
     # classes
     'DataBlocksView',
     'PartitionParameters',
-    'TransformLogger',
+    'PreparationLogger',
     # functions
     'build_schema',
     'data_blocks_adapter',
@@ -47,7 +47,7 @@ __all__ = [
 # for static check
 if typing.TYPE_CHECKING:
     from .adapter import DataBlocksView, data_blocks_adapter
-    from .common import TransformLogger
+    from .common import PreparationLogger
     from .data_partition import PartitionParameters, run_datablocks_partition
     from .normal_blocks import run_normalize_blocks
     from .schema import build_schema

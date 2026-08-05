@@ -40,7 +40,7 @@ def prepare_world_grid(
     config: world_grids.GridParameters,
     *,
     policy: artifacts.LifecyclePolicy,
-    logger: common.FoundationLogger,
+    logger: common.IngestionLogger,
 ) -> geo_core.GridLayout:
     '''
     Build or load a persisted world grid.

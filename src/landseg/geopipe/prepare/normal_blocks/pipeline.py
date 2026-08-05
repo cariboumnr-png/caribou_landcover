@@ -65,7 +65,7 @@ def run_normalize_blocks(
     paths: _PipelinePaths,
     *,
     policy: artifacts.LifecyclePolicy,
-    logger: common.TransformLogger
+    logger: common.PreparationLogger
 ):
     '''
     Build normalized data blocks from raw block splits.
@@ -138,7 +138,7 @@ def _normalize(
     aggregated_stats: dict[str, geo_core.ImageBandStats],
     paths: _PipelinePaths,
     *,
-    logger: common.TransformLogger
+    logger: common.PreparationLogger
 ):
     '''Normalize each split.'''
     train_split, val_split, test_split = splits
