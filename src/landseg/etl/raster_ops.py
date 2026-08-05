@@ -112,7 +112,23 @@ def unify_nodata_mask(
     return os.path.abspath(output_mask_path)
 
 
-# ----- private functions
+_GDAL_DTYPE_MAP = {
+    'uint8': 'Byte',
+    'int8': 'Int8',
+    'uint16': 'UInt16',
+    'int16': 'Int16',
+    'uint32': 'UInt32',
+    'int32': 'Int32',
+    'float32': 'Float32',
+    'float64': 'Float64',
+}
+
+
+def _gdal_dtype_name(dtype) -> str:
+    s = str(dtype).lower()
+    return _GDAL_DTYPE_MAP.get(s, s.capitalize())
+
+
 def _build_stacked_vrt_xml(source_paths: list[str], output_path: str) -> None:
     '''Fallback manual VRT XML builder for stacking bands.'''
     with rasterio.open(source_paths[0]) as src:
@@ -134,7 +150,7 @@ def _build_stacked_vrt_xml(source_paths: list[str], output_path: str) -> None:
         with rasterio.open(path) as src:
 
             for b in range(1, src.count + 1):
-                dtype = str(src.dtypes[b - 1]).capitalize()
+                dtype = _gdal_dtype_name(src.dtypes[b - 1])
 
                 band_node = xml.etree.ElementTree.SubElement(
                     root,
@@ -142,6 +158,17 @@ def _build_stacked_vrt_xml(source_paths: list[str], output_path: str) -> None:
                     dataType=dtype,
                     band=str(band_idx)
                 )
+
+                nodata_val = (
+                    src.nodatavals[b - 1]
+                    if src.nodatavals and src.nodatavals[b - 1] is not None
+                    else src.nodata
+                )
+                if nodata_val is not None:
+                    xml.etree.ElementTree.SubElement(
+                        band_node,
+                        'NoDataValue'
+                    ).text = str(nodata_val)
 
                 source_node = xml.etree.ElementTree.SubElement(
                     band_node,
@@ -170,3 +197,29 @@ def _build_stacked_vrt_xml(source_paths: list[str], output_path: str) -> None:
         encoding='utf-8',
         xml_declaration=True
     )
+
+
+def validate_domain_raster_index(
+    input_path: str,
+    min_allowed: int = 1
+) -> None:
+    '''
+    Validate that a domain raster contains 1-based indices.
+
+    Args:
+        input_path: Path to the input domain raster file.
+        min_allowed: Minimum allowed index value (default: 1).
+
+    Raises:
+        ValueError: If valid pixel values contain any values < min_allowed.
+    '''
+    with rasterio.open(input_path) as src:
+        data = src.read(1)
+        nodata = src.nodata
+        valid_data = data[data != nodata] if nodata is not None else data
+        if valid_data.size > 0 and int(valid_data.min()) < min_allowed:
+            raise ValueError(
+                f'Domain raster [{input_path}] contains index values '
+                f'< {min_allowed} (minimum found: {valid_data.min()}). '
+                'Categorical domain rasters must use 1-based indexing.'
+            )

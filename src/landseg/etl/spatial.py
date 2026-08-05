@@ -62,7 +62,7 @@ class CanvasSpec:
 # ----- public functions
 def create_canvas(
     *,
-    reference_raster: str,
+    reference_raster: str | None = None,
     target_crs: str | None = None,
     target_resolution: float | None = None,
 ) -> CanvasSpec:
@@ -71,7 +71,7 @@ def create_canvas(
 
     Args:
         reference_raster:
-            File path to reference raster dataset.
+            Optional file path to reference raster dataset.
         target_crs:
             Coordinate Reference System string (e.g. 'EPSG:3161').
         target_resolution:
@@ -80,30 +80,42 @@ def create_canvas(
     Returns:
         Configured `CanvasSpec` instance.
     '''
-    if not os.path.exists(reference_raster):
-        raise FileNotFoundError(
-            f'Reference raster file not found: {reference_raster}'
+    if reference_raster:
+        if not os.path.exists(reference_raster):
+            raise FileNotFoundError(
+                f'Reference raster file not found: {reference_raster}'
+            )
+
+        with rasterio.open(reference_raster) as src:
+            crs = target_crs or src.crs.to_string()
+            res_val = (
+                target_resolution
+                if target_resolution is not None
+                else src.res[0]
+            )
+            bounds_tuple = (
+                src.bounds.left,
+                src.bounds.bottom,
+                src.bounds.right,
+                src.bounds.top
+            )
+
+        return CanvasSpec(
+            crs=crs,
+            resolution=float(res_val),
+            bounds=bounds_tuple
         )
 
-    with rasterio.open(reference_raster) as src:
-        crs = target_crs or src.crs.to_string()
-        res_val = (
-            target_resolution
-            if target_resolution is not None
-            else src.res[0]
-        )
-        bounds_tuple = (
-            src.bounds.left,
-            src.bounds.bottom,
-            src.bounds.right,
-            src.bounds.top
-        )
+    crs = target_crs or 'EPSG:3161'
+    res_val = target_resolution if target_resolution is not None else 20.0
+    w_m = 512 * res_val
+    bounds_tuple = (500000.0, 600000.0, 500000.0 + w_m, 600000.0 + w_m)
+    return CanvasSpec(crs=crs, resolution=float(res_val), bounds=bounds_tuple)
 
-    return CanvasSpec(
-        crs=crs,
-        resolution=float(res_val),
-        bounds=bounds_tuple
-    )
+
+def _from_reference_raster(reference_raster: str) -> CanvasSpec:
+    '''Create CanvasSpec from a reference raster file.'''
+    return create_canvas(reference_raster=reference_raster)
 
 
 def warp_to_canvas(

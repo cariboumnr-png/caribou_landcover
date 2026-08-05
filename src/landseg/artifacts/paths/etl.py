@@ -41,31 +41,64 @@ class ETLPaths:
 
     @property
     def effective_root(self) -> str:
-        return self.run_folder if self.run_folder else self.root
+        return self._current_run_folder if self._current_run_folder else (
+            self.run_folder if self.run_folder else self.root
+        )
+
+    @property
+    def dev_feature_raster(self) -> str:
+        return os.path.join(self.effective_root, 'stacked_images.vrt')
 
     @property
     def feature_raster(self) -> str:
-        return os.path.join(self._current_run_folder, 'stacked_images.vrt')
+        return self.dev_feature_raster
+
+    @property
+    def dev_label_raster(self) -> str:
+        return os.path.join(self.effective_root, 'stacked_labels.vrt')
 
     @property
     def label_raster(self) -> str:
-        return os.path.join(self._current_run_folder, 'stacked_labels.vrt')
+        return self.dev_label_raster
 
     @property
     def domain_raster(self) -> str:
-        return os.path.join(self._current_run_folder, 'stacked_domains.vrt')
+        return os.path.join(self.effective_root, 'stacked_domains.vrt')
 
     @property
     def valid_mask_raster(self) -> str:
-        return os.path.join(self._current_run_folder, 'valid_pixel_mask.vrt')
+        return os.path.join(self.effective_root, 'valid_pixel_mask.vrt')
+
+    @property
+    def test_feature_raster(self) -> str:
+        return os.path.join(
+            self.effective_root, 'stacked_test_images.vrt'
+        )
+
+    @property
+    def test_label_raster(self) -> str:
+        return os.path.join(
+            self.effective_root, 'stacked_test_labels.vrt'
+        )
+
+    @property
+    def has_test_data(self) -> bool:
+        return (
+            os.path.exists(self.test_feature_raster) and
+            os.path.exists(self.test_label_raster)
+        )
+
+    @property
+    def dataset_config(self) -> str:
+        return os.path.join(self.effective_root, 'dataset_config.json')
 
     @property
     def report(self) -> str:
-        return os.path.join(self._current_run_folder, 'etl_report.json')
+        return os.path.join(self.effective_root, 'etl_report.json')
 
     @property
     def config(self) -> str:
-        return os.path.join(self._current_run_folder, 'config.json')
+        return os.path.join(self.effective_root, 'config.json')
 
     def init(self, trace_to_last: bool = False):
         '''Initialize an ETL run folder tree.'''
@@ -117,8 +150,8 @@ class ETLPaths:
         if not runs:
             raise FileNotFoundError('No run folders found.')
 
-        self._current_run_folder = runs[-1]
-        return os.path.join(self.root, runs[-1])
+        self._current_run_folder = os.path.join(self.root, runs[-1])
+        return self._current_run_folder
 
     def harmonized_raster(self, name: str) -> str:
         return os.path.join(self.effective_root, f'harmonized_{name}.vrt')

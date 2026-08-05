@@ -37,6 +37,7 @@ __all__ = [
     'warp_to_canvas',
     'stack_canonical_raster',
     'unify_nodata_mask',
+    'validate_domain_raster_index',
     # typing
 ]
 
@@ -44,7 +45,11 @@ __all__ = [
 if typing.TYPE_CHECKING:
     from .logger import HarmonizationLogger
     from .spatial import CanvasSpec, create_canvas, warp_to_canvas
-    from .raster_ops import stack_canonical_raster, unify_nodata_mask
+    from .raster_ops import (
+        stack_canonical_raster,
+        unify_nodata_mask,
+        validate_domain_raster_index,
+    )
 
 def __getattr__(name: str):
 
@@ -54,7 +59,11 @@ def __getattr__(name: str):
     if name in {'CanvasSpec', 'create_canvas', 'warp_to_canvas'}:
         return getattr(importlib.import_module('.spatial', __package__), name)
 
-    if name in {'stack_canonical_raster', 'unify_nodata_mask'}:
+    if name in {
+        'stack_canonical_raster',
+        'unify_nodata_mask',
+        'validate_domain_raster_index',
+    }:
         return getattr(importlib.import_module('.raster_ops', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

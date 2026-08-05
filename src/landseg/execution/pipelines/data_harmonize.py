@@ -25,6 +25,8 @@ Data harmonization ETL pipeline command implementation.
 
 # standard imports
 import os
+import shutil
+import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
@@ -32,7 +34,7 @@ import landseg.etl as etl
 
 
 # ----- public functions
-def harmonize(config: configs.RootConfig) -> None:
+def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
     '''
     Execute the data-harmonize pipeline.
 
@@ -58,17 +60,21 @@ def harmonize(config: configs.RootConfig) -> None:
                 logger.log('INFO', f'Skipping missing {tag} layer: {name}')
                 continue
 
+            if tag == 'domain':
+                etl.validate_domain_raster_index(path, min_allowed=1)
+
             logger.add_source_provenance(name, path)
             out_path = paths.harmonized_raster(f'{tag}_{name}')
             logger.log('INFO',
                 f'Harmonizing {tag} layer [{name}] -> {out_path} '
                 f'(resampling: {resampling})'
             )
+            is_cat = tag in ('dev_label', 'label', 'domain', 'test_label')
             warped = etl.warp_to_canvas(
                 input_path=path,
                 output_path=out_path,
                 canvas=canvas_spec,
-                is_categorical=True,
+                is_categorical=is_cat,
                 resampling_method=resampling
             )
             aligned.append(warped)
@@ -106,36 +112,80 @@ def harmonize(config: configs.RootConfig) -> None:
             f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
         )
 
-        # ----- continous feature rasters
-        # harmonize feature rasters
+        # ----- continuous dev feature rasters
+        dev_feats = (
+            config.etl.raw_data.dev_features
+            if config.etl.raw_data.dev_features
+            else getattr(config.etl.raw_data, 'features', {})
+        )
         _process_source(
-            source=config.etl.raw_data.features,
-            output_composite=paths.feature_raster,
-            tag='feature',
+            source=dev_feats,
+            output_composite=paths.dev_feature_raster,
+            tag='dev_feature',
             resampling=config.etl.resampling_continuous,
             logger=logger
         )
-        logger.add_stacked_raster('features', paths.feature_raster)
+        logger.add_stacked_raster('dev_features', paths.dev_feature_raster)
 
-        # ----- categorical label rasters
+        # ----- categorical dev label rasters
+        dev_lbls = (
+            config.etl.raw_data.dev_labels
+            if config.etl.raw_data.dev_labels
+            else getattr(config.etl.raw_data, 'labels', {})
+        )
         _process_source(
-            source=config.etl.raw_data.labels,
-            output_composite=paths.label_raster,
-            tag='label',
+            source=dev_lbls,
+            output_composite=paths.dev_label_raster,
+            tag='dev_label',
             resampling=config.etl.resampling_categorical,
             logger=logger
         )
-        logger.add_stacked_raster('labels', paths.feature_raster)
+        logger.add_stacked_raster('dev_labels', paths.dev_label_raster)
 
         # -----categorical domain rasters
-        _process_source(
-            source=config.etl.raw_data.domains,
-            output_composite=paths.domain_raster,
-            tag='domain',
-            resampling=config.etl.resampling_categorical,
-            logger=logger
-        )
-        logger.add_stacked_raster('domains', paths.domain_raster)
+        if config.etl.raw_data.domains:
+            _process_source(
+                source=config.etl.raw_data.domains,
+                output_composite=paths.domain_raster,
+                tag='domain',
+                resampling=config.etl.resampling_categorical,
+                logger=logger
+            )
+            logger.add_stacked_raster('domains', paths.domain_raster)
+
+        # ----- test holdout feature rasters
+        if config.etl.raw_data.test_features:
+            _process_source(
+                source=config.etl.raw_data.test_features,
+                output_composite=paths.test_feature_raster,
+                tag='test_feature',
+                resampling=config.etl.resampling_continuous,
+                logger=logger
+            )
+            logger.add_stacked_raster(
+                'test_features', paths.test_feature_raster
+            )
+
+        # ----- test holdout label rasters
+        if config.etl.raw_data.test_labels:
+            _process_source(
+                source=config.etl.raw_data.test_labels,
+                output_composite=paths.test_label_raster,
+                tag='test_label',
+                resampling=config.etl.resampling_categorical,
+                logger=logger
+            )
+            logger.add_stacked_raster(
+                'test_labels', paths.test_label_raster
+            )
+
+        # ----- copy dataset config json if provided
+        if (
+            config.etl.dataset_config and
+            os.path.exists(config.etl.dataset_config)
+        ):
+            shutil.copy(config.etl.dataset_config, paths.dataset_config)
+            artifacts.Controller(paths.dataset_config).hash(overwrite=True)
 
         # ----- generate valid feature pixel mask
         mask_path = paths.valid_mask_raster
@@ -144,6 +194,7 @@ def harmonize(config: configs.RootConfig) -> None:
         logger.set_valid_mask_raster(mask_path)
 
         artifacts.Controller[dict](paths.config).persist(config.as_dict)
+        return logger.summary or {}
 
     except Exception as err:
         logger.set_summary_status('FAILED')
