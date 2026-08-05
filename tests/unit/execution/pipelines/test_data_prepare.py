@@ -46,8 +46,7 @@ def test_data_prepare_pipeline_success(tmp_path, dummy_data_paths):
     # override foundation grid fields
     grid_cfg = cfg_schema.foundation.grid
     grid_cfg.mode = 'ref'
-    grid_cfg.crs = 'EPSG:2958'
-    grid_cfg.extent.filepath = dummy_data_paths.extent
+    grid_cfg.crs = 'EPSG:3161'
     grid_cfg.tile_specs.size_row = 256
     grid_cfg.tile_specs.size_col = 256
     grid_cfg.tile_specs.overlap_row = 128
@@ -56,11 +55,29 @@ def test_data_prepare_pipeline_success(tmp_path, dummy_data_paths):
     # override foundation datablocks fields
     blocks_cfg = cfg_schema.foundation.datablocks
     blocks_cfg.name = 'test_prepare_run'
-    blocks_cfg.filepaths.dev_image = dummy_data_paths.dev_image
-    blocks_cfg.filepaths.dev_label = dummy_data_paths.dev_label
-    blocks_cfg.filepaths.test_image = dummy_data_paths.test_image
-    blocks_cfg.filepaths.test_label = dummy_data_paths.test_label
-    blocks_cfg.filepaths.config = dummy_data_paths.config
+
+    cfg_schema.etl.canvas.reference_raster = dummy_data_paths.extent
+    cfg_schema.etl.canvas.target_crs = 'EPSG:3161'
+    cfg_schema.etl.canvas.target_resolution = 10.0
+    cfg_schema.etl.dataset_config = dummy_data_paths.config
+    cfg_schema.etl.output_dpath = str(tmp_path / 'harmonized')
+    cfg_schema.etl.raw_data.domains = {
+        'domain_1': dummy_data_paths.domain_1
+    }
+    cfg_schema.etl.raw_data.dev_features = {
+        'sentinel2': dummy_data_paths.raw_sentinel2,
+        'dem': dummy_data_paths.raw_dem
+    }
+    cfg_schema.etl.raw_data.dev_labels = {
+        'landcover': dummy_data_paths.raw_landcover
+    }
+    cfg_schema.etl.raw_data.test_features = {
+        'sentinel2': dummy_data_paths.raw_test_sentinel2,
+        'dem': dummy_data_paths.raw_test_dem
+    }
+    cfg_schema.etl.raw_data.test_labels = {
+        'landcover': dummy_data_paths.raw_test_landcover
+    }
 
     cfg_schema.foundation.output_dpath = str(tmp_path / 'foundation')
     cfg_schema.foundation.rebuild = True
@@ -89,16 +106,21 @@ def test_data_prepare_pipeline_success(tmp_path, dummy_data_paths):
         omegaconf.OmegaConf.to_object(cfg_schema)
     )
 
-    # 1) run the ingestion pipeline to build foundation inputs
+    # 1) run harmonize to populate ETL outputs in EPSG:3161
+    pipelines.harmonize(config)
+
+    # 2) run the ingestion pipeline to build foundation inputs
     pipelines.ingest(config)
 
-    # 2) run the preparation pipeline
+    # 3) run the preparation pipeline
     pipelines.prepare(config)
 
     # verify the generated transform outputs
     out_dpath = config.transform.output_dpath
     assert os.path.exists(os.path.join(out_dpath, 'block_splits_source.json'))
-    assert os.path.exists(os.path.join(out_dpath, 'block_splits_transformed.json'))
+    assert os.path.exists(
+        os.path.join(out_dpath, 'block_splits_transformed.json')
+    )
     assert os.path.exists(os.path.join(out_dpath, 'image_stats.json'))
     assert os.path.exists(os.path.join(out_dpath, 'prep_report.json'))
     assert os.path.exists(os.path.join(out_dpath, 'schema.json'))

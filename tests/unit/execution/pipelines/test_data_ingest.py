@@ -41,8 +41,7 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     # override foundation fields
     grid_cfg = cfg_schema.foundation.grid
     grid_cfg.mode = 'ref'
-    grid_cfg.crs = 'EPSG:2958'
-    grid_cfg.extent.filepath = dummy_data_paths.extent
+    grid_cfg.crs = 'EPSG:3161'
     grid_cfg.tile_specs.size_row = 256
     grid_cfg.tile_specs.size_col = 256
     grid_cfg.tile_specs.overlap_row = 128
@@ -50,11 +49,29 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
 
     blocks_cfg = cfg_schema.foundation.datablocks
     blocks_cfg.name = 'test_ingest_run'
-    blocks_cfg.filepaths.dev_image = dummy_data_paths.dev_image
-    blocks_cfg.filepaths.dev_label = dummy_data_paths.dev_label
-    blocks_cfg.filepaths.test_image = dummy_data_paths.test_image
-    blocks_cfg.filepaths.test_label = dummy_data_paths.test_label
-    blocks_cfg.filepaths.config = dummy_data_paths.config
+
+    cfg_schema.etl.canvas.reference_raster = dummy_data_paths.extent
+    cfg_schema.etl.canvas.target_crs = 'EPSG:3161'
+    cfg_schema.etl.canvas.target_resolution = 10.0
+    cfg_schema.etl.dataset_config = dummy_data_paths.config
+    cfg_schema.etl.output_dpath = str(tmp_path / 'harmonized')
+    cfg_schema.etl.raw_data.domains = {
+        'domain_1': dummy_data_paths.domain_1
+    }
+    cfg_schema.etl.raw_data.dev_features = {
+        'sentinel2': dummy_data_paths.raw_sentinel2,
+        'dem': dummy_data_paths.raw_dem
+    }
+    cfg_schema.etl.raw_data.dev_labels = {
+        'landcover': dummy_data_paths.raw_landcover
+    }
+    cfg_schema.etl.raw_data.test_features = {
+        'sentinel2': dummy_data_paths.raw_test_sentinel2,
+        'dem': dummy_data_paths.raw_test_dem
+    }
+    cfg_schema.etl.raw_data.test_labels = {
+        'landcover': dummy_data_paths.raw_test_landcover
+    }
 
     cfg_schema.foundation.output_dpath = str(tmp_path / 'foundation')
     cfg_schema.foundation.rebuild = True
@@ -63,7 +80,10 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     config = typing.cast(
         configs.RootConfig,
         omegaconf.OmegaConf.to_object(cfg_schema)
-    ) # cast for tying correctness
+    )
+
+    # run harmonize first to generate matching CRS rasters
+    pipelines.harmonize(config)
 
     # run the ingestion pipeline
     pipelines.ingest(config)

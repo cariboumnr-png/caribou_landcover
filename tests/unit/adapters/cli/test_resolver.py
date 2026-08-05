@@ -46,19 +46,17 @@ def test_resolve_configs_base(tmp_path):
         f.write_text('data')
 
     cfg_dict = omegaconf.OmegaConf.create({
+        'etl': {
+            'canvas': {'reference_raster': str(dev_img)},
+            'dataset_config': str(cfg_json),
+        },
         'foundation': {
             'datablocks': {
                 'name': 'test_ds',
-                'filepaths': {
-                    'dev_image': str(dev_img),
-                    'dev_label': str(dev_lbl),
-                    'config': str(cfg_json),
-                },
             },
             'grid': {
                 'mode': 'ref',
                 'crs': 'EPSG:32617',
-                'extent': {'filepath': str(dev_img)},
             },
         },
         'session': {

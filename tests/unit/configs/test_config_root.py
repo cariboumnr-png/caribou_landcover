@@ -86,21 +86,18 @@ def test_root_config_validate_all(tmp_path):
     When: `RootConfig.validate_all()` is executed.
     Then: Complete validation across all configuration sub-sections.
     '''
-    dev_img = tmp_path / 'dev_img.tif'
-    dev_lbl = tmp_path / 'dev_lbl.tif'
     cfg_json = tmp_path / 'cfg.json'
+    cfg_json.write_text('data')
 
-    for f in (dev_img, dev_lbl, cfg_json):
-        f.write_text('data')
+    ref_tif = tmp_path / 'ref.tif'
+    ref_tif.write_text('data')
 
     root = root_mod.RootConfig()
+    root.etl.canvas.reference_raster = str(ref_tif)
+    root.etl.dataset_config = str(cfg_json)
     root.foundation.datablocks.name = 'test_blocks'
-    root.foundation.datablocks.filepaths.dev_image = str(dev_img)
-    root.foundation.datablocks.filepaths.dev_label = str(dev_lbl)
-    root.foundation.datablocks.filepaths.config = str(cfg_json)
     root.foundation.grid.mode = 'ref'
     root.foundation.grid.crs = 'EPSG:32617'
-    root.foundation.grid.extent.filepath = str(dev_img)
 
     root.session.orchestration.single_phase.num_epochs = 10
     root.validate_all()

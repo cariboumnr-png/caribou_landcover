@@ -137,11 +137,11 @@ def test_diff_configs_lists():
 
 
 # ----- _validate_upstream_pipelines logic
-def test_validate_upstream_pipelines_ignore_default():
+def test_validate_upstream_pipelines_entrypoints():
     '''
-    Given: A RootConfig and the 'default' or 'data-ingest' pipeline names.
+    Given: Pipeline names that are standalone entrypoints.
     When: Validating upstream pipelines.
-    Then: Pass silently without checking reports.
+    Then: Pass silently without checking upstream reports.
     '''
     config = configs.RootConfig(
         pipeline=secs.PipelineConfig(name='default'),
@@ -151,7 +151,26 @@ def test_validate_upstream_pipelines_ignore_default():
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     # should not raise
     executor._validate_upstream_pipelines(config, 'default')
-    executor._validate_upstream_pipelines(config, 'data-ingest')
+    executor._validate_upstream_pipelines(config, 'data-harmonize')
+
+
+def test_validate_upstream_pipelines_missing_etl(tmp_path):
+    '''
+    Given: A data-ingest pipeline run when no ETL report exists.
+    When: Validating upstream pipelines.
+    Then: Raise an ArtifactError about missing data-harmonize.
+    '''
+    config = configs.RootConfig(
+        pipeline=secs.PipelineConfig(name='data-ingest'),
+        etl=secs.ETLConfig(output_dpath=str(tmp_path)),
+        foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
+    )
+    config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
+    with pytest.raises(
+        artifacts.ArtifactError,
+        match='Upstream pipeline "data-harmonize" has not been executed yet'
+    ):
+        executor._validate_upstream_pipelines(config, 'data-ingest')
 
 
 def test_validate_upstream_pipelines_missing_ingest(tmp_path):
@@ -161,8 +180,12 @@ def test_validate_upstream_pipelines_missing_ingest(tmp_path):
     When: Validating upstream pipelines.
     Then: Raise an ArtifactError.
     '''
+    etl_paths = artifacts.ETLPaths(str(tmp_path))
+    artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
+
     config = configs.RootConfig(
         pipeline=secs.PipelineConfig(name='data-prepare'),
+        etl=secs.ETLConfig(output_dpath=str(tmp_path)),
         foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
         transform=secs.DataTransform(),
     )
@@ -181,12 +204,15 @@ def test_validate_upstream_pipelines_failed_ingest(tmp_path):
     When: Validating upstream pipelines.
     Then: Raise an ArtifactError about the status.
     '''
+    etl_paths = artifacts.ETLPaths(str(tmp_path))
+    artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
     foundation_paths = artifacts.FoundationPaths(str(tmp_path))
     ctrl = artifacts.Controller(foundation_paths.report)
     ctrl.persist({'status': 'FAILED'})
 
     config = configs.RootConfig(
         pipeline=secs.PipelineConfig(name='data-prepare'),
+        etl=secs.ETLConfig(output_dpath=str(tmp_path)),
         foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
         transform=secs.DataTransform(),
     )
@@ -200,18 +226,21 @@ def test_validate_upstream_pipelines_failed_ingest(tmp_path):
 
 def test_validate_upstream_pipelines_success(tmp_path):
     '''
-    Given: Successful ingest and prepare reports exist.
+    Given: Successful etl, ingest and prepare reports exist.
     When: Validating upstream pipelines for a downstream pipeline.
     Then: Pass silently.
     '''
+    etl_paths = artifacts.ETLPaths(str(tmp_path))
     foundation_paths = artifacts.FoundationPaths(str(tmp_path))
     transform_paths = artifacts.TransformPaths(str(tmp_path))
 
+    artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
     artifacts.Controller(foundation_paths.report).persist({'status': 'SUCCESS'})
     artifacts.Controller(transform_paths.report).persist({'status': 'SUCCESS'})
 
     config = configs.RootConfig(
         pipeline=secs.PipelineConfig(name='model-train'),
+        etl=secs.ETLConfig(output_dpath=str(tmp_path)),
         foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
         transform=secs.DataTransform(output_dpath=str(tmp_path)),
     )

@@ -119,3 +119,47 @@ def test_unify_nodata_mask_gtiff_output(dummy_geotiff_factory, tmp_path):
         assert dst.driver == 'GTiff'
         assert dst.width == 20
         assert dst.height == 20
+
+
+def test_validate_domain_raster_index_valid(dummy_geotiff_factory):
+    '''
+    Given: A domain raster with pixel values >= 1.
+    When: Invoking `validate_domain_raster_index`.
+    Then: Passes silently.
+    '''
+    domain_path = dummy_geotiff_factory(
+        filename='domain_valid.tif',
+        width=10,
+        height=10,
+        bands=1,
+        dtype=numpy.uint8
+    )
+    # write values 1..10
+    with rasterio.open(domain_path, 'r+') as dst:
+        data = numpy.ones((1, 10, 10), dtype=numpy.uint8)
+        dst.write(data)
+
+    raster_ops.validate_domain_raster_index(str(domain_path), min_allowed=1)
+
+
+def test_validate_domain_raster_index_invalid(dummy_geotiff_factory):
+    '''
+    Given: A domain raster with pixel value 0.
+    When: Invoking `validate_domain_raster_index`.
+    Then: Raises ValueError.
+    '''
+    domain_path = dummy_geotiff_factory(
+        filename='domain_invalid.tif',
+        width=10,
+        height=10,
+        bands=1,
+        dtype=numpy.uint8
+    )
+    # write values including 0 (with nodata set to 255)
+    with rasterio.open(domain_path, 'r+') as dst:
+        dst.nodata = 255
+        data = numpy.zeros((1, 10, 10), dtype=numpy.uint8)
+        dst.write(data)
+
+    with pytest.raises(ValueError, match='Categorical domain rasters must use 1-based indexing'):
+        raster_ops.validate_domain_raster_index(str(domain_path), min_allowed=1)

@@ -100,7 +100,7 @@ def test_etl_paths(tmp_path):
     assert etl_paths.run_id == 'run_0001'
     r = etl_paths.effective_root
     assert etl_paths.harmonized_raster('dem') == os.path.join(r, 'harmonized_dem.vrt')
-    assert etl_paths.feature_raster == os.path.join(r, 'harmonized_image_composite.vrt')
+    assert etl_paths.feature_raster == os.path.join(r, 'stacked_images.vrt')
     assert etl_paths.valid_mask_raster == os.path.join(r, 'valid_pixel_mask.vrt')
     assert etl_paths.report == os.path.join(r, 'etl_report.json')
 

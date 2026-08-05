@@ -24,6 +24,8 @@
 # standard imports
 import json
 import os
+# third-party imports
+import numpy
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.foundation as foundation
@@ -32,7 +34,7 @@ import landseg.geopipe.foundation.data_blocks as data_blocks
 
 
 # ----- pipeline execution
-def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths):
+def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factory):
     '''
     Given: A clean layout, grid parameters, and development inputs.
     When: Running data blocks building for the dev stage.
@@ -48,11 +50,28 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths):
     )
     logger.init_summary(run_id='test_run_dev', timestamp='2026-07-08T18:00:00Z')
 
+    dev_img = dummy_geotiff_factory(
+        filename='comp_11band_dev.tif',
+        width=256,
+        height=256,
+        bands=11,
+        crs='EPSG:3161',
+        dtype=numpy.float32
+    )
+    dev_lbl = dummy_geotiff_factory(
+        filename='label_dev.tif',
+        width=256,
+        height=256,
+        bands=1,
+        crs='EPSG:3161',
+        dtype=numpy.uint8
+    )
+
     # Prepare world grid from the reference raster
     grid_config = foundation.GridParameters(
         mode='ref',
-        crs='EPSG:2958',
-        ref_fpath=dummy_data_paths.extent,
+        crs='EPSG:3161',
+        ref_fpath=str(dev_img),
         origin=(0.0, 0.0),
         pixel_size=(0.0, 0.0),
         grid_extent=None,
@@ -73,8 +92,8 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths):
     # Set pipeline configurations
     config = data_blocks.BlockBuildingParameters(
         stage='dev',
-        image_fpath=dummy_data_paths.dev_image,
-        label_fpath=dummy_data_paths.dev_label,
+        image_fpath=str(dev_img),
+        label_fpath=str(dev_lbl),
         data_config_fpath=dummy_data_paths.config,
         dem_pad=8,
         ignore_index=255
@@ -108,11 +127,11 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths):
     assert 'data_blocks' in logger.summary
     assert 'dev' in logger.summary['data_blocks']
     report = logger.summary['data_blocks']['dev']
-    assert report['image_filepath'] == dummy_data_paths.dev_image
-    assert report['label_filepath'] == dummy_data_paths.dev_label
+    assert report['image_filepath'] == str(dev_img)
+    assert report['label_filepath'] == str(dev_lbl)
 
 
-def test_pipeline_run_test_stage(tmp_path, dummy_data_paths):
+def test_pipeline_run_test_stage(tmp_path, dummy_data_paths, dummy_geotiff_factory):
     '''
     Given: A clean layout, grid parameters, and test inputs.
     When: Running data blocks building for the test stage.
@@ -127,11 +146,28 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths):
     )
     logger.init_summary(run_id='test_run_test', timestamp='2026-07-08T18:00:00Z')
 
+    test_img = dummy_geotiff_factory(
+        filename='comp_11band_test.tif',
+        width=256,
+        height=256,
+        bands=11,
+        crs='EPSG:3161',
+        dtype=numpy.float32
+    )
+    test_lbl = dummy_geotiff_factory(
+        filename='label_test.tif',
+        width=256,
+        height=256,
+        bands=1,
+        crs='EPSG:3161',
+        dtype=numpy.uint8
+    )
+
     # Prepare world grid from the reference raster
     grid_config = foundation.GridParameters(
         mode='ref',
-        crs='EPSG:2958',
-        ref_fpath=dummy_data_paths.extent,
+        crs='EPSG:3161',
+        ref_fpath=str(test_img),
         origin=(0.0, 0.0),
         pixel_size=(0.0, 0.0),
         grid_extent=None,
@@ -152,8 +188,8 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths):
     # Set pipeline configurations
     config = data_blocks.BlockBuildingParameters(
         stage='test',
-        image_fpath=dummy_data_paths.test_image,
-        label_fpath=dummy_data_paths.test_label,
+        image_fpath=str(test_img),
+        label_fpath=str(test_lbl),
         data_config_fpath=dummy_data_paths.config,
         dem_pad=8,
         ignore_index=255
@@ -187,5 +223,5 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths):
     assert 'data_blocks' in logger.summary
     assert 'test' in logger.summary['data_blocks']
     report = logger.summary['data_blocks']['test']
-    assert report['image_filepath'] == dummy_data_paths.test_image
-    assert report['label_filepath'] == dummy_data_paths.test_label
+    assert report['image_filepath'] == str(test_img)
+    assert report['label_filepath'] == str(test_lbl)

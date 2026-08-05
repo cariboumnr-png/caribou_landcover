@@ -47,8 +47,8 @@ def test_translate_user_config_data_harmonize():
     })
     result = translate_mod.translate_user_config(user_cfg)
 
-    assert result.etl.target_crs == 'EPSG:3161'
-    assert result.etl.target_resolution == 20.0
+    assert result.etl.canvas.target_crs == 'EPSG:3161'
+    assert result.etl.canvas.target_resolution == 20.0
     assert result.etl.output_dpath == '/path/exp/harmonized'
 
 
@@ -63,7 +63,6 @@ def test_translate_user_config_data_ingest():
             'grid_crs': 'EPSG:32617',
             'tile_size': 256,
             'dataset_name': 'test_ds',
-            'dev_image': '/path/dev_img.tif',
             'output_dpath': '/path/exp/artifacts/foundation',
         },
     })
@@ -73,7 +72,6 @@ def test_translate_user_config_data_ingest():
     assert result.foundation.grid.tile_specs.size_row == 256
     assert result.foundation.grid.tile_specs.size_col == 256
     assert result.foundation.datablocks.name == 'test_ds'
-    assert result.foundation.datablocks.filepaths.dev_image == '/path/dev_img.tif'
     assert result.foundation.output_dpath == '/path/exp/artifacts/foundation'
 
 
