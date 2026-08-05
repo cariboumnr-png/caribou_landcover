@@ -51,7 +51,7 @@ Still maturing:
 
 ## Core Concepts
 
-### Foundation Artifacts
+### Ingestion Artifacts
 
 Raw rasters are transformed into reusable, grid-aligned artifacts such as world
 grids, domain maps, data blocks, manifests, and schemas. These artifacts are the
@@ -133,7 +133,7 @@ Pipeline names are registered in `landseg.execution.pipelines`.
 
 ### 1. Data Ingestion
 
-Build foundation artifacts from raw rasters. This typically runs once per source
+Build ingestion artifacts from raw rasters. This typically runs once per source
 dataset or whenever source rasters/grid settings change.
 
 ```bash
@@ -218,7 +218,7 @@ src/landseg/
 |-- configs/         Hydra YAML defaults and structured config schemas
 |-- core/            Shared contracts and result types
 |-- execution/       Pipeline registry and top-level dispatch
-|-- geopipe/         Geospatial foundation and transform pipeline
+|-- geopipe/         Geospatial harmonize, ingest, and prepare pipelines
 |-- models/          Model frames, backbones, heads, conditioning, factories
 |-- session/         Runtime data, engines, tasks, instrumentation, orchestration
 |-- study/           Sweep and analysis utilities

@@ -3,34 +3,34 @@
 Last updated : 2026-05-12
 
 ```
-[foundation/world_grids/builder]            (1 World Grid – pure construction)
+[ingest/world_grids/builder]            (1 World Grid – pure construction)
 |
 +--> [artifacts/controller]
 |        (resolve/build/reuse grid artifact under policy)
 |
-+--> [foundation/world_grids/lifecycle]
++--> [ingest/world_grids/lifecycle]
 |        (grid artifact persistence & validation)
 |
-+--> [foundation/domain_maps/mapper]        (2 Domain → Grid alignment, optional)
++--> [ingest/domain_maps/mapper]        (2 Domain → Grid alignment, optional)
 |        |
-|        +--> [foundation/domain_maps/builder]
+|        +--> [ingest/domain_maps/builder]
 |        |        (pure domain feature computation)
 |        |
 |        +--> [artifacts/controller]
 |        |        (resolve/build/reuse domain artifact)
 |        |
-|        +--> [foundation/domain_maps/lifecycle]
+|        +--> [ingest/domain_maps/lifecycle]
 |                 (domain artifact persistence & validation)
 |
-+--> [foundation/data_blocks/mapper]        (3 Imagery/Labels → Grid window mapping)
++--> [ingest/data_blocks/mapper]        (3 Imagery/Labels → Grid window mapping)
 |        |
-|        +--> [foundation/data_blocks/builder]
+|        +--> [ingest/data_blocks/builder]
 |        |        (pure block construction)
 |        |
 |        +--> [artifacts/controller]
 |        |        (resolve/build/reuse block artifacts)
 |        |
-|        +--> [foundation/data_blocks/manifest]
+|        +--> [ingest/data_blocks/manifest]
 |                 (catalog, schema registration, and indexing)
 |
 +--> [geopipe/specification/factory]        (4 Build DataSpecs from prepared artifacts)

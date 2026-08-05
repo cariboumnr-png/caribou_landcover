@@ -15,13 +15,13 @@ This document defines **how the system fits together** — not details.
 
 ## Core Flow
 
-    Raw Data → Foundation → Artifacts → Experiment → Session → Execution → Results
+    Raw Data → Ingestion → Artifacts → Experiment → Session → Execution → Results
 
 ---
 
 ## Layers (What each owns)
 
-### Foundation
+### Ingestion
 - Pure construction (grid, domains, blocks)
 - No persistence, no policy
 - Fully deterministic

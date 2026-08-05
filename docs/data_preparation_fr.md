@@ -40,7 +40,7 @@ L'étendue de la grille peut être fournie de deux manières :
   - Définition manuelle à l'aide d'une origine en haut à gauche et d'un nombre spécifié de tuiles dans les directions horizontale et verticale.
   - Définition par raster de référence (préférée), où un raster créé dans des outils SIG courants (QGIS, ArcGIS, GDAL) fournit le SCR, la résolution en pixels, l'étendue et l'origine pour construire la grille.
 
-Après la définition de l'étendue du projet, les grilles mondiales en sont dérivées au cours du pipeline (module `landseg.geopipe.foundation.world_grids`) pour former des schémas de tuilage reproductibles et versionnés utilisés tout au long de l'expérimentation et de la production.
+Après la définition de l'étendue du projet, les grilles mondiales en sont dérivées au cours du pipeline (module `landseg.geopipe.ingest.world_grids`) pour former des schémas de tuilage reproductibles et versionnés utilisés tout au long de l'expérimentation et de la production.
 
 [Sauter](#tutoriel---créer un raster de référence) au tutoriel sur la création d'un raster de référence dans QGIS.
 

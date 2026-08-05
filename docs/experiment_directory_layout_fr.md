@@ -58,7 +58,7 @@ indépendante sans couplage séquentiel strict.
 │   │       ├── valid_pixel_mask.vrt             # Raster virtuel de masque de pixels valides booléen à 1 bande
 │   │       └── etl_report.json                  # Rapport de synthèse d'exécution ETL
 │   │
-│   ├── foundation/                              # Produit par le pipeline 'data-ingest'
+│   ├── ingested_data/                           # Produit par le pipeline 'data-ingest'
 │   │   ├── world_grids/
 │   │   │   └── grid_row_<srow>_<orow>_col_<scol>_<ocol>.json *
 │   │   ├── domain_knowledge/
@@ -80,7 +80,7 @@ indépendante sans couplage séquentiel strict.
 │   │   ├── ingest_report.json                   # Rapport de synthèse d'exécution de l'ingestion
 │   │   └── config.json                          # Enregistrement de configuration d'ingestion
 │   │
-│   └── transform/                               # Produit par le pipeline 'data-prepare'
+│   └── prepared_data/                           # Produit par le pipeline 'data-prepare'
 │       ├── train_blocks/                        # Bloc de tableaux d'entraînement transformés
 │       ├── val_blocks/                          # Bloc de tableaux de validation transformés
 │       ├── test_blocks/                         # Bloc de tableaux de test transformés

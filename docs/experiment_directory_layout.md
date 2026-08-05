@@ -55,7 +55,7 @@ allowing all pipelines to be run and tested independently without strict prerequ
 │   │       ├── valid_pixel_mask.vrt             # 1-band boolean valid-pixel mask Virtual Raster
 │   │       └── etl_report.json                  # ETL execution summary report
 │   │
-│   ├── foundation/                              # Produced by 'data-ingest' pipeline
+│   ├── ingested_data/                           # Produced by 'data-ingest' pipeline
 │   │   ├── world_grids/
 │   │   │   └── grid_row_<srow>_<orow>_col_<scol>_<ocol>.json *
 │   │   ├── domain_knowledge/
@@ -77,7 +77,7 @@ allowing all pipelines to be run and tested independently without strict prerequ
 │   │   ├── ingest_report.json                   # Ingestion execution summary report
 │   │   └── config.json                          # Ingestion configuration record
 │   │
-│   └── transform/                               # Produced by 'data-prepare' pipeline
+│   └── prepared_data/                           # Produced by 'data-prepare' pipeline
 │       ├── train_blocks/                        # Transformed training array blocks
 │       ├── val_blocks/                          # Transformed validation array blocks
 │       ├── test_blocks/                         # Transformed testing array blocks

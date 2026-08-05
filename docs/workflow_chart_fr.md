@@ -3,34 +3,34 @@
 Dernière mise à jour : 2026-05-12
 
 ```
-[foundation/world_grids/builder]            (1 Grille globale – construction pure)
+[ingest/world_grids/builder]            (1 Grille globale – construction pure)
 |
 +--> [artifacts/controller]
 |        (résolution / build / réutilisation selon politique)
 |
-+--> [foundation/world_grids/lifecycle]
++--> [ingest/world_grids/lifecycle]
 |        (persistance et validation de l’artefact grille)
 |
-+--> [foundation/domain_maps/mapper]        (2 Domaine → alignement sur grille, optionnel)
++--> [ingest/domain_maps/mapper]        (2 Domaine → alignement sur grille, optionnel)
 |        |
-|        +--> [foundation/domain_maps/builder]
+|        +--> [ingest/domain_maps/builder]
 |        |        (calcul pur des features de domaine)
 |        |
 |        +--> [artifacts/controller]
 |        |        (résolution / build / réutilisation artefact domaine)
 |        |
-|        +--> [foundation/domain_maps/lifecycle]
+|        +--> [ingest/domain_maps/lifecycle]
 |                 (persistance et validation des artefacts domaine)
 |
-+--> [foundation/data_blocks/mapper]        (3 Imagerie / labels → fenêtres de grille)
++--> [ingest/data_blocks/mapper]        (3 Imagerie / labels → fenêtres de grille)
 |        |
-|        +--> [foundation/data_blocks/builder]
+|        +--> [ingest/data_blocks/builder]
 |        |        (construction pure des blocs)
 |        |
 |        +--> [artifacts/controller]
 |        |        (résolution / build / réutilisation des blocs)
 |        |
-|        +--> [foundation/data_blocks/manifest]
+|        +--> [ingest/data_blocks/manifest]
 |                 (catalogue, enregistrement schéma et indexation)
 |
 +--> [geopipe/specification/factory]        (4 Construction des DataSpecs à partir des artefacts)

@@ -40,7 +40,7 @@ The grid extent can be provided in two ways:
   - Manual definition using a top‑left origin and a specified number of tiles in the horizontal and vertical directions.
   - Reference‑raster definition (preferred), where a raster created in common GIS tools (QGIS, ArcGIS, GDAL) supplies the CRS, pixel resolution, extent, and origin to build grid.
 
-After project extent is defined, world grids are derived from it during the pipeline (module `landseg.geopipe.foundation.world_grids`) to form reproducible, versioned tiling schemes used throughout experimentation and production.
+After project extent is defined, world grids are derived from it during the pipeline (module `landseg.geopipe.ingest.world_grids`) to form reproducible, versioned tiling schemes used throughout experimentation and production.
 
 [Jump](#tutorial---create-a-reference-raster) to the tutorial on how to create reference raster in QGIS.
 
