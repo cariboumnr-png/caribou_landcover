@@ -106,7 +106,7 @@ def _read_raster(
     jobs = [(_read, (k, v, fpath, grid.tile_size), {})for k, v in grid.items()]
     results: list[alias.RasterTile]
     results = utils.ParallelExecutor().run(jobs, ' - Mapping domain tiles')
-    all_tiles = [(_, t) for (_, t) in results if t.sum() != 0] # filter
+    all_tiles = [(_, t) for (_, t) in results if t.size > 0] # filter empty arrays
     return dict(all_tiles), nodata
 
 def _read(

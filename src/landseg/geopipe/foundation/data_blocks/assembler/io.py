@@ -109,7 +109,16 @@ def read_block_raster_data(inputs: RasterReadInput) -> RasterReadOutput:
 
         # a valid image array is required
         assert img, f'Invalid image source: {inputs.image_fpath}'
-        img_arr = img.read(window=inputs.image_window, boundless=True)
+        if len(set(img.dtypes)) > 1:
+            bands = [
+                img.read(b, window=inputs.image_window, boundless=True).astype(
+                    numpy.float32, copy=False
+                )
+                for b in range(1, img.count + 1)
+            ]
+            img_arr = numpy.stack(bands, axis=0)
+        else:
+            img_arr = img.read(window=inputs.image_window, boundless=True)
         image_nodata = img.nodata
 
         # read padded DEM if 'dem' is in band map

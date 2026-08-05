@@ -94,7 +94,7 @@ def _get_grid_spec(config: GridParameters) -> geo_core.GridSpec:
             l, b, r, t = src.bounds
             # assign to gridspec
             return geo_core.GridSpec(
-                crs=config.crs,
+                crs=config.crs or str(src.crs),
                 origin=(l, t),              # left, ,top as x, y
                 pixel_size=(px, py),        # pixel size in x, y
                 tile_size=tile_size,
