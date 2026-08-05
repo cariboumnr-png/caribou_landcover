@@ -69,7 +69,7 @@ def test_build_schema(mocker):
         return mock_ctrl
 
     mocker.patch(
-        'landseg.geopipe.transform.schema.load',
+        'landseg.geopipe.prepare.schema.load',
         side_effect=mock_load
     )
     mocker.patch(

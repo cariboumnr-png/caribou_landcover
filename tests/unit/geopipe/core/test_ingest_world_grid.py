@@ -27,7 +27,7 @@
 import pytest
 import rasterio.windows
 # local imports
-import landseg.geopipe.core.foundation_world_grid as world_grid
+import landseg.geopipe.core.ingest_world_grid as world_grid
 
 
 # ----- `GridSpec` tests

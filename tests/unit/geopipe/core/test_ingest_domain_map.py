@@ -26,7 +26,7 @@
 # third-party imports
 import pytest
 # local imports
-import landseg.geopipe.core.foundation_domain_map as domain_map
+import landseg.geopipe.core.ingest_domain_map as domain_map
 
 
 # ----- `DomainTileMap` tests

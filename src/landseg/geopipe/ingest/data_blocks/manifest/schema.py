@@ -99,7 +99,7 @@ def build_schema(
 
     # create route
     new: geo_core.DataSchema = {
-        'schema_id': geo_core.foundation_data_schema.SCHEMA_ID,
+        'schema_id': geo_core.ingest_data_schema.SCHEMA_ID,
         'dataset': {
             'name': '', # TBD
             'last_updated': t,
