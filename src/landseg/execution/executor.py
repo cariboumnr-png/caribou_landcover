@@ -66,9 +66,9 @@ def _validate_upstream_pipelines(
 
     # fetch data pipeline artifacts paths
     art_paths = artifacts.ArtifactPaths.from_config(config)
-    etl_paths = art_paths.etl
-    foundation_paths = art_paths.foundation
-    transform_paths = art_paths.transform
+    etl_paths = art_paths.data_harmonization
+    foundation_paths = art_paths.data_ingestion
+    transform_paths = art_paths.data_preparation
 
     try:
         etl_paths.get_run_folder()
@@ -152,9 +152,9 @@ def _check_config_staleness(
 
     # fetch data pipeline artifacts paths
     art_paths = artifacts.ArtifactPaths.from_config(config)
-    etl_paths = art_paths.etl
-    foundation_paths = art_paths.foundation
-    transform_paths = art_paths.transform
+    harmonization_paths = art_paths.data_harmonization
+    ingestion_paths = art_paths.data_ingestion
+    preparation_paths = art_paths.data_preparation
 
     # initialize difference tracker
     diffs = {}
@@ -162,9 +162,9 @@ def _check_config_staleness(
     # compare etl configuration
     diffs.update(
         _compare_config_section(
-            etl_paths.config,
-            'etl',
-            config.etl,
+            harmonization_paths.config,
+            'data.harmonization',
+            config.data.harmonization,
         )
     )
 
@@ -172,9 +172,9 @@ def _check_config_staleness(
     if pipeline != 'data-ingest':
         diffs.update(
             _compare_config_section(
-                foundation_paths.config,
-                'foundation',
-                config.foundation,
+                ingestion_paths.config,
+                'data.ingestion',
+                config.data.ingestion,
             )
         )
 
@@ -182,9 +182,9 @@ def _check_config_staleness(
     if pipeline != 'data-prepare':
         diffs.update(
             _compare_config_section(
-                transform_paths.config,
-                'transform',
-                config.transform,
+                preparation_paths.config,
+                'data.preparation',
+                config.data.preparation,
             )
         )
 

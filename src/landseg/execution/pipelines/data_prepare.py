@@ -47,7 +47,7 @@ def prepare(config: configs.RootConfig):
     '''
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
-    paths = artifact_paths.transform
+    paths = artifact_paths.data_preparation
 
     # init a TransformLogger
     logger = prepare_data.TransformLogger(
@@ -63,25 +63,25 @@ def prepare(config: configs.RootConfig):
         # resolve lifecycle policy dynamically
         policy = (
             artifacts.LifecyclePolicy.REBUILD
-            if config.transform.rebuild
+            if config.data.preparation.rebuild
             else artifacts.LifecyclePolicy.BUILD_IF_MISSING
         )
 
 
         # parse catalog from data foundation
         parsed_catalog = prepare_data.data_blocks_adapter(
-            artifact_paths.foundation.data_blocks.dev.catalog,
-            artifact_paths.foundation.data_blocks.dev.schema,
-            artifact_paths.foundation.data_blocks.test.catalog,
-            config=config.transform.catalog
+            artifact_paths.data_ingestion.data_blocks.dev.catalog,
+            artifact_paths.data_ingestion.data_blocks.dev.schema,
+            artifact_paths.data_ingestion.data_blocks.test.catalog,
+            config=config.data.preparation.catalog
         )
 
         # datablocks partition
         logger.log('INFO', '[START] Dataset partitioning splits')
         # data transform config aliases
-        partition = config.transform.partition
-        scoring = config.transform.scoring
-        hydration = config.transform.hydration
+        partition = config.data.preparation.partition
+        scoring = config.data.preparation.scoring
+        hydration = config.data.preparation.hydration
         # partition config
         partition_config = prepare_data.PartitionParameters(
             val_test_ratios=(partition.val_ratio, partition.test_ratio),
@@ -90,7 +90,7 @@ def prepare(config: configs.RootConfig):
             scoring_alpha=scoring.alpha,
             scoring_beta=scoring.beta,
             max_skew_rate=hydration.max_skew_rate,
-            block_spec=config.foundation.grid.tile_specs_tuple
+            block_spec=config.data.ingestion.grid.tile_specs_tuple
         )
         prepare_data.run_datablocks_partition(
             parsed_catalog,

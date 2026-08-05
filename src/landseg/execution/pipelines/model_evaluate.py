@@ -84,8 +84,8 @@ def evaluate(config: configs.RootConfig):
         dataspecs = geopipe.build_dataspec(
             artifact_paths,
             mode='test_only' if split == 'test' else 'val_only',
-            ids_domain_name=config.dataspecs.domain_ids_name,
-            vec_domain_name=config.dataspecs.domain_vec_name
+            ids_domain_name=config.data.specification.domain_ids_name,
+            vec_domain_name=config.data.specification.domain_vec_name
         )
         logger.set_inputs({'dataspecs': dataspecs.to_dict()})
 

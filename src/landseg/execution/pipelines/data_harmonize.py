@@ -82,13 +82,13 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
         logger.log('INFO', f'Stacking {len(aligned)} {tag} layers')
         harmonize_data.stack_canonical_raster(aligned, output_composite)
 
-    paths = artifacts.ArtifactPaths.from_config(config).etl
+    paths = artifacts.ArtifactPaths.from_config(config).data_harmonization
     paths.init()
 
     canvas_spec = harmonize_data.create_canvas(
-        reference_raster=config.etl.canvas.reference_raster,
-        target_crs=config.etl.canvas.target_crs,
-        target_resolution=config.etl.canvas.target_resolution
+        reference_raster=config.data.harmonization.canvas.reference_raster,
+        target_crs=config.data.harmonization.canvas.target_crs,
+        target_resolution=config.data.harmonization.canvas.target_resolution
     )
 
     logger = harmonize_data.HarmonizationLogger(
@@ -114,52 +114,52 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
 
         # ----- continuous dev feature rasters
         dev_feats = (
-            config.etl.raw_data.dev_features
-            if config.etl.raw_data.dev_features
-            else getattr(config.etl.raw_data, 'features', {})
+            config.data.harmonization.raw_data.dev_features
+            if config.data.harmonization.raw_data.dev_features
+            else getattr(config.data.harmonization.raw_data, 'features', {})
         )
         _process_source(
             source=dev_feats,
             output_composite=paths.dev_feature_raster,
             tag='dev_feature',
-            resampling=config.etl.resampling_continuous,
+            resampling=config.data.harmonization.resampling_continuous,
             logger=logger
         )
         logger.add_stacked_raster('dev_features', paths.dev_feature_raster)
 
         # ----- categorical dev label rasters
         dev_lbls = (
-            config.etl.raw_data.dev_labels
-            if config.etl.raw_data.dev_labels
-            else getattr(config.etl.raw_data, 'labels', {})
+            config.data.harmonization.raw_data.dev_labels
+            if config.data.harmonization.raw_data.dev_labels
+            else getattr(config.data.harmonization.raw_data, 'labels', {})
         )
         _process_source(
             source=dev_lbls,
             output_composite=paths.dev_label_raster,
             tag='dev_label',
-            resampling=config.etl.resampling_categorical,
+            resampling=config.data.harmonization.resampling_categorical,
             logger=logger
         )
         logger.add_stacked_raster('dev_labels', paths.dev_label_raster)
 
         # -----categorical domain rasters
-        if config.etl.raw_data.domains:
+        if config.data.harmonization.raw_data.domains:
             _process_source(
-                source=config.etl.raw_data.domains,
+                source=config.data.harmonization.raw_data.domains,
                 output_composite=paths.domain_raster,
                 tag='domain',
-                resampling=config.etl.resampling_categorical,
+                resampling=config.data.harmonization.resampling_categorical,
                 logger=logger
             )
             logger.add_stacked_raster('domains', paths.domain_raster)
 
         # ----- test holdout feature rasters
-        if config.etl.raw_data.test_features:
+        if config.data.harmonization.raw_data.test_features:
             _process_source(
-                source=config.etl.raw_data.test_features,
+                source=config.data.harmonization.raw_data.test_features,
                 output_composite=paths.test_feature_raster,
                 tag='test_feature',
-                resampling=config.etl.resampling_continuous,
+                resampling=config.data.harmonization.resampling_continuous,
                 logger=logger
             )
             logger.add_stacked_raster(
@@ -167,12 +167,12 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
             )
 
         # ----- test holdout label rasters
-        if config.etl.raw_data.test_labels:
+        if config.data.harmonization.raw_data.test_labels:
             _process_source(
-                source=config.etl.raw_data.test_labels,
+                source=config.data.harmonization.raw_data.test_labels,
                 output_composite=paths.test_label_raster,
                 tag='test_label',
-                resampling=config.etl.resampling_categorical,
+                resampling=config.data.harmonization.resampling_categorical,
                 logger=logger
             )
             logger.add_stacked_raster(
@@ -181,10 +181,10 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
 
         # ----- copy dataset config json if provided
         if (
-            config.etl.dataset_config and
-            os.path.exists(config.etl.dataset_config)
+            config.data.harmonization.dataset_config and
+            os.path.exists(config.data.harmonization.dataset_config)
         ):
-            shutil.copy(config.etl.dataset_config, paths.dataset_config)
+            shutil.copy(config.data.harmonization.dataset_config, paths.dataset_config)
             artifacts.Controller(paths.dataset_config).hash(overwrite=True)
 
         # ----- generate valid feature pixel mask

@@ -49,8 +49,8 @@ def ingest(config: configs.RootConfig):
     '''
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
-    paths = artifact_paths.foundation
-    etl_paths = artifact_paths.etl
+    paths = artifact_paths.data_ingestion
+    etl_paths = artifact_paths.data_harmonization
 
     # locate latest ETL run folder if present
     try:
@@ -73,14 +73,14 @@ def ingest(config: configs.RootConfig):
         # resolve lifecycle policy dynamically
         policy = (
             artifacts.LifecyclePolicy.REBUILD
-            if config.foundation.rebuild
+            if config.data.ingestion.rebuild
             else artifacts.LifecyclePolicy.BUILD_IF_MISSING
         )
 
         # config aliases
-        domain_cfg = config.foundation.domains
-        grid_cfg = config.foundation.grid
-        datablocks_cfg = config.foundation.datablocks
+        domain_cfg = config.data.ingestion.domains
+        grid_cfg = config.data.ingestion.grid
+        datablocks_cfg = config.data.ingestion.datablocks
 
         # world grid
         logger.log('INFO', '[START] World grid preparation')

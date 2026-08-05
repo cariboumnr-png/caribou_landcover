@@ -187,8 +187,8 @@ def _create_block(
     '''Build one valid block for the overfit test.'''
     # construct world grid layout
     logger.log('INFO', 'Preparing world grid')
-    etl_paths = artifacts.ArtifactPaths.from_config(config).etl
-    grid_cfg = config.foundation.grid
+    etl_paths = artifacts.ArtifactPaths.from_config(config).data_harmonization
+    grid_cfg = config.data.ingestion.grid
     world_grid = world_grids.build_grid(
         world_grids.GridParameters(
             mode='ref',
@@ -204,8 +204,8 @@ def _create_block(
 
     # map raster windows onto world grid
     logger.log('INFO', 'Mapping image unto the world grid')
-    etl_paths = artifacts.ArtifactPaths.from_config(config).etl
-    datablocks_cfg = config.foundation.datablocks
+    etl_paths = artifacts.ArtifactPaths.from_config(config).data_harmonization
+    datablocks_cfg = config.data.ingestion.datablocks
     mapped = mapper.map_rasters(
         world_grid,
         etl_paths.feature_raster,

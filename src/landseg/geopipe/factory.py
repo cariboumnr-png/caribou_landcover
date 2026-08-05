@@ -68,12 +68,12 @@ def build_dataspec(
     '''
 
     # artifact fpaths
-    data_schema_fpath = artifact_paths.foundation.data_blocks.dev.schema
-    transform_schema_fpath = artifact_paths.transform.schema
+    data_schema_fpath = artifact_paths.data_ingestion.data_blocks.dev.schema
+    transform_schema_fpath = artifact_paths.data_preparation.schema
 
     # load artifacts
     # domains
-    _paths = artifact_paths.foundation.domains
+    _paths = artifact_paths.data_ingestion.domains
     if ids_domain_name:
         ids_domain = _load_domain(_paths.domain_map_fpath(ids_domain_name))
     else:
