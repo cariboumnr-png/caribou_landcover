@@ -22,7 +22,7 @@
 '''Unit tests for transform schema builder logic (schema.py).'''
 
 # local imports
-import landseg.geopipe.transform.schema as schema
+import landseg.geopipe.prepare.schema as schema
 
 
 # ----- `build_schema` tests
@@ -38,7 +38,7 @@ def test_build_schema(mocker):
     mock_schema_ctrl = mocker.Mock()
     mock_schema_ctrl.fetch.return_value = None # force schema creation
     mocker.patch(
-        'landseg.geopipe.transform.schema.SchemaCtrl',
+        'landseg.geopipe.prepare.schema.SchemaCtrl',
         return_value=mock_schema_ctrl
     )
 

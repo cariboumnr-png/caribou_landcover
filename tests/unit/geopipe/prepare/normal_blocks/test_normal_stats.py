@@ -19,30 +19,61 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-'''Unit tests for data partition label statistics (stats.py).'''
+'''Unit tests for normal blocks image statistics aggregation (stats.py).'''
 
+# third-party imports
+import numpy
+import pytest
 # local imports
-import landseg.geopipe.transform.data_partition.stats as part_stats
+import landseg.geopipe.prepare.normal_blocks.stats as norm_stats
 
 
-# ----- `count_label` tests
-def test_count_label_success(mocker):
+# ----- `aggregate_image_stats` tests
+def test_aggregate_image_stats_success(mocker):
     '''
-    Given: A list of DataBlock file paths.
-    When: Running count_label to compute class statistics.
-    Then: Correctly aggregate absolute class frequency counts across
-        all blocks.
+    Given: A list of DataBlock paths with mock band metrics.
+    When: Running aggregate_image_stats.
+    Then: Correctly aggregate band means and standard deviations.
     '''
+    # mock geo_core.DataBlock.load to return a fake data block with sample data
     mock_block = mocker.Mock()
+    mock_block.data.image = numpy.random.rand(2, 256, 256).astype(numpy.float32)
+
+    # manifest stats for 2 bands
     mock_block.manifest = {
-        'label_count': {
-            'head1': [10, 20],
+        'image_stats': {
+            'band_0': {
+                'count': 100,
+                'mean': 10.0,
+                'm2': 400.0,
+            },
+            'band_1': {
+                'count': 100,
+                'mean': 20.0,
+                'm2': 900.0,
+            }
         }
     }
 
     mocker.patch('landseg.geopipe.core.DataBlock.load', return_value=mock_block)
 
-    block_files = ['file1.npz', 'file2.npz']
-    result = part_stats.count_label(block_files)
+    input_blocks = {'block1.npz', 'block2.npz'}
+    result = norm_stats.aggregate_image_stats(input_blocks)
 
-    assert result == {'head1': [20, 40]}
+    # verify 2 bands are calculated
+    assert len(result) == 2
+    assert 'band_0' in result
+    assert 'band_1' in result
+    assert result['band_0']['total_count'] == 200 # 2 blocks * 100
+    assert result['band_0']['current_mean'] == pytest.approx(10.0)
+    assert result['band_0']['std'] > 0.0
+
+
+def test_aggregate_image_stats_empty():
+    '''
+    Given: An empty input block set.
+    When: Running aggregate_image_stats.
+    Then: Raise a ValueError.
+    '''
+    with pytest.raises(ValueError, match='input_blocks cannot be empty'):
+        norm_stats.aggregate_image_stats(set())

@@ -24,7 +24,7 @@
 '''Unit tests for catalog data blocks adapter logic (adapter.py).'''
 
 # local imports
-import landseg.geopipe.transform.adapter as adapter
+import landseg.geopipe.prepare.adapter as adapter
 
 
 # ----- `data_blocks_adapter` tests

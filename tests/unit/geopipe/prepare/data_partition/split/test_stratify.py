@@ -25,7 +25,7 @@
 import numpy
 import pytest
 # local imports
-import landseg.geopipe.transform.data_partition.split.stratify as stratify
+import landseg.geopipe.prepare.data_partition.split.stratify as stratify
 
 
 # ----- `stratified_splitter` tests

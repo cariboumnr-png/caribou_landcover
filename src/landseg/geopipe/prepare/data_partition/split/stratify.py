@@ -40,7 +40,7 @@ import typing
 # third-party imports
 import numpy
 # local imports
-import landseg.geopipe.transform.common.alias as alias
+import landseg.geopipe.prepare.common.alias as alias
 
 
 # ----- `SplitsResult` container

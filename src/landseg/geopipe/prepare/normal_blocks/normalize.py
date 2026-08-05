@@ -33,7 +33,7 @@ import os
 import numpy
 # local imports
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.transform.common.alias as alias
+import landseg.geopipe.prepare.common.alias as alias
 import landseg.utils as utils
 
 

@@ -36,7 +36,7 @@ import time
 import landseg._constants as c
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.transform.common as common
+import landseg.geopipe.prepare.common as common
 
 # typing aliases
 PartitionCtrl = artifacts.Controller[geo_core.BlocksPartition]

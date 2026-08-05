@@ -33,7 +33,7 @@ import dataclasses
 import os
 # local imports
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.transform.data_partition.split as split
+import landseg.geopipe.prepare.data_partition.split as split
 
 
 # ----- `PartitionParameters` configuration

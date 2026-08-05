@@ -29,7 +29,7 @@ statistics, normalizes all splits, and emits the final dataset schema.
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
-import landseg.geopipe.transform as transform
+import landseg.geopipe.prepare as prepare_data
 
 
 def prepare(config: configs.RootConfig):
@@ -50,7 +50,7 @@ def prepare(config: configs.RootConfig):
     paths = artifact_paths.transform
 
     # init a TransformLogger
-    logger = transform.TransformLogger(
+    logger = prepare_data.TransformLogger(
         name='prep',
         log_file=paths.report,
         enable_file_log=False
@@ -69,7 +69,7 @@ def prepare(config: configs.RootConfig):
 
 
         # parse catalog from data foundation
-        parsed_catalog = transform.data_blocks_adapter(
+        parsed_catalog = prepare_data.data_blocks_adapter(
             artifact_paths.foundation.data_blocks.dev.catalog,
             artifact_paths.foundation.data_blocks.dev.schema,
             artifact_paths.foundation.data_blocks.test.catalog,
@@ -83,7 +83,7 @@ def prepare(config: configs.RootConfig):
         scoring = config.transform.scoring
         hydration = config.transform.hydration
         # partition config
-        partition_config = transform.PartitionParameters(
+        partition_config = prepare_data.PartitionParameters(
             val_test_ratios=(partition.val_ratio, partition.test_ratio),
             buffer_step=partition.buffer_step,
             reward_ratios=scoring.reward,
@@ -92,7 +92,7 @@ def prepare(config: configs.RootConfig):
             max_skew_rate=hydration.max_skew_rate,
             block_spec=config.foundation.grid.tile_specs_tuple
         )
-        transform.run_datablocks_partition(
+        prepare_data.run_datablocks_partition(
             parsed_catalog,
             paths,
             partition_config,
@@ -106,7 +106,7 @@ def prepare(config: configs.RootConfig):
 
         # normalize
         logger.log('INFO', '[START] Block normalization')
-        transform.run_normalize_blocks(
+        prepare_data.run_normalize_blocks(
             paths,
             policy=policy,
             logger=logger
@@ -117,7 +117,7 @@ def prepare(config: configs.RootConfig):
 
         # build schema
         logger.log('INFO', '[START] Transform schema building')
-        transform.build_schema(
+        prepare_data.build_schema(
             paths,
             policy=policy,
             logger=logger

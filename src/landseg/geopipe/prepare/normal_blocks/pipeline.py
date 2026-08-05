@@ -34,9 +34,9 @@ import time
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.transform.common as common
-import landseg.geopipe.transform.normal_blocks.normalize as normalize
-import landseg.geopipe.transform.normal_blocks.stats as stats
+import landseg.geopipe.prepare.common as common
+import landseg.geopipe.prepare.normal_blocks.normalize as normalize
+import landseg.geopipe.prepare.normal_blocks.stats as stats
 
 # typing aliases
 PartitionCtrl = artifacts.Controller[geo_core.BlocksPartition]

@@ -29,7 +29,7 @@ import os
 import numpy
 # local imports
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.transform.normal_blocks.normalize as normalize
+import landseg.geopipe.prepare.normal_blocks.normalize as normalize
 
 
 # ----- `_normalize_image` tests
