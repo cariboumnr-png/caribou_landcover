@@ -187,12 +187,13 @@ def _create_block(
     '''Build one valid block for the overfit test.'''
     # construct world grid layout
     logger.log('INFO', 'Preparing world grid')
+    etl_paths = artifacts.ArtifactPaths.from_config(config).etl
     grid_cfg = config.foundation.grid
     world_grid = world_grids.build_grid(
         world_grids.GridParameters(
-            mode=grid_cfg.mode,  # type: ignore
+            mode='ref',
             crs=grid_cfg.crs,
-            ref_fpath=grid_cfg.extent.filepath,
+            ref_fpath=etl_paths.valid_mask_raster,
             origin=grid_cfg.extent.origin,
             pixel_size=grid_cfg.extent.pixel_size,
             grid_extent=grid_cfg.extent.grid_extent,
@@ -203,16 +204,17 @@ def _create_block(
 
     # map raster windows onto world grid
     logger.log('INFO', 'Mapping image unto the world grid')
+    etl_paths = artifacts.ArtifactPaths.from_config(config).etl
     datablocks_cfg = config.foundation.datablocks
     mapped = mapper.map_rasters(
         world_grid,
-        datablocks_cfg.filepaths.dev_image,
-        datablocks_cfg.filepaths.dev_label,
+        etl_paths.feature_raster,
+        etl_paths.label_raster,
     )
 
     # load dataset config JSON
     logger.log('INFO', 'Building a single data block')
-    ctrl = DatasetConfigCtrl.load_json_or_fail(datablocks_cfg.filepaths.config)
+    ctrl = DatasetConfigCtrl.load_json_or_fail(etl_paths.dataset_config)
     ctrl.hash(overwrite=False)
     dataset_config = ctrl.fetch()
     assert dataset_config
@@ -220,11 +222,11 @@ def _create_block(
     # construct `RasterReadInput` mapping for mapped windows
     inputs_map = {
         geo_utils.xy_name(coord): assembler.RasterReadInput(
-            image_fpath=datablocks_cfg.filepaths.dev_image,
+            image_fpath=etl_paths.feature_raster,
             image_window=mapped.image[coord],
             image_band_map=dataset_config['image_band_map'],
-            image_dem_pad_px=datablocks_cfg.general.image_dem_pad,
-            label_fpath=datablocks_cfg.filepaths.dev_label,
+            image_dem_pad_px=datablocks_cfg.image_dem_pad,
+            label_fpath=etl_paths.label_raster,
             label_window=mapped.label[coord] if mapped.label else None,
             label_specs=dataset_config.get('label_specs'),
         )

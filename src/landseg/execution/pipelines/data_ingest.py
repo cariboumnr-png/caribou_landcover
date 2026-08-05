@@ -26,6 +26,8 @@ Prepares the world grid, materializes domain knowledge, and builds
 the immutable raw block catalogue for later experiments.
 '''
 
+# standard imports
+import os
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
@@ -48,6 +50,13 @@ def ingest(config: configs.RootConfig):
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
     paths = artifact_paths.foundation
+    etl_paths = artifact_paths.etl
+
+    # locate latest ETL run folder if present
+    try:
+        etl_paths.get_run_folder()
+    except FileNotFoundError:
+        pass
 
     # init a FoundationLogger with summary
     logger = foundation.FoundationLogger(
@@ -76,9 +85,9 @@ def ingest(config: configs.RootConfig):
         # world grid
         logger.log('INFO', '[START] World grid preparation')
         grid_config = foundation.GridParameters(
-            mode=grid_cfg.mode, # type: ignore
+            mode='ref',
             crs=grid_cfg.crs,
-            ref_fpath=grid_cfg.extent.filepath,
+            ref_fpath=etl_paths.valid_mask_raster,
             origin=grid_cfg.extent.origin,
             pixel_size=grid_cfg.extent.pixel_size,
             grid_extent=grid_cfg.extent.grid_extent,
@@ -98,20 +107,25 @@ def ingest(config: configs.RootConfig):
         logger.log('INFO', f'[COMPLETE] World grid preparation (D_{d:.2f}s)')
 
         # domain maps
-        if not domain_cfg.files:
-            logger.log('INFO', '[NOTE] No domain knowledge layers provided')
-        else:
-            logger.log('INFO', '[START] Domain maps preparation')
-            gid = world_grid.gid
+        gid = world_grid.gid
+        if os.path.exists(etl_paths.domain_raster):
+            logger.log(
+                'INFO',
+                '[START] Domain maps preparation (canonical stacked domains)'
+            )
             domain_config = [
                 foundation.DomainBuildingParameters(
-                    input_fpath=dm.path,
-                    domain_fpath=paths.domains.domain_map_fpath(dm.name),
-                    tiles_fpath=paths.domains.mapped_tiles_fpath(dm.name, gid),
-                    index_base=dm.index_base,
+                    input_fpath=etl_paths.domain_raster,
+                    domain_fpath=paths.domains.domain_map_fpath(
+                        'stacked_domains'
+                    ),
+                    tiles_fpath=paths.domains.mapped_tiles_fpath(
+                        'stacked_domains', gid
+                    ),
+                    index_base=1,
                     valid_threshold=domain_cfg.valid_threshold,
                     target_variance=domain_cfg.target_variance,
-                ) for dm in domain_cfg.files
+                )
             ]
             foundation.prepare_domain_maps(
                 world_grid,
@@ -119,23 +133,26 @@ def ingest(config: configs.RootConfig):
                 policy=policy,
                 logger=logger,
             )
-
-            # log to console with duration
             d = sum(dm['duration_sec'] for dm in logger.summary['domain_maps'])
             logger.log(
                 'INFO',
                 f'[COMPLETE] Domain maps preparation (D_{d:.2f}s)'
             )
+        else:
+            logger.log('INFO', '[NOTE] No domain knowledge layers provided')
+
+        # dataset config path from etl
+        data_config_fpath = etl_paths.dataset_config
 
         # build dev data blocks
         logger.log('INFO', '[START] Development data blocks building')
         data_blocks_config = foundation.BlockBuildingParameters(
             stage='dev',
-            image_fpath=datablocks_cfg.filepaths.dev_image,
-            label_fpath=datablocks_cfg.filepaths.dev_label,
-            data_config_fpath=datablocks_cfg.filepaths.config,
-            dem_pad=datablocks_cfg.general.image_dem_pad,
-            ignore_index=datablocks_cfg.general.ignore_index,
+            image_fpath=etl_paths.feature_raster,
+            label_fpath=etl_paths.label_raster,
+            data_config_fpath=data_config_fpath,
+            dem_pad=datablocks_cfg.image_dem_pad,
+            ignore_index=datablocks_cfg.ignore_index,
         )
         foundation.run_blocks_building(
             world_grid,
@@ -152,18 +169,18 @@ def ingest(config: configs.RootConfig):
             f'[COMPLETE] Development data blocks preparation (D_{d:.2f}s)'
         )
 
-        # build test data blocks - if provided
-        if not datablocks_cfg.has_test_data:
-            logger.log('INFO', '[NOTE] Test holdout dataset not provided')
+        # build test data blocks - if provided by ETL
+        if not etl_paths.has_test_data:
+            logger.log('INFO', '[NOTE] Test holdout dataset not provided by ETL')
         else:
             logger.log('INFO', '[START] Test data blocks building')
             data_blocks_config = foundation.BlockBuildingParameters(
                 stage='test',
-                image_fpath=datablocks_cfg.filepaths.test_image,
-                label_fpath=datablocks_cfg.filepaths.test_label,
-                data_config_fpath=datablocks_cfg.filepaths.config,
-                dem_pad=datablocks_cfg.general.image_dem_pad,
-                ignore_index=datablocks_cfg.general.ignore_index,
+                image_fpath=etl_paths.test_feature_raster,
+                label_fpath=etl_paths.test_label_raster,
+                data_config_fpath=data_config_fpath,
+                dem_pad=datablocks_cfg.image_dem_pad,
+                ignore_index=datablocks_cfg.ignore_index,
             )
             foundation.run_blocks_building(
                 world_grid,
