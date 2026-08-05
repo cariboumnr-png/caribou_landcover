@@ -39,7 +39,7 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
 
     # override foundation fields
-    grid_cfg = cfg_schema.foundation.grid
+    grid_cfg = cfg_schema.data.ingestion.grid
     grid_cfg.mode = 'ref'
     grid_cfg.crs = 'EPSG:3161'
     grid_cfg.tile_specs.size_row = 256

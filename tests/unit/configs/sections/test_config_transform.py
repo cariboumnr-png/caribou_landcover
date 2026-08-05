@@ -22,23 +22,23 @@
 # pylint: disable=protected-access
 
 '''
-Unit tests for `landseg.configs.schema.sections.transform`.
+Unit tests for `landseg.configs.schema.sections.data`.
 '''
 
 # third-party imports
 import pytest
 # local imports
-import landseg.configs.schema.sections.transform as transform
+import landseg.configs.schema.sections.data as data
 
 
 # ----- `DataTransform` tests
-def test_data_transform_defaults_and_validation():
+def test_data_data_defaults_and_validation():
     '''
     Given: A default `DataTransform` instance.
     When: Calling `DataTransform.validate()`.
     Then: Initialize default partition ratios and rebuild flags.
     '''
-    dt = transform.DataTransform()
+    dt = data._PreparationCfg()
     dt.validate()
 
     assert dt.rebuild is False
@@ -53,10 +53,10 @@ def test_catalog_view_validation():
     When: `_CatalogView.validate()` is called.
     Then: Validate pixel threshold boundaries or raise ValueError.
     '''
-    catalog = transform._CatalogView(valid_pxs={'image': 0.8, 'label': 0.95})
+    catalog = data._CatalogView(valid_pxs={'image': 0.8, 'label': 0.95})
     catalog.validate()
 
-    invalid_catalog = transform._CatalogView(valid_pxs={'image': 1.5})
+    invalid_catalog = data._CatalogView(valid_pxs={'image': 1.5})
     with pytest.raises(ValueError, match='valid threshold'):
         invalid_catalog.validate()
 
@@ -67,14 +67,14 @@ def test_partition_validation():
     When: `_Partition.validate()` is executed.
     Then: Accept valid ratio bounds [0.0, 1.0] or raise ValueError.
     '''
-    partition = transform._Partition(val_ratio=0.2, test_ratio=0.1)
+    partition = data._Partition(val_ratio=0.2, test_ratio=0.1)
     partition.validate()
 
     with pytest.raises(ValueError, match='validation block ratio'):
-        transform._Partition(val_ratio=-0.1).validate()
+        data._Partition(val_ratio=-0.1).validate()
 
     with pytest.raises(ValueError, match='test holdout block ratio'):
-        transform._Partition(test_ratio=1.5).validate()
+        data._Partition(test_ratio=1.5).validate()
 
 
 def test_scoring_and_hydration_validation():
@@ -83,14 +83,14 @@ def test_scoring_and_hydration_validation():
     When: `.validate()` is called with valid or negative boundaries.
     Then: Pass valid parameters or raise ValueError for negative rates.
     '''
-    scoring = transform._Scoring(alpha=0.5, beta=0.5)
+    scoring = data._Scoring(alpha=0.5, beta=0.5)
     scoring.validate()
 
     with pytest.raises(ValueError, match='scoring alpha'):
-        transform._Scoring(alpha=-1.0).validate()
+        data._Scoring(alpha=-1.0).validate()
 
-    hydration = transform._Hydration(max_skew_rate=5.0)
+    hydration = data._Hydration(max_skew_rate=5.0)
     hydration.validate()
 
     with pytest.raises(ValueError, match='hydration skew ratio'):
-        transform._Hydration(max_skew_rate=-2.0).validate()
+        data._Hydration(max_skew_rate=-2.0).validate()

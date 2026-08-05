@@ -22,13 +22,13 @@
 # pylint: disable=protected-access
 
 '''
-Unit tests for `landseg.configs.schema.sections.foundation`.
+Unit tests for `landseg.configs.schema.sections.data`.
 '''
 
 # third-party imports
 import pytest
 # local imports
-import landseg.configs.schema.sections.foundation as foundation
+import landseg.configs.schema.sections.data as data
 
 
 # ----- `_TileSpecs` tests
@@ -38,7 +38,7 @@ def test_tile_specs_validation():
     When: `_TileSpecs.validate()` is invoked.
     Then: Accept valid square configs or raise ValueError for invalid.
     '''
-    tile_specs = foundation._TileSpecs(
+    tile_specs = data._TileSpecs(
         size_row=256,
         size_col=256,
         overlap_row=0,
@@ -47,10 +47,10 @@ def test_tile_specs_validation():
     tile_specs.validate()
 
     with pytest.raises(ValueError, match='Only square blocks are supported'):
-        foundation._TileSpecs(size_row=256, size_col=512).validate()
+        data._TileSpecs(size_row=256, size_col=512).validate()
 
     with pytest.raises(ValueError, match='Only equal row/column stride'):
-        foundation._TileSpecs(
+        data._TileSpecs(
             size_row=256,
             size_col=256,
             overlap_row=10,
@@ -58,10 +58,10 @@ def test_tile_specs_validation():
         ).validate()
 
     with pytest.raises(ValueError, match='Block size must be positive'):
-        foundation._TileSpecs(size_row=0, size_col=0).validate()
+        data._TileSpecs(size_row=0, size_col=0).validate()
 
     with pytest.raises(ValueError, match='stride must be zero or positive'):
-        foundation._TileSpecs(
+        data._TileSpecs(
             size_row=256,
             size_col=256,
             overlap_row=-1,
@@ -76,7 +76,7 @@ def test_grid_validation():
     When: `_Grid.validate()` is called.
     Then: Pass valid ref grid definitions and raise ValueError for non-ref modes.
     '''
-    grid_ref = foundation._Grid(
+    grid_ref = data._Grid(
         mode='ref',
         crs='EPSG:32617',
     )
@@ -85,14 +85,14 @@ def test_grid_validation():
 
     # non-ref mode raises error
     with pytest.raises(ValueError, match='Invalid grid mode'):
-        foundation._Grid(mode='aoi', crs='EPSG:32617').validate()
+        data._Grid(mode='aoi', crs='EPSG:32617').validate()
 
     with pytest.raises(ValueError, match='Invalid grid mode'):
-        foundation._Grid(mode='invalid', crs='EPSG:32617').validate()
+        data._Grid(mode='invalid', crs='EPSG:32617').validate()
 
     # invalid CRS format
     with pytest.raises(ValueError, match='Invalid CRS identifier'):
-        foundation._Grid(mode='ref', crs='WGS84').validate()
+        data._Grid(mode='ref', crs='WGS84').validate()
 
 
 # ----- `_Domains` tests
@@ -102,24 +102,24 @@ def test_domains_management():
     When: `_Domains.validate()` is called.
     Then: Validate threshold settings.
     '''
-    domains = foundation._Domains(valid_threshold=0.7, target_variance=0.9)
+    domains = data._Domains(valid_threshold=0.7, target_variance=0.9)
     domains.validate()
     assert domains.valid_threshold == 0.7
 
 
 # ----- `_DataBlocks` & `DataFoundation` tests
-def test_datablocks_and_foundation_validation():
+def test_datablocks_and_data_validation():
     '''
     Given: Valid `_DataBlocks` instance.
     When: `_DataBlocks.validate()` and `DataFoundation.validate()` run.
-    Then: Validate foundation config.
+    Then: Validate data config.
     '''
-    blocks = foundation._DataBlocks(name='test_blocks')
+    blocks = data._DataBlocks(name='test_blocks')
     blocks.validate()
 
-    grid = foundation._Grid(
+    grid = data._Grid(
         mode='ref',
         crs='EPSG:32617',
     )
-    df = foundation.DataFoundation(grid=grid, datablocks=blocks)
+    df = data._IngestionCfg(grid=grid, datablocks=blocks)
     df.validate()

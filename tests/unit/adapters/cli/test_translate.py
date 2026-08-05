@@ -47,9 +47,9 @@ def test_translate_user_config_data_harmonize():
     })
     result = translate_mod.translate_user_config(user_cfg)
 
-    assert result.etl.canvas.target_crs == 'EPSG:3161'
-    assert result.etl.canvas.target_resolution == 20.0
-    assert result.etl.output_dpath == '/path/exp/harmonized'
+    assert result.data.harmonization.canvas.target_crs == 'EPSG:3161'
+    assert result.data.harmonization.canvas.target_resolution == 20.0
+    assert result.data.harmonization.output_dpath == '/path/exp/harmonized'
 
 
 def test_translate_user_config_data_ingest():
@@ -68,11 +68,11 @@ def test_translate_user_config_data_ingest():
     })
     result = translate_mod.translate_user_config(user_cfg)
 
-    assert result.foundation.grid.crs == 'EPSG:32617'
-    assert result.foundation.grid.tile_specs.size_row == 256
-    assert result.foundation.grid.tile_specs.size_col == 256
-    assert result.foundation.datablocks.name == 'test_ds'
-    assert result.foundation.output_dpath == '/path/exp/artifacts/foundation'
+    assert result.data.ingestion.grid.crs == 'EPSG:32617'
+    assert result.data.ingestion.grid.tile_specs.size_row == 256
+    assert result.data.ingestion.grid.tile_specs.size_col == 256
+    assert result.data.ingestion.datablocks.name == 'test_ds'
+    assert result.data.ingestion.output_dpath == '/path/exp/artifacts/foundation'
 
 
 def test_translate_user_config_data_prepare():
@@ -92,11 +92,11 @@ def test_translate_user_config_data_prepare():
     })
     result = translate_mod.translate_user_config(user_cfg)
 
-    assert result.transform.partition.val_ratio == 0.2
-    assert result.transform.partition.test_ratio == 0.1
-    assert result.transform.catalog.focal_target == 'cover'
-    assert result.transform.rebuild is True
-    assert result.transform.output_dpath == '/path/exp/artifacts/transform'
+    assert result.data.preparation.partition.val_ratio == 0.2
+    assert result.data.preparation.partition.test_ratio == 0.1
+    assert result.data.preparation.catalog.focal_target == 'cover'
+    assert result.data.preparation.rebuild is True
+    assert result.data.preparation.output_dpath == '/path/exp/artifacts/transform'
 
 
 def test_translate_user_config_model_train():

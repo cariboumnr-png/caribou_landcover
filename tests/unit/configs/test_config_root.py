@@ -53,7 +53,7 @@ def test_root_config_defaults_and_as_dict():
     cfg_dict = root.as_dict
     assert isinstance(cfg_dict, dict)
     assert 'execution' in cfg_dict
-    assert 'ingestion' in cfg_dict
+    assert 'data' in cfg_dict
     assert 'models' in cfg_dict
 
 

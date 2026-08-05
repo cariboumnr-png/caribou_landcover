@@ -38,13 +38,13 @@ def test_artifact_paths_hierarchy():
     '''
     Given: An experiment root directory string.
     When: Instantiating `ArtifactPaths`.
-    Then: Return joined child `foundation`, `transform`, `etl`, and `session` namespaces.
+    Then: Return joined namespaces.
     '''
     r = os.path.join('/tmp', 'exp')
     art = paths_mod.ArtifactPaths(root=r)
-    assert art.data_ingestion.root == os.path.join(r, 'foundation')
-    assert art.data_preparation.root == os.path.join(r, 'transform')
-    assert art.data_harmonization.root == os.path.join(r, 'harmonized')
+    assert art.data_harmonization.root == os.path.join(r, 'harmonized_data')
+    assert art.data_ingestion.root == os.path.join(r, 'ingested_data')
+    assert art.data_preparation.root == os.path.join(r, 'prepared_data')
     assert art.session.root == os.path.join(r, 'results')
 
 
@@ -81,9 +81,9 @@ def test_artifact_paths_from_config():
     cfg.session.output_dpath = '/tmp/exp/results'
     art = paths_mod.ArtifactPaths.from_config(cfg)
     assert art.root == '/tmp/exp'
-    assert art.data_harmonization.root == '/tmp/exp/artifacts/harmonized'
-    assert art.data_ingestion.root == '/tmp/exp/artifacts/foundation'
-    assert art.data_preparation.root == '/tmp/exp/artifacts/transform'
+    assert art.data_harmonization.root == '/tmp/exp/artifacts/harmonized_data'
+    assert art.data_ingestion.root == '/tmp/exp/artifacts/ingested_data'
+    assert art.data_preparation.root == '/tmp/exp/artifacts/prepared_data'
     assert art.session.root == '/tmp/exp/results'
 
 

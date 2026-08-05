@@ -252,8 +252,8 @@ def test_compare_config_section_missing_artifact(tmp_path):
     diff = executor._compare_config_section(
         str(tmp_path / "missing.json"),
         "foundation",
-        secs.DataFoundation(
-            grid=secs.foundation._Grid(mode='grid'), output_dpath='out'
+        secs.data._IngestionCfg(
+            grid=secs.data._Grid(mode='grid'), output_dpath='out'
         )
     )
     assert isinstance(diff, dict) and not diff
@@ -267,22 +267,22 @@ def test_compare_config_section_with_differences(tmp_path):
     Then: Return the differences found.
     '''
     artifact_path = str(tmp_path / "config.json")
-    saved_config = {'foundation': {'grid': 'old_grid', 'output_dpath': 'out'}}
+    saved_config = {'ingestion': {'grid': 'old_grid', 'output_dpath': 'out'}}
     artifacts.Controller(artifact_path).persist(saved_config)
 
-    current_config = secs.DataFoundation(
-        grid=secs.foundation._Grid(mode='new_grid'), output_dpath='out'
+    current_config = secs.data._IngestionCfg(
+        grid=secs.data._Grid(mode='new_grid'), output_dpath='out'
     )
 
     diff = executor._compare_config_section(
         artifact_path,
-        "foundation",
+        "ingestion",
         current_config
     )
 
     # We expect 'new_grid' to be normalized as an absolute path vs 'old_grid'
     # depending on normalization
-    assert 'foundation.grid' in diff
+    assert 'ingestion.grid' in diff
 
 
 # ----- execute_pipeline logic
