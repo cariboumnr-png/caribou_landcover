@@ -31,7 +31,7 @@ for downstream domain-feature constructio
 import numpy
 # local imports
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.common.alias as alias
+import landseg.geopipe.ingest.common.alias as alias
 import landseg.geopipe.utils as geo_utils
 import landseg.utils as utils
 

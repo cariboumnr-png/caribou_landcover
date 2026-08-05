@@ -36,7 +36,7 @@ import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.data_blocks.manifest as manifest
+import landseg.geopipe.ingest.data_blocks.manifest as manifest
 import landseg.geopipe.utils as geo_utils
 
 # typing aliases

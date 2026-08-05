@@ -28,9 +28,9 @@ import os
 import numpy
 # local imports
 import landseg.artifacts as artifacts
-import landseg.geopipe.foundation as foundation
-import landseg.geopipe.foundation.common as common
-import landseg.geopipe.foundation.data_blocks as data_blocks
+import landseg.geopipe.ingest as ingest_mod
+import landseg.geopipe.ingest.common as common
+import landseg.geopipe.ingest.data_blocks as data_blocks
 
 
 # ----- pipeline execution
@@ -68,7 +68,7 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factor
     )
 
     # Prepare world grid from the reference raster
-    grid_config = foundation.GridParameters(
+    grid_config = ingest_mod.GridParameters(
         mode='ref',
         crs='EPSG:3161',
         ref_fpath=str(dev_img),
@@ -79,7 +79,7 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factor
         tile_specs=(256, 256, 128, 128)
     )
     grid_file = str(tmp_path / 'grid.json')
-    world_grid = foundation.prepare_world_grid(
+    world_grid = ingest_mod.prepare_world_grid(
         grid_file,
         grid_config,
         policy=artifacts.LifecyclePolicy.REBUILD,
@@ -164,7 +164,7 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths, dummy_geotiff_facto
     )
 
     # Prepare world grid from the reference raster
-    grid_config = foundation.GridParameters(
+    grid_config = ingest_mod.GridParameters(
         mode='ref',
         crs='EPSG:3161',
         ref_fpath=str(test_img),
@@ -175,7 +175,7 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths, dummy_geotiff_facto
         tile_specs=(256, 256, 128, 128)
     )
     grid_file = str(tmp_path / 'grid.json')
-    world_grid = foundation.prepare_world_grid(
+    world_grid = ingest_mod.prepare_world_grid(
         grid_file,
         grid_config,
         policy=artifacts.LifecyclePolicy.REBUILD,

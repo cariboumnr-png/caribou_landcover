@@ -26,7 +26,7 @@ import numpy
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.domain_maps.lifecycle as domain_lifecycle
+import landseg.geopipe.ingest.domain_maps.lifecycle as domain_lifecycle
 
 
 # ----- `prepare_domain_maps` tests
@@ -63,7 +63,7 @@ def test_prepare_domain_maps_build_and_load(tmp_path, mocker):
         (0, 1): numpy.array([[1, 1], [1, 1]]),
     }
     mocker.patch(
-        'landseg.geopipe.foundation.domain_maps.lifecycle._prep_mapping',
+        'landseg.geopipe.ingest.domain_maps.lifecycle._prep_mapping',
         return_value=mock_tiles
     )
 

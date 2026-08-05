@@ -41,10 +41,10 @@ import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.common as common
-import landseg.geopipe.foundation.data_blocks.assembler as assembler
-import landseg.geopipe.foundation.data_blocks.manifest as manifest
-import landseg.geopipe.foundation.data_blocks.mapper as mapper
+import landseg.geopipe.ingest.common as common
+import landseg.geopipe.ingest.data_blocks.assembler as assembler
+import landseg.geopipe.ingest.data_blocks.manifest as manifest
+import landseg.geopipe.ingest.data_blocks.mapper as mapper
 
 # --------------------------------private types--------------------------------
 class _PipelinePaths(typing.Protocol):

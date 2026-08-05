@@ -24,7 +24,7 @@
 # third-party imports
 import pytest
 # local imports
-import landseg.geopipe.foundation.world_grids.builder as grid_builder
+import landseg.geopipe.ingest.world_grids.builder as grid_builder
 
 
 # ----- `build_grid` tests

@@ -33,8 +33,8 @@ import copy
 import dataclasses
 # local imports
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.common.alias as alias
-import landseg.geopipe.foundation.data_blocks.mapper as mapper
+import landseg.geopipe.ingest.common.alias as alias
+import landseg.geopipe.ingest.data_blocks.mapper as mapper
 
 # ------------------------------Public  Dataclass------------------------------
 @dataclasses.dataclass

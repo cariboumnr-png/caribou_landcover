@@ -39,8 +39,8 @@ import os
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.common.alias as alias
-import landseg.geopipe.foundation.data_blocks.assembler as assembler
+import landseg.geopipe.ingest.common.alias as alias
+import landseg.geopipe.ingest.data_blocks.assembler as assembler
 import landseg.geopipe.utils as geo_utils
 import landseg.utils as utils
 

@@ -26,8 +26,8 @@ import time
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.common as common
-import landseg.geopipe.foundation.world_grids as world_grids
+import landseg.geopipe.ingest.common as common
+import landseg.geopipe.ingest.world_grids as world_grids
 
 # typing aliases
 D = list[list[int]]

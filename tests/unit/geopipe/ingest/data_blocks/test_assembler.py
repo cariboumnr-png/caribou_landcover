@@ -30,8 +30,8 @@ import pytest
 import rasterio
 # local imports
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.common.alias as alias
-import landseg.geopipe.foundation.data_blocks.assembler as assembler
+import landseg.geopipe.ingest.common.alias as alias
+import landseg.geopipe.ingest.data_blocks.assembler as assembler
 import landseg.geopipe.utils as geo_utils
 
 

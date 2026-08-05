@@ -31,7 +31,7 @@ import os
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
-import landseg.geopipe.foundation as foundation
+import landseg.geopipe.ingest as ingest_mod
 
 
 def ingest(config: configs.RootConfig):
@@ -59,7 +59,7 @@ def ingest(config: configs.RootConfig):
         pass
 
     # init a FoundationLogger with summary
-    logger = foundation.FoundationLogger(
+    logger = ingest_mod.FoundationLogger(
         name='ingest',
         log_file=paths.report,
         enable_file_log=False
@@ -84,7 +84,7 @@ def ingest(config: configs.RootConfig):
 
         # world grid
         logger.log('INFO', '[START] World grid preparation')
-        grid_config = foundation.GridParameters(
+        grid_config = ingest_mod.GridParameters(
             mode='ref',
             crs=grid_cfg.crs,
             ref_fpath=etl_paths.valid_mask_raster,
@@ -94,7 +94,7 @@ def ingest(config: configs.RootConfig):
             grid_shape=grid_cfg.extent.grid_shape,
             tile_specs=grid_cfg.tile_specs_tuple,
         )
-        world_grid = foundation.prepare_world_grid(
+        world_grid = ingest_mod.prepare_world_grid(
             paths.grids.fpath(grid_cfg.tile_specs_tuple),
             grid_config,
             policy=policy,
@@ -114,7 +114,7 @@ def ingest(config: configs.RootConfig):
                 '[START] Domain maps preparation (canonical stacked domains)'
             )
             domain_config = [
-                foundation.DomainBuildingParameters(
+                ingest_mod.DomainBuildingParameters(
                     input_fpath=etl_paths.domain_raster,
                     domain_fpath=paths.domains.domain_map_fpath(
                         'stacked_domains'
@@ -127,7 +127,7 @@ def ingest(config: configs.RootConfig):
                     target_variance=domain_cfg.target_variance,
                 )
             ]
-            foundation.prepare_domain_maps(
+            ingest_mod.prepare_domain_maps(
                 world_grid,
                 domain_config,
                 policy=policy,
@@ -146,7 +146,7 @@ def ingest(config: configs.RootConfig):
 
         # build dev data blocks
         logger.log('INFO', '[START] Development data blocks building')
-        data_blocks_config = foundation.BlockBuildingParameters(
+        data_blocks_config = ingest_mod.BlockBuildingParameters(
             stage='dev',
             image_fpath=etl_paths.feature_raster,
             label_fpath=etl_paths.label_raster,
@@ -154,7 +154,7 @@ def ingest(config: configs.RootConfig):
             dem_pad=datablocks_cfg.image_dem_pad,
             ignore_index=datablocks_cfg.ignore_index,
         )
-        foundation.run_blocks_building(
+        ingest_mod.run_blocks_building(
             world_grid,
             paths.data_blocks.dev,
             data_blocks_config,
@@ -174,7 +174,7 @@ def ingest(config: configs.RootConfig):
             logger.log('INFO', '[NOTE] Test holdout dataset not provided by ETL')
         else:
             logger.log('INFO', '[START] Test data blocks building')
-            data_blocks_config = foundation.BlockBuildingParameters(
+            data_blocks_config = ingest_mod.BlockBuildingParameters(
                 stage='test',
                 image_fpath=etl_paths.test_feature_raster,
                 label_fpath=etl_paths.test_label_raster,
@@ -182,7 +182,7 @@ def ingest(config: configs.RootConfig):
                 dem_pad=datablocks_cfg.image_dem_pad,
                 ignore_index=datablocks_cfg.ignore_index,
             )
-            foundation.run_blocks_building(
+            ingest_mod.run_blocks_building(
                 world_grid,
                 paths.data_blocks.test,
                 data_blocks_config,

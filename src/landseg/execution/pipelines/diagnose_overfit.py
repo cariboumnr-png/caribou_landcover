@@ -35,9 +35,9 @@ import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.core as core
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.data_blocks.assembler as assembler
-import landseg.geopipe.foundation.data_blocks.mapper as mapper
-import landseg.geopipe.foundation.world_grids as world_grids
+import landseg.geopipe.ingest.data_blocks.assembler as assembler
+import landseg.geopipe.ingest.data_blocks.mapper as mapper
+import landseg.geopipe.ingest.world_grids as world_grids
 import landseg.geopipe.utils as geo_utils
 import landseg.models as models
 import landseg.session as session

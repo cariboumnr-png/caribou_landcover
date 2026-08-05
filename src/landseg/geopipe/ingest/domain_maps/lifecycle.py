@@ -30,9 +30,9 @@ import time
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.common as common
-import landseg.geopipe.foundation.common.alias as alias
-import landseg.geopipe.foundation.domain_maps as domain_maps
+import landseg.geopipe.ingest.common as common
+import landseg.geopipe.ingest.common.alias as alias
+import landseg.geopipe.ingest.domain_maps as domain_maps
 
 # typing aliases
 D = dict[str, geo_core.DomainTile]

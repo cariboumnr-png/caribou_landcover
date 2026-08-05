@@ -39,8 +39,8 @@ across dataset builds and schema generation pipelines.
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.common.alias as alias
-import landseg.geopipe.foundation.data_blocks.mapper as mapper
+import landseg.geopipe.ingest.common.alias as alias
+import landseg.geopipe.ingest.data_blocks.mapper as mapper
 
 # typing aliases
 MappingCtrl = artifacts.Controller[dict]

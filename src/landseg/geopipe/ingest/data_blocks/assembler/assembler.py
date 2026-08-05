@@ -41,7 +41,7 @@ import random
 import numpy
 # local imports
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.foundation.data_blocks.assembler as assembler
+import landseg.geopipe.ingest.data_blocks.assembler as assembler
 
 
 def build_single_block(
