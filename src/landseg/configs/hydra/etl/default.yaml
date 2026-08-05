@@ -6,10 +6,14 @@ canvas:
   target_resolution: 20.0
 
 raw_data:
-  features: {}
+  dev_features: {}
   domains: {}
-  labels: {}
+  dev_labels: {}
+  test_features: {}
+  test_labels: {}
 
+dataset_name: sample_data
+dataset_config: ''
 resampling_continuous: bilinear
 resampling_categorical: nearest
 output_dpath: ${execution.exp_root}/artifacts/harmonized

@@ -40,51 +40,17 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
 
     def set_grid(
         self,
-        crs: str,
-        reference_raster_fpath: str,
-        tile_size: int,
-        tile_overlap: int
+        tile_size: int = 256,
+        tile_overlap: int = 0,
+        crs: str = ''
     ) -> typing.Self:
         '''Set study extent and grid specs.'''
+        self._cfg.foundation.grid.mode = 'ref'
         self._cfg.foundation.grid.crs = crs
-        self._cfg.foundation.grid.extent.filepath = reference_raster_fpath
         self._cfg.foundation.grid.tile_specs.size_row = tile_size
         self._cfg.foundation.grid.tile_specs.size_col = tile_size
         self._cfg.foundation.grid.tile_specs.overlap_row = tile_overlap
         self._cfg.foundation.grid.tile_specs.overlap_col = tile_overlap
-        return self
-
-    def set_domains(
-        self,
-        domains: list[tuple[str, int]]
-    ) -> typing.Self:
-        '''Set domain data source.'''
-        for fpath, index_base in domains:
-            self._cfg.foundation.domains.add_domain(fpath, index_base)
-        return self
-
-    def set_model_dev_data(
-        self,
-        model_dev_image: str,
-        model_dev_label: str,
-        data_config: str
-    ) -> typing.Self:
-        '''Set trainig data source.'''
-        self._cfg.foundation.datablocks.filepaths.dev_image = model_dev_image
-        self._cfg.foundation.datablocks.filepaths.dev_label = model_dev_label
-        self._cfg.foundation.datablocks.filepaths.config = data_config
-        return self
-
-    def set_test_holdout_data(
-        self,
-        test_holdout_image: str | None,
-        test_holdout_label: str | None
-    ) -> typing.Self:
-        '''Set test holdout data source.'''
-        if not test_holdout_image or not test_holdout_label:
-            return self
-        self._cfg.foundation.datablocks.filepaths.test_image = test_holdout_image
-        self._cfg.foundation.datablocks.filepaths.test_label = test_holdout_label
         return self
 
     def set_rebuild(self, rebuild: bool) -> typing.Self:

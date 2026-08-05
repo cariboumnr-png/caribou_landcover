@@ -30,14 +30,23 @@ data-harmonize:
   # ---------------------------------------------------------------------------
   # Input Source Rasters (Features & Ground-Truth Labels)
   # ---------------------------------------------------------------------------
-  features:
-    sentinel2: ./experiment/input/raw/sample_sentinel2.tif
-    dem: ./experiment/input/raw/sample_dem.tif
   domains:
     domain_1: ./experiment/input/domain_knowledge/sample_domain_1.tif
     domain_2: ./experiment/input/domain_knowledge/sample_domain_2.tif
-  labels:
-    landcover: ./experiment/input/raw/sample_landcover.tif
+  dev_features:
+    sentinel2: ./experiment/input/raw/sample_dev_sentinel2.tif
+    dem: ./experiment/input/raw/sample_dev_dem.tif
+  dev_labels:
+    landcover: ./experiment/input/raw/sample_dev_landcover.tif
+  test_features:
+    sentinel2: ./experiment/input/raw/sample_test_sentinel2.tif
+    dem: ./experiment/input/raw/sample_test_dem.tif
+  test_labels:
+    landcover: ./experiment/input/raw/sample_test_landcover.tif
+
+  # Path to the dataset metadata JSON file and dataset name
+  dataset_name: sample_data
+  dataset_config: ./experiment/input/raw/sample_config.json
 
 
 data-ingest:
@@ -45,47 +54,16 @@ data-ingest:
   # ---------------------------------------------------------------------------
   # Spatial Reference & Grid Tiling Details
   # ---------------------------------------------------------------------------
-  # Projected Coordinate Reference System (must be valid EPSG code)
-  # NOTE: CRS must be the same for ALL input rasters below!
-  grid_crs: EPSG:3161
-  # Path to reference raster defining extent
-  grid_extent_path: ./experiment/input/extent_reference/sample_extent.tif
-  # Tile dimension in pixels (both row and column sizes)
   tile_size: 256
-  # Tile overlap in pixels for spatial augmentation/coverage
   tile_overlap: 128
 
   # ---------------------------------------------------------------------------
-  # Optional Domain Context Rasters
+  # Domain Context Layer Settings
   # ---------------------------------------------------------------------------
-  # External rasters for conditioning or feature augmentation
-  domain_files:
-    - path: ./experiment/input/domain_knowledge/sample_domain_1.tif
-      index_base: 1
-    - path: ./experiment/input/domain_knowledge/sample_domain_2.tif
-      index_base: 1
-  # Domain layer for categorical IDs (null to disable)
   domain_ids_name: null
-  # Domain layer for continuous vectors (null to disable)
   domain_vec_name: null
 
-  # ---------------------------------------------------------------------------
-  # Datablock Inputs
-  # ---------------------------------------------------------------------------
-  # Unique name identifying this dataset configuration
   dataset_name: sample_data
-
-  # Development dataset paths (training image/label)
-  dev_image: ./experiment/input/data/sample_dev_image.tif
-  dev_label: ./experiment/input/data/sample_dev_label.tif
-
-  # Optional test dataset paths (eval image/label)
-  test_image: ./experiment/input/data/sample_test_image.tif
-  test_label: ./experiment/input/data/sample_test_label.tif
-
-  # Path to the dataset metadata JSON file
-  dataset_config: ./experiment/input/data/sample_config.json
-  # Force rebuild all ingestion artifacts even if they exist
   rebuild: false
 
 data-prepare:

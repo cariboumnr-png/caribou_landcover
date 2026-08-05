@@ -28,10 +28,8 @@ Data foundation schema
 
 # standard imports
 import dataclasses
-import os
 import re
 # local imports
-import landseg.configs.schema.utils as utils
 
 # alias
 field = dataclasses.field
@@ -40,11 +38,11 @@ field = dataclasses.field
 # ----- grid
 @dataclasses.dataclass
 class _Extent:
-    filepath: str = ''
     origin: tuple[float, float] = (0.0, 0.0)
     pixel_size: tuple[float, float] = (0.0, 0.0)
     grid_extent: tuple[float, float] | None = None
     grid_shape: tuple[int, int] | None = None
+
 
 @dataclasses.dataclass
 class _TileSpecs:
@@ -81,87 +79,38 @@ class _Grid:
         return dataclasses.astuple(self.tile_specs)
 
     def validate(self) -> None:
-        # grid mode and corresponding extent configs
-        match self.mode:
-            case 'ref':
-                utils.must_exist(self.extent.filepath, 'extent reference raster')
-            case 'aoi':
-                if not all(self.extent.pixel_size):
-                    raise ValueError('Pixel size has zero(s)')
-                if not all(self.extent.grid_extent or ()):
-                    raise ValueError('Grid extent has zero(s)')
-            case 'tiles':
-                if not all(self.extent.pixel_size):
-                    raise ValueError('Pixel size has zero(s)')
-                if not all(self.extent.grid_shape or ()):
-                    raise ValueError('Grid shape has zero(s)')
-            case _:
-                raise ValueError(f'Invalid grid mode: {self.mode}')
-        # crs string format
-        if not bool(re.fullmatch(r'epsg:\d+', self.crs, re.I)):
+        if self.mode != 'ref':
+            raise ValueError(
+                f'Invalid grid mode: {self.mode}. '
+                'Data ingestion requires "ref" grid mode mandated by ETL.'
+            )
+        # crs string format (optional if derived from ref raster)
+        if self.crs and not bool(re.fullmatch(r'epsg:\d+', self.crs, re.I)):
             raise ValueError('Invalid CRS identifier. Must be [EPSG:....]')
         # tile specs
         self.tile_specs.validate()
 
+
 # ----- domain
 @dataclasses.dataclass
-class _DomainFile:
-    name: str = ''
-    path: str = ''
-    index_base: int = 1
-
-@dataclasses.dataclass
 class _Domains:
-    files: list[_DomainFile] = field(default_factory=lambda: [])
     valid_threshold: float = 0.7
     target_variance: float = 0.9
 
-    def add_domain(self, fpath: str, index_base: int):
-        utils.must_exist(fpath, 'domain raster')
-        if not isinstance(index_base, int):
-            raise TypeError(f'Index base must be [int], got {type(index_base)}')
-        self.files.append(_DomainFile(path=fpath, index_base=index_base ))
+    def validate(self) -> None:
+        pass
 
-    def validate(self):
-        for file in self.files:
-            utils.must_exist(file.path, 'domain raster')
-            # if domain name is not specified, parse from the path
-            if not file.name:
-                file.name = os.path.splitext(os.path.basename(file.path))[0]
 
 # ----- data
 @dataclasses.dataclass
-class _FilePaths:
-    dev_image: str = ''
-    dev_label: str = ''
-    test_image: str = ''
-    test_label: str = ''
-    config: str = ''
-
-@dataclasses.dataclass
-class _General:
+class _DataBlocks:
+    name: str = ''
     ignore_index: int = 255
     image_dem_pad: int = 8
 
-@dataclasses.dataclass
-class _DataBlocks:
-    name: str = ''
-    filepaths: _FilePaths = field(default_factory=_FilePaths)
-    general: _General = field(default_factory=_General)
-
-    @property
-    def has_test_data(self) -> bool:
-        return (
-            utils.file_exists(self.filepaths.test_image) and
-            utils.file_exists(self.filepaths.test_label)
-        )
-
     def validate(self) -> None:
-        if not self.name:
-            raise ValueError('Input data name not provided')
-        utils.must_exist(self.filepaths.dev_image, 'model development image raster')
-        utils.must_exist(self.filepaths.dev_label, 'model development label raster')
-        utils.must_exist(self.filepaths.config, 'data config JSON')
+        pass
+
 
 # ----- composite
 @dataclasses.dataclass

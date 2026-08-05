@@ -46,21 +46,27 @@ class _Canvas:
 
 @dataclasses.dataclass
 class _RawData:
-    features: dict[str, str] = field(default_factory=dict)
+    dev_features: dict[str, str] = field(default_factory=dict)
     domains: dict[str, str] = field(default_factory=dict)
-    labels: dict[str, str] = field(default_factory=dict)
+    dev_labels: dict[str, str] = field(default_factory=dict)
+    test_features: dict[str, str] = field(default_factory=dict)
+    test_labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclasses.dataclass
 class ETLConfig:
     canvas: _Canvas = field(default_factory=_Canvas)
     raw_data: _RawData = field(default_factory=_RawData)
+    dataset_name: str = 'sample_data'
+    dataset_config: str = ''
     resampling_continuous: str = 'bilinear'
     resampling_categorical: str = 'nearest'
     output_dpath: str = 'experiment/harmonized'
 
     def validate(self) -> None:
         utils.must_exist(self.canvas.reference_raster, 'Reference raster')
+        if self.dataset_config:
+            utils.must_exist(self.dataset_config, 'Dataset configuration JSON')
 
         if (
             self.canvas.target_crs and

@@ -2,8 +2,6 @@
 mode: ref # ref | aoi | tiles
 crs: ''
 extent:
-  # when mode=ref provide:
-  filepath: ''
   # when mode=(aoi | tiles) provide:
   origin: [0.0, 0.0] # x, y in CRS units
   pixel_size: [0.0, 0.0] # x, y positive magnitudes; we assume north up

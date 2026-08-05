@@ -74,7 +74,7 @@ class RootConfig:
 
     @property
     def as_dict(self) -> dict[str, typing.Any]:
-        return dataclasses.asdict(self)
+        return dataclasses.asdict(typing.cast(typing.Any, self))
 
     def validate_all(self) -> None:
         # To be completed for all sections

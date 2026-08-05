@@ -36,9 +36,11 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
         'etl': {
             'canvas': {},
             'raw_data': {
-                'features': {},
                 'domains': {},
-                'labels': {}
+                'dev_features': {},
+                'dev_labels': {},
+                'test_features': {},
+                'test_labels': {},
             }
         },
         'foundation': {
@@ -47,9 +49,7 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
                 'tile_specs': {},
             },
             'domains': {},
-            'datablocks': {
-                'filepaths': {},
-            },
+            'datablocks': {},
         },
         'transform': {
             'catalog': {},
@@ -100,9 +100,18 @@ def _translate_data_harmonize(
         'reference_raster': ['etl.canvas.reference_raster'],
         'resampling_continuous': ['etl.resampling_continuous'],
         'resampling_categorical': ['etl.resampling_categorical'],
-        'features': ['etl.raw_data.features'],
+        'dev_features': ['etl.raw_data.dev_features'],
+        'features': ['etl.raw_data.dev_features'],
         'domains': ['etl.raw_data.domains'],
-        'labels': ['etl.raw_data.labels'],
+        'dev_labels': ['etl.raw_data.dev_labels'],
+        'labels': ['etl.raw_data.dev_labels'],
+        'test_features': ['etl.raw_data.test_features'],
+        'test_labels': ['etl.raw_data.test_labels'],
+        'dataset_config': ['etl.dataset_config'],
+        'dataset_name': [
+            'etl.dataset_name',
+            'foundation.datablocks.name'
+        ],
         'output_dpath': ['etl.output_dpath'],
     }
     _apply_mapping(etl, translated, mapping)
@@ -116,7 +125,6 @@ def _translate_data_ingest(
 
     mapping = {
         'grid_crs': ['foundation.grid.crs'],
-        'grid_extent_path': ['foundation.grid.extent.filepath'],
         'tile_size': [
             'foundation.grid.tile_specs.size_row',
             'foundation.grid.tile_specs.size_col'
@@ -125,15 +133,9 @@ def _translate_data_ingest(
             'foundation.grid.tile_specs.overlap_row',
             'foundation.grid.tile_specs.overlap_col'
         ],
-        'domain_files': ['foundation.domains.files'],
         'domain_ids_name': ['dataspecs.domain_ids_name'],
         'domain_vec_name': ['dataspecs.domain_vec_name'],
         'dataset_name': ['foundation.datablocks.name'],
-        'dev_image': ['foundation.datablocks.filepaths.dev_image'],
-        'dev_label': ['foundation.datablocks.filepaths.dev_label'],
-        'test_image': ['foundation.datablocks.filepaths.test_image'],
-        'test_label': ['foundation.datablocks.filepaths.test_label'],
-        'dataset_config': ['foundation.datablocks.filepaths.config'],
         'rebuild': ['foundation.rebuild'],
         'output_dpath': ['foundation.output_dpath'],
     }
