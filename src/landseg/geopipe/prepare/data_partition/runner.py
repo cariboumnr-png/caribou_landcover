@@ -19,6 +19,8 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=missing-function-docstring
+
 '''
 Dataset partitioning pipeline.
 
@@ -30,6 +32,7 @@ label statistics for downstream normalization and schema generation.
 
 # standard imports
 import time
+import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
@@ -37,6 +40,16 @@ import landseg.geopipe.prepare as prepare_data
 import landseg.geopipe.prepare.common as common
 import landseg.geopipe.prepare.data_partition.split as split
 import landseg.geopipe.prepare.data_partition.stats as stats
+
+# --------------------------------private types--------------------------------
+class _PipelinePaths(typing.Protocol):
+    '''Typed pipeline-specific paths container.'''
+    @property
+    def splits_source_blocks(self) -> str: ...
+    @property
+    def splits_summary(self) -> str: ...
+    @property
+    def label_stats(self) -> str: ...
 
 # typing aliases
 PartitionCtrl = artifacts.Controller[geo_core.BlocksPartition]
@@ -47,7 +60,7 @@ SplitsSummaryCtrl = artifacts.Controller[geo_core.PartitionSummary]
 # ----- `run_datablocks_partition` execution
 def run_datablocks_partition(
     parsed_catalog: prepare_data.DataBlocksView,
-    paths: artifacts.PreparationPaths,
+    paths: _PipelinePaths,
     partition_config: split.PartitionParameters,
     *,
     policy: artifacts.LifecyclePolicy,

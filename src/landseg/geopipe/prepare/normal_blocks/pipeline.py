@@ -31,12 +31,29 @@ writes normalized block artifacts along with updated split mappings.
 
 # standard imports
 import time
+import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.prepare.common as common
 import landseg.geopipe.prepare.normal_blocks.normalize as normalize
 import landseg.geopipe.prepare.normal_blocks.stats as stats
+
+# --------------------------------private types--------------------------------
+class _PipelinePaths(typing.Protocol):
+    '''Typed pipeline-specific paths container.'''
+    @property
+    def splits_source_blocks(self) -> str: ...
+    @property
+    def image_stats(self) -> str: ...
+    @property
+    def splits_transformed_blocks(self) -> str: ...
+    @property
+    def train_blocks(self) -> str: ...
+    @property
+    def val_blocks(self) -> str: ...
+    @property
+    def test_blocks(self) -> str: ...
 
 # typing aliases
 PartitionCtrl = artifacts.Controller[geo_core.BlocksPartition]
@@ -45,7 +62,7 @@ ImageStatsCtrl = artifacts.Controller[dict[str, geo_core.ImageBandStats]]
 
 # ----- `run_normalize_blocks` execution
 def run_normalize_blocks(
-    paths: artifacts.PreparationPaths,
+    paths: _PipelinePaths,
     *,
     policy: artifacts.LifecyclePolicy,
     logger: common.TransformLogger
@@ -119,7 +136,7 @@ def run_normalize_blocks(
 def _normalize(
     splits: tuple[set[str], set[str], set[str]],
     aggregated_stats: dict[str, geo_core.ImageBandStats],
-    paths: artifacts.PreparationPaths,
+    paths: _PipelinePaths,
     *,
     logger: common.TransformLogger
 ):

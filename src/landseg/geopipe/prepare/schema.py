@@ -19,6 +19,8 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=missing-function-docstring
+
 '''
 Schema builders for dataset artifacts. Emits a dataset-wide JSON schema
 from cached blocks and grid metadata, and can derive a minimal schema
@@ -32,11 +34,26 @@ Public APIs:
 # standard imports
 import datetime
 import time
+import typing
 # local imports
 import landseg._constants as c
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.prepare.common as common
+
+# --------------------------------private types--------------------------------
+class _PipelinePaths(typing.Protocol):
+    '''Typed pipeline-specific paths container.'''
+    @property
+    def schema(self) -> str: ...
+    @property
+    def splits_source_blocks(self) -> str: ...
+    @property
+    def splits_transformed_blocks(self) -> str: ...
+    @property
+    def label_stats(self) -> str: ...
+    @property
+    def image_stats(self) -> str: ...
 
 # typing aliases
 PartitionCtrl = artifacts.Controller[geo_core.BlocksPartition]
@@ -48,7 +65,7 @@ load = artifacts.Controller.load_json_or_fail
 
 # ----- `build_schema` execution
 def build_schema(
-    paths: artifacts.PreparationPaths,
+    paths: _PipelinePaths,
     *,
     policy: artifacts.LifecyclePolicy,
     logger: common.TransformLogger
