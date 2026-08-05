@@ -42,9 +42,9 @@ def test_artifact_paths_hierarchy():
     '''
     r = os.path.join('/tmp', 'exp')
     art = paths_mod.ArtifactPaths(root=r)
-    assert art.foundation.root == os.path.join(r, 'foundation')
-    assert art.transform.root == os.path.join(r, 'transform')
-    assert art.etl.root == os.path.join(r, 'harmonized')
+    assert art.data_ingestion.root == os.path.join(r, 'foundation')
+    assert art.data_preparation.root == os.path.join(r, 'transform')
+    assert art.data_harmonization.root == os.path.join(r, 'harmonized')
     assert art.session.root == os.path.join(r, 'results')
 
 
@@ -56,14 +56,14 @@ def test_artifact_paths_custom_overrides():
     '''
     art = paths_mod.ArtifactPaths(
         root='/tmp/exp',
-        etl_root='/custom/etl',
-        foundation_root='/custom/foundation',
-        transform_root='/custom/transform',
+        harmonization_root='/custom/harmonized',
+        ingestion_root='/custom/ingested',
+        preparation_root='/custom/prepared',
         session_root='/custom/session'
     )
-    assert art.etl.root == '/custom/etl'
-    assert art.foundation.root == '/custom/foundation'
-    assert art.transform.root == '/custom/transform'
+    assert art.data_harmonization.root == '/custom/harmonized'
+    assert art.data_ingestion.root == '/custom/ingested'
+    assert art.data_preparation.root == '/custom/prepared'
     assert art.session.root == '/custom/session'
 
 
@@ -75,15 +75,15 @@ def test_artifact_paths_from_config():
     '''
     cfg = configs_mod.RootConfig()
     cfg.execution.exp_root = '/tmp/exp'
-    cfg.etl.output_dpath = '/tmp/exp/artifacts/harmonized'
-    cfg.foundation.output_dpath = '/tmp/exp/artifacts/foundation'
-    cfg.transform.output_dpath = '/tmp/exp/artifacts/transform'
+    cfg.data.harmonization.output_dpath = '/tmp/exp/artifacts/harmonized_data'
+    cfg.data.ingestion.output_dpath = '/tmp/exp/artifacts/ingested_data'
+    cfg.data.preparation.output_dpath = '/tmp/exp/artifacts/prepared_data'
     cfg.session.output_dpath = '/tmp/exp/results'
     art = paths_mod.ArtifactPaths.from_config(cfg)
     assert art.root == '/tmp/exp'
-    assert art.etl.root == '/tmp/exp/artifacts/harmonized'
-    assert art.foundation.root == '/tmp/exp/artifacts/foundation'
-    assert art.transform.root == '/tmp/exp/artifacts/transform'
+    assert art.data_harmonization.root == '/tmp/exp/artifacts/harmonized'
+    assert art.data_ingestion.root == '/tmp/exp/artifacts/foundation'
+    assert art.data_preparation.root == '/tmp/exp/artifacts/transform'
     assert art.session.root == '/tmp/exp/results'
 
 

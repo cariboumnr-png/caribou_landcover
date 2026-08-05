@@ -116,7 +116,7 @@ def test_data_prepare_pipeline_success(tmp_path, dummy_data_paths):
     pipelines.prepare(config)
 
     # verify the generated transform outputs
-    out_dpath = config.transform.output_dpath
+    out_dpath = config.data.preparation.output_dpath
     assert os.path.exists(os.path.join(out_dpath, 'block_splits_source.json'))
     assert os.path.exists(
         os.path.join(out_dpath, 'block_splits_transformed.json')

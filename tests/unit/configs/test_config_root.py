@@ -40,9 +40,10 @@ def test_root_config_defaults_and_as_dict():
     root = root_mod.RootConfig()
 
     assert isinstance(root.execution, root_mod._ExecutionContext)
-    assert isinstance(root.foundation, sec.DataFoundation)
-    assert isinstance(root.transform, sec.DataTransform)
-    assert isinstance(root.dataspecs, sec.DataSpecs)
+    assert isinstance(root.data.harmonization, sec.data._HarmonizationCfg)
+    assert isinstance(root.data.ingestion, sec.data._IngestionCfg)
+    assert isinstance(root.data.preparation, sec.data._PreparationCfg)
+    assert isinstance(root.data.specification, sec.data._Specification)
     assert isinstance(root.models, sec.ModelsConfig)
     assert isinstance(root.session, sec.SessionConfig)
     assert isinstance(root.study, sec.StudyConfig)
@@ -52,7 +53,7 @@ def test_root_config_defaults_and_as_dict():
     cfg_dict = root.as_dict
     assert isinstance(cfg_dict, dict)
     assert 'execution' in cfg_dict
-    assert 'foundation' in cfg_dict
+    assert 'ingestion' in cfg_dict
     assert 'models' in cfg_dict
 
 
@@ -93,11 +94,11 @@ def test_root_config_validate_all(tmp_path):
     ref_tif.write_text('data')
 
     root = root_mod.RootConfig()
-    root.etl.canvas.reference_raster = str(ref_tif)
-    root.etl.dataset_config = str(cfg_json)
-    root.foundation.datablocks.name = 'test_blocks'
-    root.foundation.grid.mode = 'ref'
-    root.foundation.grid.crs = 'EPSG:32617'
+    root.data.harmonization.canvas.reference_raster = str(ref_tif)
+    root.data.harmonization.dataset_config = str(cfg_json)
+    root.data.ingestion.datablocks.name = 'test_blocks'
+    root.data.ingestion.grid.mode = 'ref'
+    root.data.ingestion.grid.crs = 'EPSG:32617'
 
     root.session.orchestration.single_phase.num_epochs = 10
     root.validate_all()

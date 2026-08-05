@@ -47,34 +47,34 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     grid_cfg.tile_specs.overlap_row = 128
     grid_cfg.tile_specs.overlap_col = 128
 
-    blocks_cfg = cfg_schema.foundation.datablocks
+    blocks_cfg = cfg_schema.data.ingestion.datablocks
     blocks_cfg.name = 'test_ingest_run'
 
-    cfg_schema.etl.canvas.reference_raster = dummy_data_paths.extent
-    cfg_schema.etl.canvas.target_crs = 'EPSG:3161'
-    cfg_schema.etl.canvas.target_resolution = 10.0
-    cfg_schema.etl.dataset_config = dummy_data_paths.config
-    cfg_schema.etl.output_dpath = str(tmp_path / 'harmonized')
-    cfg_schema.etl.raw_data.domains = {
+    cfg_schema.data.harmonization.canvas.reference_raster = dummy_data_paths.extent
+    cfg_schema.data.harmonization.canvas.target_crs = 'EPSG:3161'
+    cfg_schema.data.harmonization.canvas.target_resolution = 10.0
+    cfg_schema.data.harmonization.dataset_config = dummy_data_paths.config
+    cfg_schema.data.harmonization.output_dpath = str(tmp_path / 'harmonized')
+    cfg_schema.data.harmonization.raw_data.domains = {
         'domain_1': dummy_data_paths.domain_1
     }
-    cfg_schema.etl.raw_data.dev_features = {
+    cfg_schema.data.harmonization.raw_data.dev_features = {
         'sentinel2': dummy_data_paths.raw_sentinel2,
         'dem': dummy_data_paths.raw_dem
     }
-    cfg_schema.etl.raw_data.dev_labels = {
+    cfg_schema.data.harmonization.raw_data.dev_labels = {
         'landcover': dummy_data_paths.raw_landcover
     }
-    cfg_schema.etl.raw_data.test_features = {
+    cfg_schema.data.harmonization.raw_data.test_features = {
         'sentinel2': dummy_data_paths.raw_test_sentinel2,
         'dem': dummy_data_paths.raw_test_dem
     }
-    cfg_schema.etl.raw_data.test_labels = {
+    cfg_schema.data.harmonization.raw_data.test_labels = {
         'landcover': dummy_data_paths.raw_test_landcover
     }
 
-    cfg_schema.foundation.output_dpath = str(tmp_path / 'foundation')
-    cfg_schema.foundation.rebuild = True
+    cfg_schema.data.ingestion.output_dpath = str(tmp_path / 'ingested_data')
+    cfg_schema.data.ingestion.rebuild = True
 
     # convert back to standard typed `RootConfig` dataclass
     config = typing.cast(
@@ -89,7 +89,7 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     pipelines.ingest(config)
 
     # verify the generated outputs
-    out_dpath = config.foundation.output_dpath
+    out_dpath = config.data.ingestion.output_dpath
     assert os.path.exists(
         os.path.join(out_dpath, 'data_blocks', 'model_dev', 'catalog.json')
     )

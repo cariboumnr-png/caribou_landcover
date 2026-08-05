@@ -145,8 +145,7 @@ def test_validate_upstream_pipelines_entrypoints():
     '''
     config = configs.RootConfig(
         pipeline=secs.PipelineConfig(name='default'),
-        foundation=secs.DataFoundation(),
-        transform=secs.DataTransform(),
+        data=secs.DataConfig()
     )
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     # should not raise
@@ -156,15 +155,14 @@ def test_validate_upstream_pipelines_entrypoints():
 
 def test_validate_upstream_pipelines_missing_etl(tmp_path):
     '''
-    Given: A data-ingest pipeline run when no ETL report exists.
+    Given: A data-ingest pipeline run when no harmonization report exists.
     When: Validating upstream pipelines.
     Then: Raise an ArtifactError about missing data-harmonize.
     '''
-    config = configs.RootConfig(
-        pipeline=secs.PipelineConfig(name='data-ingest'),
-        etl=secs.ETLConfig(output_dpath=str(tmp_path)),
-        foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
-    )
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='data-ingest'))
+
+    config.data.harmonization.output_dpath = tmp_path
+    config.data.ingestion.output_dpath = tmp_path
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     with pytest.raises(
         artifacts.ArtifactError,
@@ -183,12 +181,10 @@ def test_validate_upstream_pipelines_missing_ingest(tmp_path):
     etl_paths = artifacts.ETLPaths(str(tmp_path))
     artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
 
-    config = configs.RootConfig(
-        pipeline=secs.PipelineConfig(name='data-prepare'),
-        etl=secs.ETLConfig(output_dpath=str(tmp_path)),
-        foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
-        transform=secs.DataTransform(),
-    )
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='data-prepare'))
+
+    config.data.harmonization.output_dpath = tmp_path
+    config.data.ingestion.output_dpath = tmp_path
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     with pytest.raises(
         artifacts.ArtifactError,
@@ -210,12 +206,10 @@ def test_validate_upstream_pipelines_failed_ingest(tmp_path):
     ctrl = artifacts.Controller(foundation_paths.report)
     ctrl.persist({'status': 'FAILED'})
 
-    config = configs.RootConfig(
-        pipeline=secs.PipelineConfig(name='data-prepare'),
-        etl=secs.ETLConfig(output_dpath=str(tmp_path)),
-        foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
-        transform=secs.DataTransform(),
-    )
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='data-prepare'))
+
+    config.data.harmonization.output_dpath = tmp_path
+    config.data.ingestion.output_dpath = tmp_path
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     with pytest.raises(
         artifacts.ArtifactError,
@@ -230,20 +224,19 @@ def test_validate_upstream_pipelines_success(tmp_path):
     When: Validating upstream pipelines for a downstream pipeline.
     Then: Pass silently.
     '''
-    etl_paths = artifacts.ETLPaths(str(tmp_path))
-    foundation_paths = artifacts.FoundationPaths(str(tmp_path))
-    transform_paths = artifacts.TransformPaths(str(tmp_path))
+    harmonization_paths = artifacts.ETLPaths(str(tmp_path))
+    ingestion_paths = artifacts.FoundationPaths(str(tmp_path))
+    preparation_paths = artifacts.TransformPaths(str(tmp_path))
 
-    artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
-    artifacts.Controller(foundation_paths.report).persist({'status': 'SUCCESS'})
-    artifacts.Controller(transform_paths.report).persist({'status': 'SUCCESS'})
+    artifacts.Controller(harmonization_paths.report).persist({'status': 'SUCCESS'})
+    artifacts.Controller(ingestion_paths.report).persist({'status': 'SUCCESS'})
+    artifacts.Controller(preparation_paths.report).persist({'status': 'SUCCESS'})
 
-    config = configs.RootConfig(
-        pipeline=secs.PipelineConfig(name='model-train'),
-        etl=secs.ETLConfig(output_dpath=str(tmp_path)),
-        foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
-        transform=secs.DataTransform(output_dpath=str(tmp_path)),
-    )
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='model-train'))
+
+    config.data.harmonization.output_dpath = tmp_path
+    config.data.ingestion.output_dpath = tmp_path
+    config.data.preparation.output_dpath = tmp_path
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     # should not raise
     executor._validate_upstream_pipelines(config, 'model-train')
@@ -301,11 +294,8 @@ def test_execute_pipeline_success(mocker):
     Then: Retrieve the correct pipeline command, execute it with the
         configuration, and return its result.
     '''
-    config = configs.RootConfig(
-        pipeline=secs.PipelineConfig(name='default'),
-        foundation=secs.DataFoundation(),
-        transform=secs.DataTransform(),
-    )
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='default'))
+
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
 
     mocker.patch('landseg.execution.executor._validate_upstream_pipelines')
