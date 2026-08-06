@@ -15,8 +15,6 @@ deplacer du code, plutot qu'une liste exhaustive de tous les fichiers.
 |   |-- workflow_chart_fr.md      Diagramme general du workflow
 |   `-- project_structure_fr.md   Ce fichier
 |
-|-- dev/                          Espace ignore de notes, references et essais
-|
 |-- experiment/                   I/O locale ignoree des experiences
 |   |-- artifacts/                Grilles, manifestes, checkpoints, etc. generes
 |   |-- input/                    Entrees locales d'experience

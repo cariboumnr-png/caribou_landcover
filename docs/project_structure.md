@@ -15,8 +15,6 @@ adding or moving code over a fully exhaustive file listing.
 |   |-- workflow_chart.md         High-level workflow chart
 |   `-- project_structure.md      This file
 |
-|-- dev/                          Ignored developer scratch/reference workspace
-|
 |-- experiment/                   Ignored local experiment I/O
 |   |-- artifacts/                Generated grids, manifests, checkpoints, etc.
 |   |-- input/                    Local experiment inputs
@@ -32,7 +30,7 @@ adding or moving code over a fully exhaustive file listing.
 |   |-- configs/                  Hydra YAML configs and structured schema dataclasses
 |   |-- core/                     Project-wide contracts and result types
 |   |-- execution/                Pipeline registry and top-level execution dispatch
-|   |   |-- geopipe/                  Geospatial harmonize, ingest, and prepare pipelines
+|   |-- geopipe/                  Geospatial harmonize, ingest, and prepare pipelines
 |   |-- models/                   Model frames, backbones, heads, conditioning, factories
 |   |-- session/                  Runtime session construction, orchestration, and engines
 |   |-- study/                    Sweep and post-run study analysis utilities
