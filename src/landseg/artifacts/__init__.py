@@ -36,7 +36,7 @@ __all__ = [
     'ArtifactPaths',
     'Controller',
     'HarmonizationPaths',
-    'FoundationPaths',
+    'IngestionPaths',
     'LifecyclePolicy',
     'PayloadController',
     'SessionPaths',
@@ -52,7 +52,13 @@ __all__ = [
 if typing.TYPE_CHECKING:
     from .checkpoint import CheckpointMeta, load_checkpoint, save_checkpoint
     from .controller import ArtifactError, Controller
-    from .paths import ArtifactPaths, HarmonizationPaths, FoundationPaths, SessionPaths, PreparationPaths
+    from .paths import (
+        ArtifactPaths,
+        HarmonizationPaths,
+        IngestionPaths,
+        PreparationPaths,
+        SessionPaths,
+    )
     from .payload_io import PayloadController
     from .policy import LifecyclePolicy
 
@@ -64,7 +70,13 @@ def __getattr__(name: str):
     if name in {'ArtifactError', 'Controller'}:
         return getattr(importlib.import_module('.controller', __package__), name)
 
-    if name in {'ArtifactPaths', 'ETLPaths', 'FoundationPaths', 'SessionPaths', 'TransformPaths'}:
+    if name in {
+        'ArtifactPaths',
+        'HarmonizationPaths',
+        'IngestionPaths',
+        'PreparationPaths',
+        'SessionPaths',
+    }:
         return getattr(importlib.import_module('.paths', __package__), name)
 
     if name in {'PayloadController'}:
