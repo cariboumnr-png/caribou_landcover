@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -20,8 +20,8 @@
 # =========================================================================== #
 
 '''
-Load dataset catalog metadata from the foundation stage and the finalized
-schema from the transform stage to construct runtime data specifications.
+Load dataset catalog metadata from the ingestion stage and the finalized
+schema from the preparation stage to construct runtime data specifications.
 
 This module bridges persisted dataset artifacts and the training stack
 by assembling a `DataSpecs` object consumed by models and trainers.
@@ -46,12 +46,12 @@ def build_dataspec(
     vec_domain_name: str | None = None
 ) -> core.DataSpecs:
     '''
-    Build a `DataSpecs` object from catalog metadata and transform schema.
+    Build a `DataSpecs` object from catalog metadata and preparation schema.
 
     Loads:
-    - Dataset-level catalog metadata from the foundation stage
+    - Dataset-level catalog metadata from the ingestion stage
     - Optional categorical and vectorized domain tile maps
-    - The finalized transform schema that defines splits, heads, and
+    - The finalized preparation schema that defines splits, heads, and
     artifacts
 
     These components are combined into a unified `DataSpecs` instance
@@ -61,19 +61,19 @@ def build_dataspec(
         catalog_meta_fpath: Path to dataset-level catalog metadata JSON.
         ids_domain_fpath: Optional path to categorical domain map JSON.
         vec_domain_fpath: Optional path to vector domain map JSON.
-        transform_schema_fpath: Path to the transform schema JSON.
+        transform_schema_fpath: Path to the preparation schema JSON.
 
     Returns:
         DataSpecs instance describing dataset structure and artifacts.
     '''
 
     # artifact fpaths
-    data_schema_fpath = artifact_paths.foundation.data_blocks.dev.schema
-    transform_schema_fpath = artifact_paths.transform.schema
+    data_schema_fpath = artifact_paths.data_ingestion.data_blocks.dev.schema
+    transform_schema_fpath = artifact_paths.data_preparation.schema
 
     # load artifacts
     # domains
-    _paths = artifact_paths.foundation.domains
+    _paths = artifact_paths.data_ingestion.domains
     if ids_domain_name:
         ids_domain = _load_domain(_paths.domain_map_fpath(ids_domain_name))
     else:

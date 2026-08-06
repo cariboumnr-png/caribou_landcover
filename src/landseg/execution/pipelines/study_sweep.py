@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -97,8 +97,8 @@ def _runner_builder(config: configs.RootConfig) -> tuple[str, StepRunner]:
             dataspecs = geopipe.build_dataspec(
                 artifact_paths,
                 mode='default',
-                ids_domain_name=config.dataspecs.domain_ids_name,
-                vec_domain_name=config.dataspecs.domain_vec_name
+                ids_domain_name=config.data.specification.domain_ids_name,
+                vec_domain_name=config.data.specification.domain_vec_name
             )
             logger.set_inputs({'dataspecs': dataspecs.to_dict()})
 

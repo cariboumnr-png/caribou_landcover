@@ -1,0 +1,3 @@
+name: sample_data
+ignore_index: 255
+image_dem_pad: 8

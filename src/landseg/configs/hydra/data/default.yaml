@@ -1,0 +1,6 @@
+defaults:
+  - _self_
+  - harmonization: default
+  - ingestion: default
+  - preparation: default
+  - specification: default

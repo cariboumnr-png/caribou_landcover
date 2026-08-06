@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -44,8 +44,8 @@ class DataPreparationConfigurator(configurators.BaseConfigurator):
         test_holdout_blocks_ratio: float
     ) -> typing.Self:
         '''Set block ratios for validation and test holdout.'''
-        self._cfg.transform.partition.val_ratio = validation_blocks_ratio
-        self._cfg.transform.partition.test_ratio = test_holdout_blocks_ratio
+        self._cfg.data.preparation.partition.val_ratio = validation_blocks_ratio
+        self._cfg.data.preparation.partition.test_ratio = test_holdout_blocks_ratio
         return self
 
     def set_oversampling(
@@ -54,11 +54,11 @@ class DataPreparationConfigurator(configurators.BaseConfigurator):
         reward_classes: dict[int, float]
     ) -> typing.Self:
         '''Set blocks hydration for reward classes in the target head'''
-        self._cfg.transform.catalog.focal_target = target_head
-        self._cfg.transform.scoring.reward = reward_classes
+        self._cfg.data.preparation.catalog.focal_target = target_head
+        self._cfg.data.preparation.scoring.reward = reward_classes
         return self
 
     def set_rebuild(self, rebuild: bool) -> typing.Self:
         '''Set whether to force rebuild preparation artifacts.'''
-        self._cfg.transform.rebuild = rebuild
+        self._cfg.data.preparation.rebuild = rebuild
         return self

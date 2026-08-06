@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -61,15 +61,45 @@ def _validate_upstream_pipelines(
     '''Verify if upstream pipelines have completed successfully.'''
 
     # no checks if at the start of the pipeline chain
-    if pipeline_name in ('default', 'data-harmonize', 'data-ingest'):
+    if pipeline_name in ('default', 'data-harmonize'):
         return
 
     # fetch data pipeline artifacts paths
-    foundation_paths = artifacts.FoundationPaths(config.foundation.output_dpath)
-    transform_paths = artifacts.TransformPaths(config.transform.output_dpath)
+    art_paths = artifacts.ArtifactPaths.from_config(config)
+    etl_paths = art_paths.data_harmonization
+    ingest_paths = art_paths.data_ingestion
+    prepare_paths = art_paths.data_preparation
+
+    try:
+        etl_paths.get_run_folder(config.data.ingestion.harmonization_run)
+    except FileNotFoundError:
+        pass
+
+    # pipelines downstream of data-harmonize
+    ctrl_etl = DictControl.load_json_or_fail(etl_paths.report)
+    try:
+        report = ctrl_etl.fetch()
+        assert report # typing guard
+    except artifacts.ArtifactError as e:
+        raise artifacts.ArtifactError(
+            'Upstream pipeline "data-harmonize" has not been executed yet. '
+            f'Missing or invalid ETL report at canonical path: '
+            f'{etl_paths.report}'
+        ) from e
+
+    if report.get('status') != 'SUCCESS':
+        status_val = report.get('status')
+        raise artifacts.ArtifactError(
+            'Upstream pipeline "data-harmonize" status is '
+            f'"{status_val}", not "SUCCESS". '
+            'Please re-run "data-harmonize" successfully first.'
+        )
+
+    if pipeline_name == 'data-ingest':
+        return
 
     # pipelines downstream of data-ingest
-    ctrl_ingest = DictControl.load_json_or_fail(foundation_paths.report)
+    ctrl_ingest = DictControl.load_json_or_fail(ingest_paths.report)
     try:
         report = ctrl_ingest.fetch()
         assert report # typing guard
@@ -77,7 +107,7 @@ def _validate_upstream_pipelines(
         raise artifacts.ArtifactError(
             'Upstream pipeline "data-ingest" has not been executed yet. '
             f'Missing or invalid ingestion report at canonical path: '
-            f'{foundation_paths.report}'
+            f'{ingest_paths.report}'
         ) from e
 
     if report.get('status') != 'SUCCESS':
@@ -90,7 +120,7 @@ def _validate_upstream_pipelines(
 
     # pipelines downstream of data-prepare
     if pipeline_name != 'data-prepare':
-        ctrl_prep = DictControl.load_json_or_fail(transform_paths.report)
+        ctrl_prep = DictControl.load_json_or_fail(prepare_paths.report)
         try:
             report = ctrl_prep.fetch()
             assert report # typing guard
@@ -98,7 +128,7 @@ def _validate_upstream_pipelines(
             raise artifacts.ArtifactError(
                 'Upstream pipeline "data-prepare" has not been executed yet. '
                 f'Missing or invalid preparation report at canonical path: '
-                f'{transform_paths.report}'
+                f'{prepare_paths.report}'
             ) from e
 
         if report.get('status') != 'SUCCESS':
@@ -109,6 +139,7 @@ def _validate_upstream_pipelines(
                 'Please re-run "data-prepare" successfully first.'
             )
 
+
 def _check_config_staleness(
     config: configs.RootConfig,
     pipeline: str
@@ -116,32 +147,44 @@ def _check_config_staleness(
     '''Check if active configs match those from previous runs.'''
 
     # staleness checks apply only in CLI mode and for dependent pipelines
-    if not config.execution.cli_mode or pipeline in ('default', 'data-ingest'):
+    if not config.execution.cli_mode or pipeline in ('default', 'data-harmonize'):
         return
 
     # fetch data pipeline artifacts paths
-    foundation_paths = artifacts.FoundationPaths(config.foundation.output_dpath)
-    transform_paths = artifacts.TransformPaths(config.transform.output_dpath)
+    art_paths = artifacts.ArtifactPaths.from_config(config)
+    harmonization_paths = art_paths.data_harmonization
+    ingestion_paths = art_paths.data_ingestion
+    preparation_paths = art_paths.data_preparation
 
     # initialize difference tracker
     diffs = {}
 
-    # compare foundation configuration
+    # compare etl configuration
     diffs.update(
         _compare_config_section(
-            foundation_paths.config,
-            'foundation',
-            config.foundation,
+            harmonization_paths.config,
+            'data.harmonization',
+            config.data.harmonization,
         )
     )
+
+    # compare ingestion configuration
+    if pipeline != 'data-ingest':
+        diffs.update(
+            _compare_config_section(
+                ingestion_paths.config,
+                'data.ingestion',
+                config.data.ingestion,
+            )
+        )
 
     # compare transform configuration
     if pipeline != 'data-prepare':
         diffs.update(
             _compare_config_section(
-                transform_paths.config,
-                'transform',
-                config.transform,
+                preparation_paths.config,
+                'data.preparation',
+                config.data.preparation,
             )
         )
 

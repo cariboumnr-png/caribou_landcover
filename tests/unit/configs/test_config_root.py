@@ -25,6 +25,8 @@
 Unit tests for `landseg.configs.schema.root`.
 '''
 
+# third-party imports
+import pytest
 # local imports
 import landseg.configs.schema.root as root_mod
 import landseg.configs.schema.sections as sec
@@ -40,9 +42,10 @@ def test_root_config_defaults_and_as_dict():
     root = root_mod.RootConfig()
 
     assert isinstance(root.execution, root_mod._ExecutionContext)
-    assert isinstance(root.foundation, sec.DataFoundation)
-    assert isinstance(root.transform, sec.DataTransform)
-    assert isinstance(root.dataspecs, sec.DataSpecs)
+    assert isinstance(root.data.harmonization, sec.data._HarmonizationCfg)
+    assert isinstance(root.data.ingestion, sec.data._IngestionCfg)
+    assert isinstance(root.data.preparation, sec.data._PreparationCfg)
+    assert isinstance(root.data.specification, sec.data._Specification)
     assert isinstance(root.models, sec.ModelsConfig)
     assert isinstance(root.session, sec.SessionConfig)
     assert isinstance(root.study, sec.StudyConfig)
@@ -52,7 +55,7 @@ def test_root_config_defaults_and_as_dict():
     cfg_dict = root.as_dict
     assert isinstance(cfg_dict, dict)
     assert 'execution' in cfg_dict
-    assert 'foundation' in cfg_dict
+    assert 'data' in cfg_dict
     assert 'models' in cfg_dict
 
 
@@ -86,21 +89,57 @@ def test_root_config_validate_all(tmp_path):
     When: `RootConfig.validate_all()` is executed.
     Then: Complete validation across all configuration sub-sections.
     '''
-    dev_img = tmp_path / 'dev_img.tif'
-    dev_lbl = tmp_path / 'dev_lbl.tif'
     cfg_json = tmp_path / 'cfg.json'
+    cfg_json.write_text('data')
 
-    for f in (dev_img, dev_lbl, cfg_json):
-        f.write_text('data')
+    ref_tif = tmp_path / 'ref.tif'
+    ref_tif.write_text('data')
 
     root = root_mod.RootConfig()
-    root.foundation.datablocks.name = 'test_blocks'
-    root.foundation.datablocks.filepaths.dev_image = str(dev_img)
-    root.foundation.datablocks.filepaths.dev_label = str(dev_lbl)
-    root.foundation.datablocks.filepaths.config = str(cfg_json)
-    root.foundation.grid.mode = 'ref'
-    root.foundation.grid.crs = 'EPSG:32617'
-    root.foundation.grid.extent.filepath = str(dev_img)
+    root.data.harmonization.canvas.reference_raster = str(ref_tif)
+    root.data.harmonization.dataset_config = str(cfg_json)
+    root.data.ingestion.datablocks.name = 'test_blocks'
+    root.data.ingestion.grid.mode = 'ref'
+    root.data.ingestion.grid.crs = 'EPSG:32617'
 
     root.session.orchestration.single_phase.num_epochs = 10
     root.validate_all()
+
+
+def test_ingestion_config_harmonization_run_validation():
+    '''
+    Given: An `_IngestionCfg` instance.
+    When: Setting valid and invalid `harmonization_run` values.
+    Then: Accept valid int/str values and raise ValueError/TypeError on invalid.
+    '''
+    cfg = sec.data._IngestionCfg()
+    cfg.grid.mode = 'ref'
+    cfg.grid.crs = 'EPSG:32617'
+
+    # valid int, str, path, None
+    cfg.harmonization_run = None
+    cfg.validate()
+
+    cfg.harmonization_run = 1
+    cfg.validate()
+
+    cfg.harmonization_run = 'run_0001'
+    cfg.validate()
+
+    cfg.harmonization_run = '/abs/path/run_0001'
+    cfg.validate()
+
+    # invalid non-positive int
+    cfg.harmonization_run = 0
+    with pytest.raises(ValueError, match='positive'):
+        cfg.validate()
+
+    # invalid empty string
+    cfg.harmonization_run = '   '
+    with pytest.raises(ValueError, match='empty'):
+        cfg.validate()
+
+    # invalid type
+    cfg.harmonization_run = [1] # type: ignore
+    with pytest.raises(TypeError, match='Invalid harmonization_run type'):
+        cfg.validate()

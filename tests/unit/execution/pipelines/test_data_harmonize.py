@@ -40,14 +40,17 @@ def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
 
     root_cfg = configs.RootConfig()
     root_cfg.pipeline.name = 'data-harmonize'
-    root_cfg.etl.target_crs = 'EPSG:3161'
-    root_cfg.etl.target_resolution = 20.0
-    root_cfg.etl.output_dpath = out_dpath
-    root_cfg.etl.features = {
+    root_cfg.data.harmonization.canvas.target_crs = 'EPSG:3161'
+    root_cfg.data.harmonization.canvas.target_resolution = 20.0
+    root_cfg.data.harmonization.output_dpath = out_dpath
+    root_cfg.data.harmonization.raw_data.domains = {
+        'domain_1': dummy_data_paths.domain_1
+    }
+    root_cfg.data.harmonization.raw_data.dev_features = {
         'sentinel2': dummy_data_paths.raw_sentinel2,
         'dem': dummy_data_paths.raw_dem
     }
-    root_cfg.etl.labels = {
+    root_cfg.data.harmonization.raw_data.dev_labels = {
         'landcover': dummy_data_paths.raw_landcover
     }
 
@@ -64,5 +67,5 @@ def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
     with open(report_file, 'r', encoding='utf-8') as f:
         saved_report = json.load(f)
     assert saved_report['status'] == 'SUCCESS'
-    assert os.path.exists(os.path.join(run_dir, 'harmonized_image_composite.vrt'))
+    assert os.path.exists(os.path.join(run_dir, 'stacked_images.vrt'))
     assert os.path.exists(os.path.join(run_dir, 'valid_pixel_mask.vrt'))

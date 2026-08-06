@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -29,7 +29,8 @@ statistics, normalizes all splits, and emits the final dataset schema.
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
-import landseg.geopipe.transform as transform
+import landseg.geopipe.prepare as prepare_data
+
 
 def prepare(config: configs.RootConfig):
     '''
@@ -42,17 +43,16 @@ def prepare(config: configs.RootConfig):
     4) Build schame for downstream consumption.
 
     Args:
-        config: RootConfig with transform settings.
+        config: RootConfig with preparation settings.
     '''
-
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
-    transform_paths = artifact_paths.transform
+    paths = artifact_paths.data_preparation
 
-    # init a TransformLogger
-    logger = transform.TransformLogger(
+    # init a PreparationLogger
+    logger = prepare_data.PreparationLogger(
         name='prep',
-        log_file=transform_paths.report,
+        log_file=paths.report,
         enable_file_log=False
     )
     logger.init_summary(run_id='prepare')
@@ -63,40 +63,38 @@ def prepare(config: configs.RootConfig):
         # resolve lifecycle policy dynamically
         policy = (
             artifacts.LifecyclePolicy.REBUILD
-            if config.transform.rebuild
+            if config.data.preparation.rebuild
             else artifacts.LifecyclePolicy.BUILD_IF_MISSING
         )
 
-        # artifact paths
-        foundation_paths = artifacts.FoundationPaths(config.foundation.output_dpath)
 
-        # parse catalog from data foundation
-        parsed_catalog = transform.data_blocks_adapter(
-            foundation_paths.data_blocks.dev.catalog,
-            foundation_paths.data_blocks.dev.schema,
-            foundation_paths.data_blocks.test.catalog,
-            config=config.transform.catalog
+        # parse catalog from data ingestion stage
+        parsed_catalog = prepare_data.data_blocks_adapter(
+            artifact_paths.data_ingestion.data_blocks.dev.catalog,
+            artifact_paths.data_ingestion.data_blocks.dev.schema,
+            artifact_paths.data_ingestion.data_blocks.test.catalog,
+            config=config.data.preparation.catalog
         )
 
         # datablocks partition
         logger.log('INFO', '[START] Dataset partitioning splits')
         # data transform config aliases
-        partition = config.transform.partition
-        scoring = config.transform.scoring
-        hydration = config.transform.hydration
+        partition = config.data.preparation.partition
+        scoring = config.data.preparation.scoring
+        hydration = config.data.preparation.hydration
         # partition config
-        partition_config = transform.PartitionParameters(
+        partition_config = prepare_data.PartitionParameters(
             val_test_ratios=(partition.val_ratio, partition.test_ratio),
             buffer_step=partition.buffer_step,
             reward_ratios=scoring.reward,
             scoring_alpha=scoring.alpha,
             scoring_beta=scoring.beta,
             max_skew_rate=hydration.max_skew_rate,
-            block_spec=config.foundation.grid.tile_specs_tuple
+            block_spec=config.data.ingestion.grid.tile_specs_tuple
         )
-        transform.run_datablocks_partition(
+        prepare_data.run_datablocks_partition(
             parsed_catalog,
-            transform_paths,
+            paths,
             partition_config,
             policy=policy,
             logger=logger,
@@ -108,8 +106,8 @@ def prepare(config: configs.RootConfig):
 
         # normalize
         logger.log('INFO', '[START] Block normalization')
-        transform.run_normalize_blocks(
-            transform_paths,
+        prepare_data.run_normalize_blocks(
+            paths,
             policy=policy,
             logger=logger
         )
@@ -119,8 +117,8 @@ def prepare(config: configs.RootConfig):
 
         # build schema
         logger.log('INFO', '[START] Transform schema building')
-        transform.build_schema(
-            transform_paths,
+        prepare_data.build_schema(
+            paths,
             policy=policy,
             logger=logger
         )
@@ -129,8 +127,7 @@ def prepare(config: configs.RootConfig):
         logger.log('INFO', f'[COMPLETE] Transform schema building (D_{d:.2f}s)')
 
         # write config JSON sidecar upon successful execution
-        config_ctrl = artifacts.Controller[dict](transform_paths.config)
-        config_ctrl.persist(config.as_dict)
+        artifacts.Controller[dict](paths.config).persist(config.as_dict)
 
     except Exception as e:
         logger.set_summary_status('FAILED')

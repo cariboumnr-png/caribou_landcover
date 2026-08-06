@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -86,8 +86,8 @@ def train(config: configs.RootConfig) -> None:
         dataspecs = geopipe.build_dataspec(
             artifact_paths,
             mode='default',
-            ids_domain_name=config.dataspecs.domain_ids_name,
-            vec_domain_name=config.dataspecs.domain_vec_name
+            ids_domain_name=config.data.specification.domain_ids_name,
+            vec_domain_name=config.data.specification.domain_vec_name
         )
         d_setup = time.perf_counter() - start_t
         logger.log('INFO', f'[COMPLETE] Data specs setup (D_{d_setup:.2f}s)')
@@ -266,7 +266,7 @@ def _log_inputs(
             'heads': list(dataspecs.heads.class_counts.keys())
         },
         'data': {
-            'dataset_name': config.foundation.datablocks.name,
+            'dataset_name': config.data.ingestion.datablocks.name,
             'patch_size': config.session.data_loader.patch_size
         },
         'dataspecs': dataspecs.to_dict()

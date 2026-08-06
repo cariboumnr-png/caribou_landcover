@@ -43,31 +43,48 @@ def test_data_prepare_pipeline_success(tmp_path, dummy_data_paths):
     # compose config with OmegaConf
     cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
 
-    # override foundation grid fields
-    grid_cfg = cfg_schema.foundation.grid
+    # override ingestion grid fields
+    grid_cfg = cfg_schema.data.ingestion.grid
     grid_cfg.mode = 'ref'
-    grid_cfg.crs = 'EPSG:2958'
-    grid_cfg.extent.filepath = dummy_data_paths.extent
+    grid_cfg.crs = 'EPSG:3161'
     grid_cfg.tile_specs.size_row = 256
     grid_cfg.tile_specs.size_col = 256
     grid_cfg.tile_specs.overlap_row = 128
     grid_cfg.tile_specs.overlap_col = 128
 
-    # override foundation datablocks fields
-    blocks_cfg = cfg_schema.foundation.datablocks
+    # override ingestion datablocks fields
+    blocks_cfg = cfg_schema.data.ingestion.datablocks
     blocks_cfg.name = 'test_prepare_run'
-    blocks_cfg.filepaths.dev_image = dummy_data_paths.dev_image
-    blocks_cfg.filepaths.dev_label = dummy_data_paths.dev_label
-    blocks_cfg.filepaths.test_image = dummy_data_paths.test_image
-    blocks_cfg.filepaths.test_label = dummy_data_paths.test_label
-    blocks_cfg.filepaths.config = dummy_data_paths.config
 
-    cfg_schema.foundation.output_dpath = str(tmp_path / 'foundation')
-    cfg_schema.foundation.rebuild = True
+    cfg_schema.data.harmonization.canvas.reference_raster = dummy_data_paths.extent
+    cfg_schema.data.harmonization.canvas.target_crs = 'EPSG:3161'
+    cfg_schema.data.harmonization.canvas.target_resolution = 10.0
+    cfg_schema.data.harmonization.dataset_config = dummy_data_paths.config
+    cfg_schema.data.harmonization.output_dpath = str(tmp_path / 'harmonized')
+    cfg_schema.data.harmonization.raw_data.domains = {
+        'domain_1': dummy_data_paths.domain_1
+    }
+    cfg_schema.data.harmonization.raw_data.dev_features = {
+        'sentinel2': dummy_data_paths.raw_sentinel2,
+        'dem': dummy_data_paths.raw_dem
+    }
+    cfg_schema.data.harmonization.raw_data.dev_labels = {
+        'landcover': dummy_data_paths.raw_landcover
+    }
+    cfg_schema.data.harmonization.raw_data.test_features = {
+        'sentinel2': dummy_data_paths.raw_test_sentinel2,
+        'dem': dummy_data_paths.raw_test_dem
+    }
+    cfg_schema.data.harmonization.raw_data.test_labels = {
+        'landcover': dummy_data_paths.raw_test_landcover
+    }
+
+    cfg_schema.data.ingestion.output_dpath = str(tmp_path / 'ingested')
+    cfg_schema.data.ingestion.rebuild = True
 
     # override transform fields
-    transform_cfg = cfg_schema.transform
-    transform_cfg.output_dpath = str(tmp_path / 'transform')
+    transform_cfg = cfg_schema.data.preparation
+    transform_cfg.output_dpath = str(tmp_path / 'prepared')
     transform_cfg.rebuild = True
 
     transform_cfg.catalog.valid_pxs = {'image': 0.05}
@@ -89,16 +106,21 @@ def test_data_prepare_pipeline_success(tmp_path, dummy_data_paths):
         omegaconf.OmegaConf.to_object(cfg_schema)
     )
 
-    # 1) run the ingestion pipeline to build foundation inputs
+    # 1) run harmonize to populate ETL outputs in EPSG:3161
+    pipelines.harmonize(config)
+
+    # 2) run the ingestion pipeline to build ingestion inputs
     pipelines.ingest(config)
 
-    # 2) run the preparation pipeline
+    # 3) run the preparation pipeline
     pipelines.prepare(config)
 
     # verify the generated transform outputs
-    out_dpath = config.transform.output_dpath
+    out_dpath = config.data.preparation.output_dpath
     assert os.path.exists(os.path.join(out_dpath, 'block_splits_source.json'))
-    assert os.path.exists(os.path.join(out_dpath, 'block_splits_transformed.json'))
+    assert os.path.exists(
+        os.path.join(out_dpath, 'block_splits_transformed.json')
+    )
     assert os.path.exists(os.path.join(out_dpath, 'image_stats.json'))
     assert os.path.exists(os.path.join(out_dpath, 'prep_report.json'))
     assert os.path.exists(os.path.join(out_dpath, 'schema.json'))

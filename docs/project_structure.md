@@ -15,8 +15,6 @@ adding or moving code over a fully exhaustive file listing.
 |   |-- workflow_chart.md         High-level workflow chart
 |   `-- project_structure.md      This file
 |
-|-- dev/                          Ignored developer scratch/reference workspace
-|
 |-- experiment/                   Ignored local experiment I/O
 |   |-- artifacts/                Generated grids, manifests, checkpoints, etc.
 |   |-- input/                    Local experiment inputs
@@ -32,7 +30,7 @@ adding or moving code over a fully exhaustive file listing.
 |   |-- configs/                  Hydra YAML configs and structured schema dataclasses
 |   |-- core/                     Project-wide contracts and result types
 |   |-- execution/                Pipeline registry and top-level execution dispatch
-|   |-- geopipe/                  Geospatial foundation and transform pipeline
+|   |-- geopipe/                  Geospatial harmonize, ingest, and prepare pipelines
 |   |-- models/                   Model frames, backbones, heads, conditioning, factories
 |   |-- session/                  Runtime session construction, orchestration, and engines
 |   |-- study/                    Sweep and post-run study analysis utilities
@@ -80,12 +78,11 @@ src/landseg/
 |   |-- hydra/
 |   |   |-- config.yaml           Hydra composition entry point
 |   |   |-- dataspecs/            Dataset specification defaults
-|   |   |-- foundation/           Data block, domain, and grid defaults
+|   |   |-- data/                 Harmonization, ingestion, and preparation defaults
 |   |   |-- models/               Model architecture defaults
-|   |   |-- pipeline/             data-ingest, data-prepare, train, eval, study configs
+|   |   |-- pipeline/             data-harmonize, data-ingest, data-prepare, train, eval, study configs
 |   |   |-- session/              Runtime, loader, optimizer, task, and orchestration configs
-|   |   |-- study/                Study/sweep defaults
-|   |   `-- transform/            Transform defaults
+|   |   `-- study/                Study/sweep defaults
 |   `-- schema/
 |       |-- root.py               Root structured config schema
 |       |-- utils.py              Schema helper utilities
@@ -100,8 +97,9 @@ src/landseg/
 |   |-- executor.py               Unified execution entry point
 |   `-- pipelines/
 |       |-- _registry.py          Pipeline lookup and registration
-|       |-- data_ingest.py        Foundation data ingestion pipeline
-|       |-- data_prepare.py       Transform/data-preparation pipeline
+|       |-- data_harmonize.py     Data harmonization pipeline
+|       |-- data_ingest.py        Data ingestion pipeline
+|       |-- data_prepare.py       Data preparation pipeline
 |       |-- model_train.py        Training pipeline
 |       |-- model_evaluate.py     Evaluation pipeline
 |       |-- diagnose_overfit.py   Overfit diagnostic pipeline
@@ -109,19 +107,20 @@ src/landseg/
 |       `-- study_analysis.py     Study result analysis pipeline
 |
 |-- geopipe/
-|   |-- core/                     Foundation and transform data contracts
-|   |-- foundation/
-|   |   |-- common/               Shared foundation aliases
+|   |-- core/                     Harmonization, ingestion, and preparation data contracts
+|   |-- harmonize/                Warping, stacking, and valid mask operations
+|   |-- ingest/                   World grid, domain maps, and data blocks construction
+|   |   |-- common/               Ingestion loggers and aliases
 |   |   |-- data_blocks/          Data block manifests, mapping, and pipeline
 |   |   |-- domain_maps/          Domain map construction and lifecycle
 |   |   `-- world_grids/          World grid construction and lifecycle
-|   |-- specification/            DataSpecs factory
-|   |-- transform/
-|   |   |-- common/               Transform aliases
+|   |-- prepare/                  Splitting, normalization, and schema compilation
+|   |   |-- common/               Preparation loggers and aliases
 |   |   |-- data_partition/       Split, filter, hydrate, and scoring pipeline
 |   |   |-- normal_blocks/        Normalization stats and normalization pipeline
 |   |   |-- adapter.py            Catalog data blocks adapter
-|   |   `-- schema.py             Transform schema compiler
+|   |   `-- schema.py             Preparation schema compiler
+|   |-- factory.py                DataSpecs factory
 |   `-- utils/                    Raster context and coordinate string helpers
 |
 |-- models/

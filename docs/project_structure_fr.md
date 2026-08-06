@@ -15,8 +15,6 @@ deplacer du code, plutot qu'une liste exhaustive de tous les fichiers.
 |   |-- workflow_chart_fr.md      Diagramme general du workflow
 |   `-- project_structure_fr.md   Ce fichier
 |
-|-- dev/                          Espace ignore de notes, references et essais
-|
 |-- experiment/                   I/O locale ignoree des experiences
 |   |-- artifacts/                Grilles, manifestes, checkpoints, etc. generes
 |   |-- input/                    Entrees locales d'experience
@@ -32,7 +30,7 @@ deplacer du code, plutot qu'une liste exhaustive de tous les fichiers.
 |   |-- configs/                  Configs Hydra YAML et schemas structures
 |   |-- core/                     Contrats transversaux et types de resultats
 |   |-- execution/                Registre de pipelines et dispatch d'execution
-|   |-- geopipe/                  Fondations geospatiales et pipeline de transformation
+|   |-- geopipe/                  Pipelines géospatiaux d'harmonisation, d'ingestion et de préparation
 |   |-- models/                   Frames, backbones, tetes, conditionnement, factories
 |   |-- session/                  Construction, orchestration et moteurs runtime
 |   |-- study/                    Sweeps et analyse post-execution
@@ -43,17 +41,17 @@ deplacer du code, plutot qu'une liste exhaustive de tous les fichiers.
 |-- configs/                      Fichiers de configuration utilisateur
 |   `-- user.yaml                 Configuration locale principale par pipeline
 |
-|-- scripts/                      Scripts helpers et points d'entree
-|   |-- generate_dummy_data.py    Script de generation locale de donnees fictives
-|   `-- run.py                    Script de demarrage pour machines virtuelles/Databricks
+|-- scripts/                      Helper scripts et entry points
+|   |-- generate_dummy_data.py    Local dummy dataset generator script
+|   `-- run.py                    Bootstrap script for VM/Databricks executions
 |
-|-- tests/                        Suites de tests unitaires et d'integration
-|   |-- conftest.py               Fixtures et configurations de test globales
-|   `-- unit/                     Tests unitaires calques sur la structure du package
+|-- tests/                        Unit and integration test suites
+|   |-- conftest.py               Global test fixtures and setups
+|   `-- unit/                     Unit tests mirroring package structure
 |
-|-- pyproject.toml                Metadonnees du package et entree console `landseg`
-|-- README.md                     Vue d'ensemble du projet
-`-- CONTRIBUTING.md               Notes de contribution
+|-- pyproject.toml                Package metadata and `landseg` console entry point
+|-- README.md                     Project overview
+`-- CONTRIBUTING.md               Contribution notes
 ```
 
 ### Organisation Du Package
@@ -63,7 +61,7 @@ src/landseg/
 |-- adapters/
 |   |-- api/
 |   |   |-- api.py                Facade d'API programmatique
-|   |   `-- configurators/        Helpers API pour ingest, prepare et train
+|   |   `-- configurators/        API helpers pour ingest, prepare et train
 |   `-- cli/
 |       |-- cli.py                Implementation CLI pilotee par Hydra
 |       |-- resolver.py           Helpers de resolution de config CLI
@@ -80,12 +78,11 @@ src/landseg/
 |   |-- hydra/
 |   |   |-- config.yaml           Point d'entree de composition Hydra
 |   |   |-- dataspecs/            Defaults des specifications de donnees
-|   |   |-- foundation/           Defaults data blocks, domaines et grilles
+|   |   |-- data/                 Defaults d'harmonisation, d'ingestion et de préparation
 |   |   |-- models/               Defaults des architectures modeles
-|   |   |-- pipeline/             Configs ingest, prepare, train, eval et study
+|   |   |-- pipeline/             Configs harmonize, ingest, prepare, train, eval et study
 |   |   |-- session/              Configs runtime, loader, optimiseur, taches, orchestration
-|   |   |-- study/                Defaults d'etude et de sweep
-|   |   `-- transform/            Defaults de transformation
+|   |   `-- study/                Defaults d'etude et de sweep
 |   `-- schema/
 |       |-- root.py               Schema structure racine
 |       |-- utils.py              Utilitaires de schema
@@ -100,8 +97,9 @@ src/landseg/
 |   |-- executor.py               Point d'entree unifie d'execution
 |   `-- pipelines/
 |       |-- _registry.py          Lookup et enregistrement des pipelines
-|       |-- data_ingest.py        Pipeline d'ingestion des donnees de fondation
-|       |-- data_prepare.py       Pipeline de transformation/preparation
+|       |-- data_harmonize.py     Pipeline d'harmonisation des données
+|       |-- data_ingest.py        Pipeline d'ingestion des données
+|       |-- data_prepare.py       Pipeline de préparation des données
 |       |-- model_train.py        Pipeline d'entrainement
 |       |-- model_evaluate.py     Pipeline d'evaluation
 |       |-- diagnose_overfit.py   Diagnostic d'overfit
@@ -109,19 +107,20 @@ src/landseg/
 |       `-- study_analysis.py     Analyse des resultats d'etude
 |
 |-- geopipe/
-|   |-- core/                     Contrats de donnees foundation et transform
-|   |-- foundation/
-|   |   |-- common/               Alias partages de la couche foundation
+|   |-- core/                     Contrats de données d'harmonisation, d'ingestion et de préparation
+|   |-- harmonize/                Reprojection, empilement et masques de validité
+|   |-- ingest/                   Grilles monde, cartes de domaine et blocs de données
+|   |   |-- common/               Loggers et alias d'ingestion
 |   |   |-- data_blocks/          Manifestes, mapping et pipeline de blocs
 |   |   |-- domain_maps/          Construction et cycle de vie des cartes de domaine
 |   |   `-- world_grids/          Construction et cycle de vie des grilles monde
-|   |-- specification/            Factory des DataSpecs
-|   |-- transform/
-|   |   |-- common/               Alias de transformation
+|   |-- prepare/                  Partitionnement, normalisation et schéma
+|   |   |-- common/               Loggers et alias de préparation
 |   |   |-- data_partition/       Split, filter, hydrate et scoring
 |   |   |-- normal_blocks/        Statistiques et pipeline de normalisation
 |   |   |-- adapter.py            Adaptateur de catalogue de blocs de donnees
-|   |   `-- schema.py             Compilateur de schema de transformation
+|   |   `-- schema.py             Compilateur de schema de préparation
+|   |-- factory.py                Factory des DataSpecs
 |   `-- utils/                    Contexte raster et helpers de coordonnees
 |
 |-- models/

@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -33,23 +33,32 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
 
     translated: dict[str, typing.Any] = {
         'execution': {},
-        'etl': {},
-        'foundation': {
-            'grid': {
-                'extent': {},
-                'tile_specs': {},
+        'data':{
+            'data.harmonization': {
+                'canvas': {},
+                'raw_data': {
+                    'domains': {},
+                    'dev_features': {},
+                    'dev_labels': {},
+                    'test_features': {},
+                    'test_labels': {},
+                }
             },
-            'domains': {},
-            'datablocks': {
-                'filepaths': {},
+            'ingestion': {
+                'grid': {
+                    'extent': {},
+                    'tile_specs': {},
+                },
+                'domains': {},
+                'datablocks': {},
             },
+            'preparation': {
+                'catalog': {},
+                'partition': {},
+                'scoring': {},
+            },
+            'specification': {},
         },
-        'transform': {
-            'catalog': {},
-            'partition': {},
-            'scoring': {},
-        },
-        'dataspecs': {},
         'models': {},
         'session': {
             'data_loader': {},
@@ -82,75 +91,79 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
 
 
 def _translate_data_harmonize(
-    etl: omegaconf.DictConfig,
+    harmonization: omegaconf.DictConfig,
     translated: dict
 ) -> None:
-    '''Map data-harmonize settings to etl fields.'''
+    '''Map data-harmonize settings to harmonization fields.'''
 
     mapping = {
-        'target_crs': ['etl.target_crs'],
-        'target_resolution': ['etl.target_resolution'],
-        'reference_raster': ['etl.reference_raster'],
-        'resampling_continuous': ['etl.resampling_continuous'],
-        'resampling_categorical': ['etl.resampling_categorical'],
-        'features': ['etl.features'],
-        'labels': ['etl.labels'],
-        'output_dpath': ['etl.output_dpath'],
+        'target_crs': ['data.harmonization.canvas.target_crs'],
+        'target_resolution': ['data.harmonization.canvas.target_resolution'],
+        'reference_raster': ['data.harmonization.canvas.reference_raster'],
+        'resampling_continuous': ['data.harmonization.resampling_continuous'],
+        'resampling_categorical': ['data.harmonization.resampling_categorical'],
+        'dev_features': ['data.harmonization.raw_data.dev_features'],
+        'features': ['data.harmonization.raw_data.dev_features'],
+        'domains': ['data.harmonization.raw_data.domains'],
+        'dev_labels': ['data.harmonization.raw_data.dev_labels'],
+        'labels': ['data.harmonization.raw_data.dev_labels'],
+        'test_features': ['data.harmonization.raw_data.test_features'],
+        'test_labels': ['data.harmonization.raw_data.test_labels'],
+        'dataset_config': ['data.harmonization.dataset_config'],
+        'dataset_name': [
+            'data.harmonization.dataset_name',
+            'data.ingestion.datablocks.name'
+        ],
+        'output_dpath': ['data.harmonization.output_dpath'],
     }
-    _apply_mapping(etl, translated, mapping)
+    _apply_mapping(harmonization, translated, mapping)
 
 
 def _translate_data_ingest(
-    fdn: omegaconf.DictConfig,
+    ingestion: omegaconf.DictConfig,
     translated: dict
 ) -> None:
-    '''Map data-ingest settings to foundation fields.'''
+    '''Map data-ingest settings to ingestion fields.'''
 
     mapping = {
-        'grid_crs': ['foundation.grid.crs'],
-        'grid_extent_path': ['foundation.grid.extent.filepath'],
+        'harmonization_run': ['data.ingestion.harmonization_run'],
+        'grid_crs': ['data.ingestion.grid.crs'],
         'tile_size': [
-            'foundation.grid.tile_specs.size_row',
-            'foundation.grid.tile_specs.size_col'
+            'data.ingestion.grid.tile_specs.size_row',
+            'data.ingestion.grid.tile_specs.size_col'
         ],
         'tile_overlap': [
-            'foundation.grid.tile_specs.overlap_row',
-            'foundation.grid.tile_specs.overlap_col'
+            'data.ingestion.grid.tile_specs.overlap_row',
+            'data.ingestion.grid.tile_specs.overlap_col'
         ],
-        'domain_files': ['foundation.domains.files'],
         'domain_ids_name': ['dataspecs.domain_ids_name'],
         'domain_vec_name': ['dataspecs.domain_vec_name'],
-        'dataset_name': ['foundation.datablocks.name'],
-        'dev_image': ['foundation.datablocks.filepaths.dev_image'],
-        'dev_label': ['foundation.datablocks.filepaths.dev_label'],
-        'test_image': ['foundation.datablocks.filepaths.test_image'],
-        'test_label': ['foundation.datablocks.filepaths.test_label'],
-        'dataset_config': ['foundation.datablocks.filepaths.config'],
-        'rebuild': ['foundation.rebuild'],
-        'output_dpath': ['foundation.output_dpath'],
+        'dataset_name': ['data.ingestion.datablocks.name'],
+        'rebuild': ['data.ingestion.rebuild'],
+        'output_dpath': ['data.ingestion.output_dpath'],
     }
-    _apply_mapping(fdn, translated, mapping)
+    _apply_mapping(ingestion, translated, mapping)
 
 
 def _translate_data_prepare(
-    tf: omegaconf.DictConfig,
+    preparation: omegaconf.DictConfig,
     translated: dict
 ) -> None:
-    '''Map data-prepare settings to transform fields.'''
+    '''Map data-prepare settings to preparation fields.'''
 
     mapping = {
-        'val_ratio': ['transform.partition.val_ratio'],
-        'test_ratio': ['transform.partition.test_ratio'],
-        'target_head': ['transform.catalog.focal_target'],
-        'reward_classes': ['transform.scoring.reward'],
-        'rebuild': ['transform.rebuild'],
-        'output_dpath': ['transform.output_dpath'],
+        'val_ratio': ['data.preparation.partition.val_ratio'],
+        'test_ratio': ['data.preparation.partition.test_ratio'],
+        'target_head': ['data.preparation.catalog.focal_target'],
+        'reward_classes': ['data.preparation.scoring.reward'],
+        'rebuild': ['data.preparation.rebuild'],
+        'output_dpath': ['data.preparation.output_dpath'],
     }
-    _apply_mapping(tf, translated, mapping)
+    _apply_mapping(preparation, translated, mapping)
 
 
 def _translate_model_train(
-    rt: omegaconf.DictConfig,
+    model_train: omegaconf.DictConfig,
     translated: dict
 ) -> None:
     '''Map model-train settings to models and session fields.'''
@@ -166,12 +179,12 @@ def _translate_model_train(
         'head_metrics_weights': ['session.orchestration.monitor.track_heads'],
         'output_dpath': ['session.output_dpath'],
     }
-    _apply_mapping(rt, translated, mapping)
+    _apply_mapping(model_train, translated, mapping)
 
     # infer active heads for phase from active_tasks or head weights
-    active_tasks = rt.get('active_tasks', None)
-    loss_heads = rt.get('head_loss_weights', {})
-    metrics_heads = rt.get('head_metrics_weights', {})
+    active_tasks = model_train.get('active_tasks', None)
+    loss_heads = model_train.get('head_loss_weights', {})
+    metrics_heads = model_train.get('head_metrics_weights', {})
     if loss_heads and metrics_heads and set(loss_heads) != set(metrics_heads):
         raise ValueError('Different heads between loss and metrics weights')
 
@@ -184,7 +197,7 @@ def _translate_model_train(
 
     phase = {
         'name': 'demo-train',
-        'num_epochs': rt['epochs'],
+        'num_epochs': model_train['epochs'],
         'active_heads': active_heads
     }
     _set_paths(

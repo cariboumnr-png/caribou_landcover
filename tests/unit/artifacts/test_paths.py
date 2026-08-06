@@ -29,7 +29,7 @@ Unit tests for `landseg.artifacts.paths`.
 import os
 # local imports
 import landseg.artifacts.paths as paths_mod
-import landseg.artifacts.paths.foundation as f_mod
+import landseg.artifacts.paths.data_ingestion as f_mod
 import landseg.configs as configs_mod
 
 
@@ -38,13 +38,13 @@ def test_artifact_paths_hierarchy():
     '''
     Given: An experiment root directory string.
     When: Instantiating `ArtifactPaths`.
-    Then: Return joined child `foundation`, `transform`, `etl`, and `session` namespaces.
+    Then: Return joined namespaces.
     '''
     r = os.path.join('/tmp', 'exp')
     art = paths_mod.ArtifactPaths(root=r)
-    assert art.foundation.root == os.path.join(r, 'foundation')
-    assert art.transform.root == os.path.join(r, 'transform')
-    assert art.etl.root == os.path.join(r, 'harmonized')
+    assert art.data_harmonization.root == os.path.join(r, 'harmonized_data')
+    assert art.data_ingestion.root == os.path.join(r, 'ingested_data')
+    assert art.data_preparation.root == os.path.join(r, 'prepared_data')
     assert art.session.root == os.path.join(r, 'results')
 
 
@@ -56,14 +56,14 @@ def test_artifact_paths_custom_overrides():
     '''
     art = paths_mod.ArtifactPaths(
         root='/tmp/exp',
-        etl_root='/custom/etl',
-        foundation_root='/custom/foundation',
-        transform_root='/custom/transform',
+        harmonization_root='/custom/harmonized',
+        ingestion_root='/custom/ingested',
+        preparation_root='/custom/prepared',
         session_root='/custom/session'
     )
-    assert art.etl.root == '/custom/etl'
-    assert art.foundation.root == '/custom/foundation'
-    assert art.transform.root == '/custom/transform'
+    assert art.data_harmonization.root == '/custom/harmonized'
+    assert art.data_ingestion.root == '/custom/ingested'
+    assert art.data_preparation.root == '/custom/prepared'
     assert art.session.root == '/custom/session'
 
 
@@ -75,49 +75,79 @@ def test_artifact_paths_from_config():
     '''
     cfg = configs_mod.RootConfig()
     cfg.execution.exp_root = '/tmp/exp'
-    cfg.etl.output_dpath = '/tmp/exp/artifacts/harmonized'
-    cfg.foundation.output_dpath = '/tmp/exp/artifacts/foundation'
-    cfg.transform.output_dpath = '/tmp/exp/artifacts/transform'
+    cfg.data.harmonization.output_dpath = '/tmp/exp/artifacts/harmonized_data'
+    cfg.data.ingestion.output_dpath = '/tmp/exp/artifacts/ingested_data'
+    cfg.data.preparation.output_dpath = '/tmp/exp/artifacts/prepared_data'
     cfg.session.output_dpath = '/tmp/exp/results'
     art = paths_mod.ArtifactPaths.from_config(cfg)
     assert art.root == '/tmp/exp'
-    assert art.etl.root == '/tmp/exp/artifacts/harmonized'
-    assert art.foundation.root == '/tmp/exp/artifacts/foundation'
-    assert art.transform.root == '/tmp/exp/artifacts/transform'
+    assert art.data_harmonization.root == '/tmp/exp/artifacts/harmonized_data'
+    assert art.data_ingestion.root == '/tmp/exp/artifacts/ingested_data'
+    assert art.data_preparation.root == '/tmp/exp/artifacts/prepared_data'
     assert art.session.root == '/tmp/exp/results'
 
 
-def test_etl_paths(tmp_path):
+def test_harmonization_paths(tmp_path):
     '''
-    Given: An ETL root directory path.
-    When: Initializing `ETLPaths` across runs.
+    Given: A harmonization root directory path.
+    When: Initializing `HarmonizationPaths` across runs.
     Then: Return expected run-isolated harmonized raster VRTs and etl_report.json file paths.
     '''
     e = str(tmp_path)
-    etl_paths = paths_mod.ETLPaths(root=e)
+    etl_paths = paths_mod.HarmonizationPaths(root=e)
     etl_paths.init()
 
     assert etl_paths.run_id == 'run_0001'
     r = etl_paths.effective_root
     assert etl_paths.harmonized_raster('dem') == os.path.join(r, 'harmonized_dem.vrt')
-    assert etl_paths.composite_raster == os.path.join(r, 'harmonized_image_composite.vrt')
+    assert etl_paths.feature_raster == os.path.join(r, 'stacked_images.vrt')
     assert etl_paths.valid_mask_raster == os.path.join(r, 'valid_pixel_mask.vrt')
     assert etl_paths.report == os.path.join(r, 'etl_report.json')
 
     # second init auto-increments run_id
-    etl_paths_2 = paths_mod.ETLPaths(root=e)
+    etl_paths_2 = paths_mod.HarmonizationPaths(root=e)
     etl_paths_2.init()
     assert etl_paths_2.run_id == 'run_0002'
 
 
-def test_foundation_paths():
+def test_harmonization_paths_get_run_folder(tmp_path):
     '''
-    Given: A foundation root directory string.
-    When: Accessing `FoundationPaths` properties and sub-container helpers.
+    Given: Multiple harmonization run folders (run_0001, run_0002).
+    When: Calling `get_run_folder` with ints, folder strings, or paths.
+    Then: Resolve targeted folder or default to latest run.
+    '''
+    root = str(tmp_path)
+    run1 = os.path.join(root, 'run_0001')
+    run2 = os.path.join(root, 'run_0002')
+    os.makedirs(run1, exist_ok=True)
+    os.makedirs(run2, exist_ok=True)
+
+    h_paths = paths_mod.HarmonizationPaths(root=root)
+
+    # default (None) -> latest (run_0002)
+    assert h_paths.get_run_folder() == run2
+
+    # int index -> run_0001
+    assert h_paths.get_run_folder(1) == run1
+
+    # digit string -> run_0001
+    assert h_paths.get_run_folder('1') == run1
+
+    # folder name string -> run_0001
+    assert h_paths.get_run_folder('run_0001') == run1
+
+    # direct path string -> run_0001
+    assert h_paths.get_run_folder(run1) == run1
+
+
+def test_ingestion_paths():
+    '''
+    Given: An ingestion root directory string.
+    When: Accessing `IngestionPaths` properties and sub-container helpers.
     Then: Return expected report, config, grid, and domain map filepaths.
     '''
-    f = os.path.join('/tmp', 'exp', 'foundation')
-    f_paths = paths_mod.FoundationPaths(root=f)
+    f = os.path.join('/tmp', 'exp', 'ingested_data')
+    f_paths = paths_mod.IngestionPaths(root=f)
     assert f_paths.report == os.path.join(f, 'ingest_report.json')
     assert f_paths.config == os.path.join(f, 'config.json')
 
@@ -143,7 +173,7 @@ def test_data_blocks_paths():
     When: Accessing `_DataBlocks` dev/test paths and window map methods.
     Then: Return expected model dev and test holdout artifact paths.
     '''
-    b = os.path.join('/tmp', 'exp', 'foundation', 'data_blocks')
+    b = os.path.join('/tmp', 'exp', 'ingested_data', 'data_blocks')
     db = f_mod._DataBlocks(root=b)
 
     d = os.path.join(b, 'model_dev')
@@ -155,15 +185,15 @@ def test_data_blocks_paths():
     assert win_path == os.path.join(db.test.windows, 'windows_g1.json')
 
 
-# ----- `TransformPaths` tests
-def test_transform_paths():
+# ----- `PreparationPaths` tests
+def test_preparation_paths():
     '''
-    Given: A transform root directory string.
-    When: Accessing `TransformPaths` property endpoints.
-    Then: Return canonical file and folder paths for transformed datasets.
+    Given: A preparation root directory string.
+    When: Accessing `PreparationPaths` property endpoints.
+    Then: Return canonical file and folder paths for prepared datasets.
     '''
-    t = os.path.join('/tmp', 'exp', 'transform')
-    t_paths = paths_mod.TransformPaths(root=t)
+    t = os.path.join('/tmp', 'exp', 'prepared_data')
+    t_paths = paths_mod.PreparationPaths(root=t)
 
     assert t_paths.report == os.path.join(t, 'prep_report.json')
     assert t_paths.config == os.path.join(t, 'config.json')

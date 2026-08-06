@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -55,12 +55,8 @@ class RootConfig:
 
     # execution configs
     execution: _ExecutionContext = field(default_factory=_ExecutionContext)
-    # raw input data and configs
-    foundation: sec.DataFoundation = field(default_factory=sec.DataFoundation)
-    # data preparation
-    transform: sec.DataTransform = field(default_factory=sec.DataTransform)
-    # data specfication
-    dataspecs: sec.DataSpecs = field(default_factory=sec.DataSpecs)
+    # data ETL settings
+    data: sec.DataConfig = field(default_factory=sec.DataConfig)
     # model settings
     models: sec.ModelsConfig = field(default_factory=sec.ModelsConfig)
     # session settings
@@ -69,18 +65,13 @@ class RootConfig:
     study: sec.StudyConfig = field(default_factory=sec.StudyConfig)
     # pipeline specific CLI flags
     pipeline: sec.PipelineConfig = field(default_factory=sec.PipelineConfig)
-    # etl settings
-    etl: sec.ETLConfig = field(default_factory=sec.ETLConfig)
 
     @property
     def as_dict(self) -> dict[str, typing.Any]:
-        return dataclasses.asdict(self)
+        return dataclasses.asdict(typing.cast(typing.Any, self))
 
     def validate_all(self) -> None:
-        # To be completed for all sections
-        self.etl.validate()
-        self.foundation.validate()
-        self.transform.validate()
+        self.data.validate()
         self.models.validate()
         self.session.validate()
 

@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -137,21 +137,38 @@ def test_diff_configs_lists():
 
 
 # ----- _validate_upstream_pipelines logic
-def test_validate_upstream_pipelines_ignore_default():
+def test_validate_upstream_pipelines_entrypoints():
     '''
-    Given: A RootConfig and the 'default' or 'data-ingest' pipeline names.
+    Given: Pipeline names that are standalone entrypoints.
     When: Validating upstream pipelines.
-    Then: Pass silently without checking reports.
+    Then: Pass silently without checking upstream reports.
     '''
     config = configs.RootConfig(
         pipeline=secs.PipelineConfig(name='default'),
-        foundation=secs.DataFoundation(),
-        transform=secs.DataTransform(),
+        data=secs.DataConfig()
     )
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     # should not raise
     executor._validate_upstream_pipelines(config, 'default')
-    executor._validate_upstream_pipelines(config, 'data-ingest')
+    executor._validate_upstream_pipelines(config, 'data-harmonize')
+
+
+def test_validate_upstream_pipelines_missing_etl(tmp_path):
+    '''
+    Given: A data-ingest pipeline run when no harmonization report exists.
+    When: Validating upstream pipelines.
+    Then: Raise an ArtifactError about missing data-harmonize.
+    '''
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='data-ingest'))
+
+    config.data.harmonization.output_dpath = tmp_path
+    config.data.ingestion.output_dpath = tmp_path
+    config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
+    with pytest.raises(
+        artifacts.ArtifactError,
+        match='Upstream pipeline "data-harmonize" has not been executed yet'
+    ):
+        executor._validate_upstream_pipelines(config, 'data-ingest')
 
 
 def test_validate_upstream_pipelines_missing_ingest(tmp_path):
@@ -161,11 +178,13 @@ def test_validate_upstream_pipelines_missing_ingest(tmp_path):
     When: Validating upstream pipelines.
     Then: Raise an ArtifactError.
     '''
-    config = configs.RootConfig(
-        pipeline=secs.PipelineConfig(name='data-prepare'),
-        foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
-        transform=secs.DataTransform(),
-    )
+    etl_paths = artifacts.HarmonizationPaths(str(tmp_path))
+    artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
+
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='data-prepare'))
+
+    config.data.harmonization.output_dpath = tmp_path
+    config.data.ingestion.output_dpath = tmp_path
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     with pytest.raises(
         artifacts.ArtifactError,
@@ -181,15 +200,16 @@ def test_validate_upstream_pipelines_failed_ingest(tmp_path):
     When: Validating upstream pipelines.
     Then: Raise an ArtifactError about the status.
     '''
-    foundation_paths = artifacts.FoundationPaths(str(tmp_path))
-    ctrl = artifacts.Controller(foundation_paths.report)
+    etl_paths = artifacts.HarmonizationPaths(str(tmp_path))
+    artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
+    ingest_paths = artifacts.IngestionPaths(str(tmp_path))
+    ctrl = artifacts.Controller(ingest_paths.report)
     ctrl.persist({'status': 'FAILED'})
 
-    config = configs.RootConfig(
-        pipeline=secs.PipelineConfig(name='data-prepare'),
-        foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
-        transform=secs.DataTransform(),
-    )
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='data-prepare'))
+
+    config.data.harmonization.output_dpath = tmp_path
+    config.data.ingestion.output_dpath = tmp_path
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     with pytest.raises(
         artifacts.ArtifactError,
@@ -200,21 +220,23 @@ def test_validate_upstream_pipelines_failed_ingest(tmp_path):
 
 def test_validate_upstream_pipelines_success(tmp_path):
     '''
-    Given: Successful ingest and prepare reports exist.
+    Given: Successful etl, ingest and prepare reports exist.
     When: Validating upstream pipelines for a downstream pipeline.
     Then: Pass silently.
     '''
-    foundation_paths = artifacts.FoundationPaths(str(tmp_path))
-    transform_paths = artifacts.TransformPaths(str(tmp_path))
+    harmonization_paths = artifacts.HarmonizationPaths(str(tmp_path))
+    ingestion_paths = artifacts.IngestionPaths(str(tmp_path))
+    preparation_paths = artifacts.PreparationPaths(str(tmp_path))
 
-    artifacts.Controller(foundation_paths.report).persist({'status': 'SUCCESS'})
-    artifacts.Controller(transform_paths.report).persist({'status': 'SUCCESS'})
+    artifacts.Controller(harmonization_paths.report).persist({'status': 'SUCCESS'})
+    artifacts.Controller(ingestion_paths.report).persist({'status': 'SUCCESS'})
+    artifacts.Controller(preparation_paths.report).persist({'status': 'SUCCESS'})
 
-    config = configs.RootConfig(
-        pipeline=secs.PipelineConfig(name='model-train'),
-        foundation=secs.DataFoundation(output_dpath=str(tmp_path)),
-        transform=secs.DataTransform(output_dpath=str(tmp_path)),
-    )
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='model-train'))
+
+    config.data.harmonization.output_dpath = tmp_path
+    config.data.ingestion.output_dpath = tmp_path
+    config.data.preparation.output_dpath = tmp_path
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     # should not raise
     executor._validate_upstream_pipelines(config, 'model-train')
@@ -229,9 +251,9 @@ def test_compare_config_section_missing_artifact(tmp_path):
     '''
     diff = executor._compare_config_section(
         str(tmp_path / "missing.json"),
-        "foundation",
-        secs.DataFoundation(
-            grid=secs.foundation._Grid(mode='grid'), output_dpath='out'
+        "ingestion",
+        secs.data._IngestionCfg(
+            grid=secs.data._Grid(mode='grid'), output_dpath='out'
         )
     )
     assert isinstance(diff, dict) and not diff
@@ -245,22 +267,22 @@ def test_compare_config_section_with_differences(tmp_path):
     Then: Return the differences found.
     '''
     artifact_path = str(tmp_path / "config.json")
-    saved_config = {'foundation': {'grid': 'old_grid', 'output_dpath': 'out'}}
+    saved_config = {'ingestion': {'grid': 'old_grid', 'output_dpath': 'out'}}
     artifacts.Controller(artifact_path).persist(saved_config)
 
-    current_config = secs.DataFoundation(
-        grid=secs.foundation._Grid(mode='new_grid'), output_dpath='out'
+    current_config = secs.data._IngestionCfg(
+        grid=secs.data._Grid(mode='new_grid'), output_dpath='out'
     )
 
     diff = executor._compare_config_section(
         artifact_path,
-        "foundation",
+        "ingestion",
         current_config
     )
 
     # We expect 'new_grid' to be normalized as an absolute path vs 'old_grid'
     # depending on normalization
-    assert 'foundation.grid' in diff
+    assert 'ingestion.grid' in diff
 
 
 # ----- execute_pipeline logic
@@ -272,11 +294,8 @@ def test_execute_pipeline_success(mocker):
     Then: Retrieve the correct pipeline command, execute it with the
         configuration, and return its result.
     '''
-    config = configs.RootConfig(
-        pipeline=secs.PipelineConfig(name='default'),
-        foundation=secs.DataFoundation(),
-        transform=secs.DataTransform(),
-    )
+    config = configs.RootConfig(pipeline=secs.PipelineConfig(name='default'))
+
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
 
     mocker.patch('landseg.execution.executor._validate_upstream_pipelines')

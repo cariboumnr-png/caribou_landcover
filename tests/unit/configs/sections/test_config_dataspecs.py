@@ -26,7 +26,7 @@ Unit tests for `landseg.configs.schema.sections.dataspecs`.
 '''
 
 # local imports
-import landseg.configs.schema.sections.dataspecs as dataspecs
+import landseg.configs.schema.sections.data as data
 
 
 # ----- `DataSpecs` tests
@@ -36,7 +36,7 @@ def test_data_specs_default_instantiation():
     When: Creating a `DataSpecs` instance without arguments.
     Then: Initialize `domain_ids_name` and `domain_vec_name` as None.
     '''
-    specs = dataspecs.DataSpecs()
+    specs = data._Specification()
     assert specs.domain_ids_name is None
     assert specs.domain_vec_name is None
 
@@ -47,7 +47,7 @@ def test_data_specs_custom_values():
     When: Instantiating `DataSpecs` with custom strings.
     Then: Store specified domain strings on corresponding attributes.
     '''
-    specs = dataspecs.DataSpecs(
+    specs = data._Specification(
         domain_ids_name='eco_region',
         domain_vec_name='climate_vec',
     )

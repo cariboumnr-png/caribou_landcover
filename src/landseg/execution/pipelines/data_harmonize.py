@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -20,16 +20,17 @@
 # =========================================================================== #
 
 '''
-Data harmonization ETL pipeline command implementation.
+Data harmonization pipeline command implementation.
 '''
 
 # standard imports
 import os
+import shutil
 import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
-import landseg.etl as etl
+import landseg.geopipe.harmonize as harmonize_data
 
 
 # ----- public functions
@@ -41,111 +42,165 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
         config: Resolved root configuration object.
 
     Returns:
-        Summary report dictionary of the ETL execution.
+        Summary report dictionary of the data harmonization execution.
     '''
-    etl_cfg = config.etl
-    artifact_paths = artifacts.ArtifactPaths.from_config(config)
-    etl_paths = artifact_paths.etl
-    etl_paths.init()
 
-    logger = etl.HarmonizationLogger(
+    def _process_source(
+        *,
+        source: dict[str, str],
+        output_composite: str,
+        tag: str,
+        resampling: str,
+        logger: harmonize_data.HarmonizationLogger,
+    ) -> None:
+        '''Process one data source.'''
+        aligned: list[str] = []
+        for name, path in source.items():
+            if not path or not os.path.exists(path):
+                logger.log('INFO', f'Skipping missing {tag} layer: {name}')
+                continue
+
+            if tag == 'domain':
+                harmonize_data.validate_domain_raster_index(path, min_allowed=1)
+
+            logger.add_source_provenance(name, path)
+            out_path = paths.harmonized_raster(f'{tag}_{name}')
+            logger.log('INFO',
+                f'Harmonizing {tag} layer [{name}] -> {out_path} '
+                f'(resampling: {resampling})'
+            )
+            is_cat = tag in ('dev_label', 'label', 'domain', 'test_label')
+            warped = harmonize_data.warp_to_canvas(
+                input_path=path,
+                output_path=out_path,
+                canvas=canvas_spec,
+                is_categorical=is_cat,
+                resampling_method=resampling
+            )
+            aligned.append(warped)
+            logger.add_harmonized_source(name, warped)
+        logger.log('INFO', f'Stacking {len(aligned)} {tag} layers')
+        harmonize_data.stack_canonical_raster(aligned, output_composite)
+
+    paths = artifacts.ArtifactPaths.from_config(config).data_harmonization
+    paths.init()
+
+    canvas_spec = harmonize_data.create_canvas(
+        reference_raster=config.data.harmonization.canvas.reference_raster,
+        target_crs=config.data.harmonization.canvas.target_crs,
+        target_resolution=config.data.harmonization.canvas.target_resolution
+    )
+
+    logger = harmonize_data.HarmonizationLogger(
         name='data-harmonize',
-        log_file=etl_paths.report,
+        log_file=paths.report,
         enable_file_log=False
     )
 
-    canvas_spec = etl.create_canvas(
-        target_crs=etl_cfg.target_crs,
-        target_resolution=etl_cfg.target_resolution,
-        reference_raster=etl_cfg.reference_raster
-    )
-
     logger.init_summary(
-        run_id=etl_paths.run_id,
+        run_id=paths.run_id,
         target_crs=canvas_spec.crs,
         target_resolution=canvas_spec.resolution
     )
     logger.set_grid_shape(canvas_spec.height, canvas_spec.width)
-    logger.log(
-        'INFO',
-        f'Starting data harmonization pipeline... '
-        f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
-    )
 
-    aligned_features: list[str] = []
     try:
-        # 1. Process explicit continuous feature rasters
-        for name, path in etl_cfg.features.items():
-            if not path or not os.path.exists(path):
-                logger.log('INFO', f'Skipping missing feature layer: {name}')
-                continue
+        logger.log_sep()
+        logger.log(
+            'INFO',
+            f'Starting data harmonization pipeline... '
+            f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
+        )
 
-            logger.add_source_provenance(name, path)
-            out_path = etl_paths.harmonized_raster(name)
-            logger.log(
-                'INFO',
-                f'Harmonizing feature [{name}] -> {out_path} '
-                f'(resampling: {etl_cfg.resampling_continuous})'
+        # ----- continuous dev feature rasters
+        dev_feats = (
+            config.data.harmonization.raw_data.dev_features
+            if config.data.harmonization.raw_data.dev_features
+            else getattr(config.data.harmonization.raw_data, 'features', {})
+        )
+        _process_source(
+            source=dev_feats,
+            output_composite=paths.dev_feature_raster,
+            tag='dev_feature',
+            resampling=config.data.harmonization.resampling_continuous,
+            logger=logger
+        )
+        logger.add_stacked_raster('dev_features', paths.dev_feature_raster)
+
+        # ----- categorical dev label rasters
+        dev_lbls = (
+            config.data.harmonization.raw_data.dev_labels
+            if config.data.harmonization.raw_data.dev_labels
+            else getattr(config.data.harmonization.raw_data, 'labels', {})
+        )
+        _process_source(
+            source=dev_lbls,
+            output_composite=paths.dev_label_raster,
+            tag='dev_label',
+            resampling=config.data.harmonization.resampling_categorical,
+            logger=logger
+        )
+        logger.add_stacked_raster('dev_labels', paths.dev_label_raster)
+
+        # -----categorical domain rasters
+        if config.data.harmonization.raw_data.domains:
+            _process_source(
+                source=config.data.harmonization.raw_data.domains,
+                output_composite=paths.domain_raster,
+                tag='domain',
+                resampling=config.data.harmonization.resampling_categorical,
+                logger=logger
             )
-            warped = etl.warp_to_canvas(
-                input_path=path,
-                output_path=out_path,
-                canvas=canvas_spec,
-                is_categorical=False,
-                resampling_method=etl_cfg.resampling_continuous
+            logger.add_stacked_raster('domains', paths.domain_raster)
+
+        # ----- test holdout feature rasters
+        if config.data.harmonization.raw_data.test_features:
+            _process_source(
+                source=config.data.harmonization.raw_data.test_features,
+                output_composite=paths.test_feature_raster,
+                tag='test_feature',
+                resampling=config.data.harmonization.resampling_continuous,
+                logger=logger
             )
-            logger.add_harmonized_source(name, warped)
-            aligned_features.append(warped)
-
-        # 2. Process explicit categorical label rasters
-        for name, path in etl_cfg.labels.items():
-            if not path or not os.path.exists(path):
-                logger.log('INFO', f'Skipping missing label layer: {name}')
-                continue
-
-            logger.add_source_provenance(name, path)
-            out_path = etl_paths.harmonized_raster(name)
-            logger.log(
-                'INFO',
-                f'Harmonizing label [{name}] -> {out_path} '
-                f'(resampling: {etl_cfg.resampling_categorical})'
+            logger.add_stacked_raster(
+                'test_features', paths.test_feature_raster
             )
-            warped = etl.warp_to_canvas(
-                input_path=path,
-                output_path=out_path,
-                canvas=canvas_spec,
-                is_categorical=True,
-                resampling_method=etl_cfg.resampling_categorical
+
+        # ----- test holdout label rasters
+        if config.data.harmonization.raw_data.test_labels:
+            _process_source(
+                source=config.data.harmonization.raw_data.test_labels,
+                output_composite=paths.test_label_raster,
+                tag='test_label',
+                resampling=config.data.harmonization.resampling_categorical,
+                logger=logger
             )
-            logger.add_harmonized_source(name, warped)
-
-        # 3. Stack feature rasters into composite if multiple exist
-        composite_path = ''
-        if len(aligned_features) > 1:
-            composite_path = etl_paths.composite_raster
-            logger.log(
-                'INFO',
-                f'Stacking {len(aligned_features)} feature layers...'
+            logger.add_stacked_raster(
+                'test_labels', paths.test_label_raster
             )
-            etl.stack_canonical_raster(aligned_features, composite_path)
-            logger.set_composite_raster(composite_path)
 
-        # 4. Generate valid pixel mask across features
-        mask_path = ''
-        if composite_path:
-            mask_path = etl_paths.valid_mask_raster
-            logger.log('INFO', f'Generating valid pixel mask raster: {mask_path}')
-            etl.unify_nodata_mask(composite_path, mask_path)
-            logger.set_valid_mask_raster(mask_path)
+        # ----- copy dataset config json if provided
+        if (
+            config.data.harmonization.dataset_config and
+            os.path.exists(config.data.harmonization.dataset_config)
+        ):
+            shutil.copy(config.data.harmonization.dataset_config, paths.dataset_config)
+            artifacts.Controller(paths.dataset_config).hash(overwrite=True)
 
-        logger.set_summary_status('SUCCESS')
-        logger.log('INFO', 'Data harmonization completed successfully.')
+        # ----- generate valid feature pixel mask
+        mask_path = paths.valid_mask_raster
+        logger.log('INFO', f'Generating valid mask raster: {mask_path}')
+        harmonize_data.unify_nodata_mask(paths.feature_raster, mask_path)
+        logger.set_valid_mask_raster(mask_path)
+
+        artifacts.Controller[dict](paths.config).persist(config.as_dict)
+        return logger.summary or {}
+
     except Exception as err:
         logger.set_summary_status('FAILED')
         logger.log('ERROR', f'Data harmonization failed: {err}')
         raise
-    finally:
-        report = dict(logger.summary) if logger.summary else {}
-        logger.close()
 
-    return report
+    finally:
+        logger.log_sep()
+        logger.close()

@@ -46,19 +46,19 @@ def test_resolve_configs_base(tmp_path):
         f.write_text('data')
 
     cfg_dict = omegaconf.OmegaConf.create({
-        'foundation': {
-            'datablocks': {
-                'name': 'test_ds',
-                'filepaths': {
-                    'dev_image': str(dev_img),
-                    'dev_label': str(dev_lbl),
-                    'config': str(cfg_json),
-                },
+        'data': {
+            'harmonization': {
+                'canvas': {'reference_raster': str(dev_img)},
+                'dataset_config': str(cfg_json),
             },
-            'grid': {
-                'mode': 'ref',
-                'crs': 'EPSG:32617',
-                'extent': {'filepath': str(dev_img)},
+            'ingestion': {
+                'datablocks': {
+                    'name': 'test_ds',
+                },
+                'grid': {
+                    'mode': 'ref',
+                    'crs': 'EPSG:32617',
+                },
             },
         },
         'session': {
@@ -78,7 +78,7 @@ def test_resolve_configs_base(tmp_path):
     )
 
     assert root.execution.cli_mode is True
-    assert root.foundation.datablocks.name == 'test_ds'
+    assert root.data.ingestion.datablocks.name == 'test_ds'
     assert root.session.orchestration.single_phase.num_epochs == 5
 
 
