@@ -99,3 +99,59 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     assert os.path.exists(
         os.path.join(out_dpath, 'ingest_report.json')
     )
+
+
+def test_data_ingest_pipeline_targeted_harmonization_run(
+    tmp_path,
+    dummy_data_paths
+):
+    '''
+    Given: Multiple harmonization run directories.
+    When: `data.ingestion.harmonization_run` is set to 1.
+    Then: Ingestion targets run_0001 output artifacts.
+    '''
+    cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
+    grid_cfg = cfg_schema.data.ingestion.grid
+    grid_cfg.mode = 'ref'
+    grid_cfg.crs = 'EPSG:3161'
+    grid_cfg.tile_specs.size_row = 256
+    grid_cfg.tile_specs.size_col = 256
+    grid_cfg.tile_specs.overlap_row = 128
+    grid_cfg.tile_specs.overlap_col = 128
+
+    cfg_schema.data.harmonization.canvas.reference_raster = (
+        dummy_data_paths.extent
+    )
+    cfg_schema.data.harmonization.canvas.target_crs = 'EPSG:3161'
+    cfg_schema.data.harmonization.canvas.target_resolution = 10.0
+    cfg_schema.data.harmonization.dataset_config = dummy_data_paths.config
+    cfg_schema.data.harmonization.output_dpath = str(tmp_path / 'harmonized')
+    cfg_schema.data.harmonization.raw_data.dev_features = {
+        'sentinel2': dummy_data_paths.raw_sentinel2
+    }
+    cfg_schema.data.harmonization.raw_data.dev_labels = {
+        'landcover': dummy_data_paths.raw_landcover
+    }
+    cfg_schema.data.ingestion.output_dpath = str(tmp_path / 'ingested_data')
+    cfg_schema.data.ingestion.rebuild = True
+    cfg_schema.data.ingestion.harmonization_run = 1
+
+    config = typing.cast(
+        configs.RootConfig,
+        omegaconf.OmegaConf.to_object(cfg_schema)
+    )
+
+    # run harmonization twice to create run_0001 and run_0002
+    pipelines.harmonize(config)
+    pipelines.harmonize(config)
+
+    h_root = str(tmp_path / 'harmonized')
+    assert os.path.exists(os.path.join(h_root, 'run_0001'))
+    assert os.path.exists(os.path.join(h_root, 'run_0002'))
+
+    # ingest targeting run_0001
+    pipelines.ingest(config)
+    out_dpath = config.data.ingestion.output_dpath
+    assert os.path.exists(
+        os.path.join(out_dpath, 'data_blocks', 'model_dev', 'catalog.json')
+    )

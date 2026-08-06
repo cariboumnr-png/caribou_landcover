@@ -110,6 +110,36 @@ def test_etl_paths(tmp_path):
     assert etl_paths_2.run_id == 'run_0002'
 
 
+def test_harmonization_paths_get_run_folder(tmp_path):
+    '''
+    Given: Multiple harmonization run folders (run_0001, run_0002).
+    When: Calling `get_run_folder` with ints, folder strings, or paths.
+    Then: Resolve targeted folder or default to latest run.
+    '''
+    root = str(tmp_path)
+    run1 = os.path.join(root, 'run_0001')
+    run2 = os.path.join(root, 'run_0002')
+    os.makedirs(run1, exist_ok=True)
+    os.makedirs(run2, exist_ok=True)
+
+    h_paths = paths_mod.HarmonizationPaths(root=root)
+
+    # default (None) -> latest (run_0002)
+    assert h_paths.get_run_folder() == run2
+
+    # int index -> run_0001
+    assert h_paths.get_run_folder(1) == run1
+
+    # digit string -> run_0001
+    assert h_paths.get_run_folder('1') == run1
+
+    # folder name string -> run_0001
+    assert h_paths.get_run_folder('run_0001') == run1
+
+    # direct path string -> run_0001
+    assert h_paths.get_run_folder(run1) == run1
+
+
 def test_ingestion_paths():
     '''
     Given: An ingestion root directory string.

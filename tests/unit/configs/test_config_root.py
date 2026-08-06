@@ -25,6 +25,8 @@
 Unit tests for `landseg.configs.schema.root`.
 '''
 
+# third-party imports
+import pytest
 # local imports
 import landseg.configs.schema.root as root_mod
 import landseg.configs.schema.sections as sec
@@ -102,3 +104,42 @@ def test_root_config_validate_all(tmp_path):
 
     root.session.orchestration.single_phase.num_epochs = 10
     root.validate_all()
+
+
+def test_ingestion_config_harmonization_run_validation():
+    '''
+    Given: An `_IngestionCfg` instance.
+    When: Setting valid and invalid `harmonization_run` values.
+    Then: Accept valid int/str values and raise ValueError/TypeError on invalid.
+    '''
+    cfg = sec.data._IngestionCfg()
+    cfg.grid.mode = 'ref'
+    cfg.grid.crs = 'EPSG:32617'
+
+    # valid int, str, path, None
+    cfg.harmonization_run = None
+    cfg.validate()
+
+    cfg.harmonization_run = 1
+    cfg.validate()
+
+    cfg.harmonization_run = 'run_0001'
+    cfg.validate()
+
+    cfg.harmonization_run = '/abs/path/run_0001'
+    cfg.validate()
+
+    # invalid non-positive int
+    cfg.harmonization_run = 0
+    with pytest.raises(ValueError, match='positive'):
+        cfg.validate()
+
+    # invalid empty string
+    cfg.harmonization_run = '   '
+    with pytest.raises(ValueError, match='empty'):
+        cfg.validate()
+
+    # invalid type
+    cfg.harmonization_run = [1] # type: ignore
+    with pytest.raises(TypeError, match='Invalid harmonization_run type'):
+        cfg.validate()

@@ -60,6 +60,7 @@ def test_translate_user_config_data_ingest():
     '''
     user_cfg = omegaconf.OmegaConf.create({
         'data-ingest': {
+            'harmonization_run': 1,
             'grid_crs': 'EPSG:32617',
             'tile_size': 256,
             'dataset_name': 'test_ds',
@@ -68,6 +69,7 @@ def test_translate_user_config_data_ingest():
     })
     result = translate_mod.translate_user_config(user_cfg)
 
+    assert result.data.ingestion.harmonization_run == 1
     assert result.data.ingestion.grid.crs == 'EPSG:32617'
     assert result.data.ingestion.grid.tile_specs.size_row == 256
     assert result.data.ingestion.grid.tile_specs.size_col == 256
