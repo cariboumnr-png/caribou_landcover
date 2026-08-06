@@ -30,7 +30,7 @@ import dataclasses
 import os
 
 
-# ----- `ETLPaths` definition
+# ----- `HarmonizationPaths` definition
 @dataclasses.dataclass
 class HarmonizationPaths:
     '''Paths for data harmonization ETL artifacts.'''

@@ -87,10 +87,10 @@ def test_artifact_paths_from_config():
     assert art.session.root == '/tmp/exp/results'
 
 
-def test_etl_paths(tmp_path):
+def test_harmonization_paths(tmp_path):
     '''
-    Given: An ETL root directory path.
-    When: Initializing `ETLPaths` across runs.
+    Given: A harmonization root directory path.
+    When: Initializing `HarmonizationPaths` across runs.
     Then: Return expected run-isolated harmonized raster VRTs and etl_report.json file paths.
     '''
     e = str(tmp_path)

@@ -20,7 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.geopipe.transform.common`.
+Top-level namespace for `landseg.geopipe.prepare.common`.
 
 Exposes selected public functions via lazy resolution to keep import
 order simple and circular-free.

@@ -30,7 +30,7 @@ import dataclasses
 import os
 
 
-# ----- `TransformPaths` definition
+# ----- `PreparationPaths` definition
 @dataclasses.dataclass
 class PreparationPaths:
     '''Paths for transformed datasets and split artifacts.'''
