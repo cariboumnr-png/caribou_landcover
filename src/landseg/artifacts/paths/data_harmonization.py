@@ -120,22 +120,40 @@ class HarmonizationPaths:
 
         os.makedirs(self.effective_root, exist_ok=True)
 
-    def get_run_folder(self, run_id: int | None = None) -> str:
+    def get_run_folder(self, run_id: int | str | None = None) -> str:
         '''
         Return the path to a run folder.
 
         Args:
             run_id:
-                Integer run ID (e.g. 1 -> run_0001). If None, returns
-                the latest existing run folder.
+                Integer run ID (e.g. 1 -> run_0001), string run folder
+                name/ID (e.g. "run_0001" or "1"), or directory path. If
+                None, returns the latest existing run folder.
 
         Raises:
             FileNotFoundError:
                 If the requested run does not exist or no run folders
                 exist.
+            TypeError:
+                If run_id is of an invalid type.
         '''
         if run_id is not None:
-            folder = os.path.join(self.root, f'run_{run_id:04d}')
+            if isinstance(run_id, int):
+                folder = os.path.join(self.root, f'run_{run_id:04d}')
+            elif isinstance(run_id, str):
+                if run_id.isdigit():
+                    folder = os.path.join(self.root, f'run_{int(run_id):04d}')
+                elif os.path.isdir(run_id):
+                    folder = run_id
+                elif os.path.isdir(os.path.join(self.root, run_id)):
+                    folder = os.path.join(self.root, run_id)
+                else:
+                    raise FileNotFoundError(
+                        f'Run folder does not exist: {run_id}'
+                    )
+            else:
+                raise TypeError(f'Invalid run_id type: {type(run_id)}')
+
             if not os.path.isdir(folder):
                 raise FileNotFoundError(f'Run folder does not exist: {folder}')
             self._current_run_folder = folder

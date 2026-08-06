@@ -51,6 +51,8 @@ data-harmonize:
 
 data-ingest:
   output_dpath: ./experiment/artifacts/ingested_data
+  # Targeted harmonization run folder index, name, or path (null for latest)
+  harmonization_run: null
   # ---------------------------------------------------------------------------
   # Spatial Reference & Grid Tiling Details
   # ---------------------------------------------------------------------------

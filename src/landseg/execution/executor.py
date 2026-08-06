@@ -71,7 +71,7 @@ def _validate_upstream_pipelines(
     prepare_paths = art_paths.data_preparation
 
     try:
-        etl_paths.get_run_folder()
+        etl_paths.get_run_folder(config.data.ingestion.harmonization_run)
     except FileNotFoundError:
         pass
 

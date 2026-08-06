@@ -162,6 +162,7 @@ class _IngestionCfg:
     grid: _Grid = field(default_factory=_Grid)
     domains: _Domains = field(default_factory=_Domains)
     datablocks: _DataBlocks = field(default_factory=_DataBlocks)
+    harmonization_run: int | str | None = None
     rebuild: bool = False
     output_dpath: str = '${execution.exp_root}/artifacts/ingested_data'
 
@@ -169,6 +170,22 @@ class _IngestionCfg:
         self.grid.validate()
         self.domains.validate()
         self.datablocks.validate()
+        if self.harmonization_run is not None:
+            if isinstance(self.harmonization_run, int):
+                if self.harmonization_run <= 0:
+                    raise ValueError(
+                        'Harmonization run index must be positive.'
+                    )
+            elif isinstance(self.harmonization_run, str):
+                if not self.harmonization_run.strip():
+                    raise ValueError(
+                        'Harmonization run identifier cannot be empty.'
+                    )
+            else:
+                raise TypeError(
+                    'Invalid harmonization_run type: '
+                    f'{type(self.harmonization_run)}'
+                )
 
 
 # ----- data preparation

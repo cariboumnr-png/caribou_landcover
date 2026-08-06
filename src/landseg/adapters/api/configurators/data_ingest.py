@@ -57,3 +57,11 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
         '''Set whether to force rebuild ingestion artifacts.'''
         self._cfg.data.ingestion.rebuild = rebuild
         return self
+
+    def set_harmonization_run(
+        self,
+        target_run: int | str | None = None
+    ) -> typing.Self:
+        '''Set targeted harmonization run index, folder name, or path.'''
+        self._cfg.data.ingestion.harmonization_run = target_run
+        return self

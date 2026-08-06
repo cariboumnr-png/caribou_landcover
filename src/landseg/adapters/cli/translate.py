@@ -126,6 +126,7 @@ def _translate_data_ingest(
     '''Map data-ingest settings to ingestion fields.'''
 
     mapping = {
+        'harmonization_run': ['data.ingestion.harmonization_run'],
         'grid_crs': ['data.ingestion.grid.crs'],
         'tile_size': [
             'data.ingestion.grid.tile_specs.size_row',

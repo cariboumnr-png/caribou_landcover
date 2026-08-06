@@ -52,9 +52,9 @@ def ingest(config: configs.RootConfig):
     paths = artifact_paths.data_ingestion
     harmonize_paths = artifact_paths.data_harmonization
 
-    # locate latest harmonization run folder if present
+    # locate targeted/latest harmonization run folder if present
     try:
-        harmonize_paths.get_run_folder()
+        harmonize_paths.get_run_folder(config.data.ingestion.harmonization_run)
     except FileNotFoundError:
         pass
 

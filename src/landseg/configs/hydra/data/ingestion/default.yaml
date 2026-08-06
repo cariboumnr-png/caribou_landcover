@@ -4,4 +4,5 @@ defaults:
   - domains: default
   - datablocks: default
 
+harmonization_run: null
 output_dpath: ${execution.exp_root}/artifacts/ingested_data
