@@ -94,7 +94,7 @@ class HarmonizationPaths:
 
     @property
     def report(self) -> str:
-        return os.path.join(self.effective_root, 'etl_report.json')
+        return os.path.join(self.effective_root, 'harmonize_report.json')
 
     @property
     def config(self) -> str:

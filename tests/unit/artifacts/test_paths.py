@@ -94,15 +94,15 @@ def test_harmonization_paths(tmp_path):
     Then: Return expected run-isolated harmonized raster VRTs and etl_report.json file paths.
     '''
     e = str(tmp_path)
-    etl_paths = paths_mod.HarmonizationPaths(root=e)
-    etl_paths.init()
+    paths = paths_mod.HarmonizationPaths(root=e)
+    paths.init()
 
-    assert etl_paths.run_id == 'run_0001'
-    r = etl_paths.effective_root
-    assert etl_paths.harmonized_raster('dem') == os.path.join(r, 'harmonized_dem.vrt')
-    assert etl_paths.feature_raster == os.path.join(r, 'stacked_images.vrt')
-    assert etl_paths.valid_mask_raster == os.path.join(r, 'valid_pixel_mask.vrt')
-    assert etl_paths.report == os.path.join(r, 'etl_report.json')
+    assert paths.run_id == 'run_0001'
+    r = paths.effective_root
+    assert paths.harmonized_raster('dem') == os.path.join(r, 'harmonized_dem.vrt')
+    assert paths.feature_raster == os.path.join(r, 'stacked_images.vrt')
+    assert paths.valid_mask_raster == os.path.join(r, 'valid_pixel_mask.vrt')
+    assert paths.report == os.path.join(r, 'etl_report.json')
 
     # second init auto-increments run_id
     etl_paths_2 = paths_mod.HarmonizationPaths(root=e)

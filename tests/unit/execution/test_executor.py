@@ -178,8 +178,8 @@ def test_validate_upstream_pipelines_missing_ingest(tmp_path):
     When: Validating upstream pipelines.
     Then: Raise an ArtifactError.
     '''
-    etl_paths = artifacts.HarmonizationPaths(str(tmp_path))
-    artifacts.Controller(etl_paths.report).persist({'status': 'SUCCESS'})
+    harmonize_paths = artifacts.HarmonizationPaths(str(tmp_path))
+    artifacts.Controller(harmonize_paths.report).persist({'status': 'SUCCESS'})
 
     config = configs.RootConfig(pipeline=secs.PipelineConfig(name='data-prepare'))
 

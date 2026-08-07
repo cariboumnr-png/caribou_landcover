@@ -34,7 +34,7 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
     translated: dict[str, typing.Any] = {
         'execution': {},
         'data':{
-            'data.harmonization': {
+            'harmonization': {
                 'canvas': {},
                 'raw_data': {
                     'domains': {},

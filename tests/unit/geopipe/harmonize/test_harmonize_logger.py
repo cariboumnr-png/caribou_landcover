@@ -28,7 +28,7 @@ persistence.
 import json
 import os
 # local imports
-import landseg.geopipe.harmonize.logger as etl_logger
+import landseg.geopipe.harmonize.logger as harmonization_logger
 
 
 # ----- test cases
@@ -36,13 +36,13 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
     '''
     Given: A HarmonizationLogger initialized with a target CRS and output path.
     When: Recording grid shape, source outputs, composite path, and closing.
-    Then: Persists structured etl_report.json to output_dpath.
+    Then: Persists structured harmonize_report.json to output_dpath.
     '''
-    out_dpath = str(tmp_path / 'etl_out')
+    out_dpath = str(tmp_path / 'harmonize_out')
     os.makedirs(out_dpath, exist_ok=True)
-    report_file = os.path.join(out_dpath, 'etl_report.json')
+    report_file = os.path.join(out_dpath, 'harmonize_report.json')
 
-    logger = etl_logger.HarmonizationLogger(
+    logger = harmonization_logger.HarmonizationLogger(
         name='test_harmonize',
         log_file=report_file,
         enable_file_log=False
@@ -83,8 +83,8 @@ def test_harmonization_logger_add_provenance(tmp_path):
     sample_file = tmp_path / 'sample_raw.tif'
     sample_file.write_bytes(b'dummy_content_bytes')
 
-    report_file = os.path.join(out_dpath, 'etl_report.json')
-    logger = etl_logger.HarmonizationLogger(
+    report_file = os.path.join(out_dpath, 'harmonize_report.json')
+    logger = harmonization_logger.HarmonizationLogger(
         name='test_provenance',
         log_file=report_file,
         enable_file_log=False

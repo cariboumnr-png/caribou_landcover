@@ -34,9 +34,9 @@ def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
     '''
     Given: Pre-generated dummy data paths for raw Sentinel-2, DEM, and landcover in EPSG:32618.
     When: Calling `execute_pipeline` with pipeline.name='data-harmonize'.
-    Then: Warps features and labels to EPSG:3161 at 20m and writes etl_report.json and VRT outputs.
+    Then: Warps features and labels to EPSG:3161 at 20m and writes harmonize_report.json and VRT outputs.
     '''
-    out_dpath = str(tmp_path / 'etl_out')
+    out_dpath = str(tmp_path / 'harmonize_out')
 
     root_cfg = configs.RootConfig()
     root_cfg.pipeline.name = 'data-harmonize'
@@ -61,7 +61,7 @@ def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
     assert report['target_resolution'] == 20.0
 
     run_dir = os.path.join(out_dpath, report.get('run_id', 'run_0001'))
-    report_file = os.path.join(run_dir, 'etl_report.json')
+    report_file = os.path.join(run_dir, 'harmonize_report.json')
     assert os.path.exists(report_file)
 
     with open(report_file, 'r', encoding='utf-8') as f:

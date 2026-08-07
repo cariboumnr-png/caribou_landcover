@@ -66,25 +66,25 @@ def _validate_upstream_pipelines(
 
     # fetch data pipeline artifacts paths
     art_paths = artifacts.ArtifactPaths.from_config(config)
-    etl_paths = art_paths.data_harmonization
+    harmonize_paths = art_paths.data_harmonization
     ingest_paths = art_paths.data_ingestion
     prepare_paths = art_paths.data_preparation
 
     try:
-        etl_paths.get_run_folder(config.data.ingestion.harmonization_run)
+        harmonize_paths.get_run_folder(config.data.ingestion.harmonization_run)
     except FileNotFoundError:
         pass
 
     # pipelines downstream of data-harmonize
-    ctrl_etl = DictControl.load_json_or_fail(etl_paths.report)
+    ctrl_harmonize = DictControl.load_json_or_fail(harmonize_paths.report)
     try:
-        report = ctrl_etl.fetch()
+        report = ctrl_harmonize.fetch()
         assert report # typing guard
     except artifacts.ArtifactError as e:
         raise artifacts.ArtifactError(
             'Upstream pipeline "data-harmonize" has not been executed yet. '
-            f'Missing or invalid ETL report at canonical path: '
-            f'{etl_paths.report}'
+            f'Missing or invalid harmonization report at canonical path: '
+            f'{harmonize_paths.report}'
         ) from e
 
     if report.get('status') != 'SUCCESS':

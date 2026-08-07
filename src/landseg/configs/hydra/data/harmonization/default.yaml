@@ -1,5 +1,3 @@
-# @package etl
-
 canvas:
   reference_raster: ''
   target_crs: EPSG:3161

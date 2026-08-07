@@ -49,7 +49,7 @@ def ingest(config: configs.RootConfig):
     '''
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
-    paths = artifact_paths.data_ingestion
+    ingestion_paths = artifact_paths.data_ingestion
     harmonize_paths = artifact_paths.data_harmonization
 
     # locate targeted/latest harmonization run folder if present
@@ -61,7 +61,7 @@ def ingest(config: configs.RootConfig):
     # init an IngestionLogger with summary
     logger = ingest_data.IngestionLogger(
         name='ingest',
-        log_file=paths.report,
+        log_file=ingestion_paths.report,
         enable_file_log=False
     )
     logger.init_summary(run_id='ingest')
@@ -95,7 +95,7 @@ def ingest(config: configs.RootConfig):
             tile_specs=grid_cfg.tile_specs_tuple,
         )
         world_grid = ingest_data.prepare_world_grid(
-            paths.grids.fpath(grid_cfg.tile_specs_tuple),
+            ingestion_paths.grids.fpath(grid_cfg.tile_specs_tuple),
             grid_config,
             policy=policy,
             logger=logger,
@@ -116,10 +116,10 @@ def ingest(config: configs.RootConfig):
             domain_config = [
                 ingest_data.DomainBuildingParameters(
                     input_fpath=harmonize_paths.domain_raster,
-                    domain_fpath=paths.domains.domain_map_fpath(
+                    domain_fpath=ingestion_paths.domains.domain_map_fpath(
                         'stacked_domains'
                     ),
-                    tiles_fpath=paths.domains.mapped_tiles_fpath(
+                    tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(
                         'stacked_domains', gid
                     ),
                     index_base=1,
@@ -156,7 +156,7 @@ def ingest(config: configs.RootConfig):
         )
         ingest_data.run_blocks_building(
             world_grid,
-            paths.data_blocks.dev,
+            ingestion_paths.data_blocks.dev,
             data_blocks_config,
             policy=policy,
             logger=logger,
@@ -187,7 +187,7 @@ def ingest(config: configs.RootConfig):
             )
             ingest_data.run_blocks_building(
                 world_grid,
-                paths.data_blocks.test,
+                ingestion_paths.data_blocks.test,
                 data_blocks_config,
                 policy=policy,
                 logger=logger,
@@ -200,7 +200,7 @@ def ingest(config: configs.RootConfig):
                 f'[COMPLETE] Test data blocks preparation (D_{d:.2f}s)'
             )
 
-        artifacts.Controller[dict](paths.config).persist(config.as_dict)
+        artifacts.Controller[dict](ingestion_paths.config).persist(config.as_dict)
 
     # propagate all exceptions here
     except Exception as e:
