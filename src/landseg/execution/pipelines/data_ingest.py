@@ -52,11 +52,11 @@ def ingest(config: configs.RootConfig):
     ingestion_paths = artifact_paths.data_ingestion
     harmonize_paths = artifact_paths.data_harmonization
 
-    # locate targeted/latest harmonization run folder if present
+    # locate locate targeted/latest harmonization run folder
     try:
         harmonize_paths.get_run_folder(config.data.ingestion.harmonization_run)
     except FileNotFoundError:
-        pass
+        pass # fallback to default folder
 
     # init an IngestionLogger with summary
     logger = ingest_data.IngestionLogger(
@@ -113,20 +113,19 @@ def ingest(config: configs.RootConfig):
                 'INFO',
                 '[START] Domain maps preparation (canonical stacked domains)'
             )
-            domain_config = [
-                ingest_data.DomainBuildingParameters(
-                    input_fpath=harmonize_paths.domain_raster,
-                    domain_fpath=ingestion_paths.domains.domain_map_fpath(
-                        'stacked_domains'
-                    ),
-                    tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(
-                        'stacked_domains', gid
-                    ),
-                    index_base=1,
-                    valid_threshold=domain_cfg.valid_threshold,
-                    target_variance=domain_cfg.target_variance,
-                )
-            ]
+            domain_config = ingest_data.DomainBuildingConfigs(
+                input_fpath=harmonize_paths.domain_raster,
+                domain_fpath=ingestion_paths.domains.domain_map_fpath(
+                    'stacked_domains'
+                ),
+                tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(
+                    'stacked_domains', gid
+                ),
+                index_base=1,
+                valid_threshold=domain_cfg.valid_threshold,
+                target_variance=domain_cfg.target_variance,
+            )
+
             ingest_data.prepare_domain_maps(
                 world_grid,
                 domain_config,

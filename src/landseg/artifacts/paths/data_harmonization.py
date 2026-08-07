@@ -41,9 +41,15 @@ class HarmonizationPaths:
 
     @property
     def effective_root(self) -> str:
-        return self._current_run_folder if self._current_run_folder else (
-            self.run_folder if self.run_folder else self.root
-        )
+        return (
+            self._current_run_folder
+            if self._current_run_folder
+            else (
+                self.run_folder
+                if self.run_folder
+                else self.root
+            )
+        ) # overwrite sequence: _current_run_folder > run_folder > root
 
     @property
     def dev_feature_raster(self) -> str:

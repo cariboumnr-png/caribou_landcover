@@ -162,8 +162,8 @@ class _IngestionCfg:
     grid: _Grid = field(default_factory=_Grid)
     domains: _Domains = field(default_factory=_Domains)
     datablocks: _DataBlocks = field(default_factory=_DataBlocks)
-    harmonization_run: int | str | None = None
     rebuild: bool = False
+    harmonization_run: int | str | None = None
     output_dpath: str = '${execution.exp_root}/artifacts/ingested_data'
 
     def validate(self) -> None:

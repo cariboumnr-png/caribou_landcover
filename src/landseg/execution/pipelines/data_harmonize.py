@@ -112,6 +112,17 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
             f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
         )
 
+        # -----categorical domain rasters
+        if config.data.harmonization.raw_data.domains:
+            _process_source(
+                source=config.data.harmonization.raw_data.domains,
+                output_composite=paths.domain_raster,
+                tag='domain',
+                resampling=config.data.harmonization.resampling_categorical,
+                logger=logger
+            )
+            logger.add_stacked_raster('domains', paths.domain_raster)
+
         # ----- continuous dev feature rasters
         dev_feats = (
             config.data.harmonization.raw_data.dev_features
@@ -141,17 +152,6 @@ def harmonize(config: configs.RootConfig) -> dict[str, typing.Any]:
             logger=logger
         )
         logger.add_stacked_raster('dev_labels', paths.dev_label_raster)
-
-        # -----categorical domain rasters
-        if config.data.harmonization.raw_data.domains:
-            _process_source(
-                source=config.data.harmonization.raw_data.domains,
-                output_composite=paths.domain_raster,
-                tag='domain',
-                resampling=config.data.harmonization.resampling_categorical,
-                logger=logger
-            )
-            logger.add_stacked_raster('domains', paths.domain_raster)
 
         # ----- test holdout feature rasters
         if config.data.harmonization.raw_data.test_features:
