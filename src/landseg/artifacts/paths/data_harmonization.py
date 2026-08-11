@@ -52,47 +52,8 @@ class HarmonizationPaths:
         ) # overwrite sequence: _current_run_folder > run_folder > root
 
     @property
-    def dev_feature_raster(self) -> str:
-        return os.path.join(self.effective_root, 'stacked_images.vrt')
-
-    @property
-    def feature_raster(self) -> str:
-        return self.dev_feature_raster
-
-    @property
-    def dev_label_raster(self) -> str:
-        return os.path.join(self.effective_root, 'stacked_labels.vrt')
-
-    @property
-    def label_raster(self) -> str:
-        return self.dev_label_raster
-
-    @property
-    def domain_raster(self) -> str:
-        return os.path.join(self.effective_root, 'stacked_domains.vrt')
-
-    @property
     def valid_mask_raster(self) -> str:
         return os.path.join(self.effective_root, 'valid_pixel_mask.vrt')
-
-    @property
-    def test_feature_raster(self) -> str:
-        return os.path.join(
-            self.effective_root, 'stacked_test_images.vrt'
-        )
-
-    @property
-    def test_label_raster(self) -> str:
-        return os.path.join(
-            self.effective_root, 'stacked_test_labels.vrt'
-        )
-
-    @property
-    def has_test_data(self) -> bool:
-        return (
-            os.path.exists(self.test_feature_raster) and
-            os.path.exists(self.test_label_raster)
-        )
 
     @property
     def dataset_config(self) -> str:
@@ -176,6 +137,3 @@ class HarmonizationPaths:
 
         self._current_run_folder = os.path.join(self.root, runs[-1])
         return self._current_run_folder
-
-    def harmonized_raster(self, name: str) -> str:
-        return os.path.join(self.effective_root, f'harmonized_{name}.vrt')

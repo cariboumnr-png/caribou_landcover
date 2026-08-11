@@ -64,7 +64,7 @@ class HarmonizationLogger(utils.Logger):
             'grid_shape': (0, 0),
             'provenance': {},
             'harmonized_sources': {},
-            'stacked_rasters': {},
+            'finalized_rasters': {},
             'valid_mask_raster': ''
         }
 
@@ -88,10 +88,10 @@ class HarmonizationLogger(utils.Logger):
         if self.summary is not None:
             self.summary['harmonized_sources'][name] = path
 
-    def add_stacked_raster(self, name: str, path: str) -> None:
+    def add_finalized_raster(self, name: str, path: str) -> None:
         '''Record multi-channel feature composite raster path.'''
         if self.summary is not None:
-            self.summary['stacked_rasters'][name] = path
+            self.summary['finalized_rasters'][name] = path
 
     def set_valid_mask_raster(self, path: str) -> None:
         '''Record valid pixel mask raster path.'''
