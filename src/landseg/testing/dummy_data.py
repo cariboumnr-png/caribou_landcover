@@ -78,6 +78,10 @@ class TIFFPaths:
         return f'{self.input_root}/raw/sample_dev_landcover.tif'
 
     @property
+    def raw_dev_leadspc(self) -> str:
+        return f'{self.input_root}/raw/sample_dev_leadspc.tif'
+
+    @property
     def raw_test_sentinel2(self) -> str:
         return f'{self.input_root}/raw/sample_test_sentinel2.tif'
 
@@ -90,32 +94,8 @@ class TIFFPaths:
         return f'{self.input_root}/raw/sample_test_landcover.tif'
 
     @property
-    def raw_sentinel2(self) -> str:
-        return self.raw_dev_sentinel2
-
-    @property
-    def raw_dem(self) -> str:
-        return self.raw_dev_dem
-
-    @property
-    def raw_landcover(self) -> str:
-        return self.raw_dev_landcover
-
-    @property
-    def dev_image(self) -> str:
-        return self.raw_dev_sentinel2
-
-    @property
-    def dev_label(self) -> str:
-        return self.raw_dev_landcover
-
-    @property
-    def test_image(self) -> str:
-        return self.raw_test_sentinel2
-
-    @property
-    def test_label(self) -> str:
-        return self.raw_test_landcover
+    def raw_test_leadspc(self) -> str:
+        return f'{self.input_root}/raw/sample_test_leadspc.tif'
 
     @property
     def config(self) -> str:
@@ -192,7 +172,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     print('Generating dummy geospatial data for landseg pipeline...')
     # spatial parameters matching configs/user.yaml
     crs = 'EPSG:3161'
-    px_size = 10.0
+    pxs = 10.0
     orig_x = 500000.0
     orig_y = 5000000.0
     width, height = 512, 512 # this gives 4 256*256 tiles per image
@@ -202,7 +182,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     extent_shape = (height, width * 2)
 
     # create affine transform for extent reference
-    extent_transform = rasterio.transform.from_origin(orig_x, orig_y, px_size, px_size)
+    extent_transform = rasterio.transform.from_origin(orig_x, orig_y, pxs, pxs)
 
     # TIFF file paths
     paths = TIFFPaths(input_root=input_root)
@@ -252,23 +232,21 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         ),
     )
 
-    # raw input rasters in a different CRS (e.g., EPSG:2958) to test reprojection
-    utm_crs = 'EPSG:2958'
-    # transform target canvas origin (500000, 5000000 in EPSG:3161) to source utm_crs
+    # raw input rasters in a different CRS  to test reprojection
+    utm_crs = 'EPSG:2958' # e.g., EPSG:2958
+    # transform target canvas origin (500000, 5000000 in EPSG:3161) to source
     dev_res = rasterio.warp.transform(
         'EPSG:3161', utm_crs, [500000.0], [5000000.0]
     )
-    dev_xs, dev_ys = dev_res[0], dev_res[1]
+    utm_dev_transform = rasterio.transform.from_origin(
+        dev_res[0][0], dev_res[1][0], 10.0, 10.0
+    )
+
     test_res = rasterio.warp.transform(
         'EPSG:3161', utm_crs, [500000.0 + (width * 10.0)], [5000000.0]
     )
-    test_xs, test_ys = test_res[0], test_res[1]
-
-    utm_dev_transform = rasterio.transform.from_origin(
-        dev_xs[0], dev_ys[0], 10.0, 10.0
-    )
     utm_test_transform = rasterio.transform.from_origin(
-        test_xs[0], test_ys[0], 10.0, 10.0
+        test_res[0][0], test_res[1][0], 10.0, 10.0
     )
 
     print(f'Creating raw dev Sentinel-2: {paths.raw_dev_sentinel2}')
@@ -302,6 +280,19 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     print(f'Creating raw dev Landcover Label: {paths.raw_dev_landcover}')
     create_dummy_geotiff(
         paths.raw_dev_landcover,
+        config=TIFFConfig(
+            shape=shape,
+            bands=1,
+            crs=utm_crs,
+            transform=utm_dev_transform,
+            dtype=numpy.uint8,
+        ),
+        data_gen_func=_gen_label_data,
+    )
+
+    print(f'Creating raw dev Leadspc Label: {paths.raw_dev_leadspc}')
+    create_dummy_geotiff(
+        paths.raw_dev_leadspc,
         config=TIFFConfig(
             shape=shape,
             bands=1,
@@ -353,16 +344,67 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         data_gen_func=_gen_label_data,
     )
 
+    print(f'Creating raw test Leadspc Label: {paths.raw_test_leadspc}')
+    create_dummy_geotiff(
+        paths.raw_test_leadspc,
+        config=TIFFConfig(
+            shape=shape,
+            bands=1,
+            crs=utm_crs,
+            transform=utm_test_transform,
+            dtype=numpy.uint8,
+        ),
+        data_gen_func=_gen_label_data,
+    )
+
     # dataset config JSON
     print(f'Creating dataset configuration: {paths.config}')
-    config_data = {
-        'image_band_map': {
-            'dem': 0,
-            'red': 1,
-            'green': 2,
-            'blue': 3
+    data_config = {
+        'band_mapping': {
+            paths.raw_dev_sentinel2: {
+                1: 'blue',
+                2: 'green',
+                3: 'red',
+                4: 'red_edge1',
+                5: 'red_edge2',
+                6: 'red_edge3',
+                7: 'nir',
+                8: 'narrow_nir',
+                9: 'swir1',
+                10: 'swir2',
+            },
+            paths.raw_dev_dem: {
+                1: 'dem'
+            },
+            paths.raw_dev_landcover: {
+                1: 'land_cover'
+            },
+            paths.raw_dev_leadspc: {
+                1: 'lead_species'
+            },
+            paths.raw_test_sentinel2: {
+                1: 'blue',
+                2: 'green',
+                3: 'red',
+                4: 'red_edge1',
+                5: 'red_edge2',
+                6: 'red_edge3',
+                7: 'nir',
+                8: 'narrow_nir',
+                9: 'swir1',
+                10: 'swir2',
+            },
+            paths.raw_test_dem: {
+                1: 'dem'
+            },
+            paths.raw_test_landcover: {
+                1: 'land_cover'
+            },
+            paths.raw_test_leadspc: {
+                1: 'lead_species'
+            }
         },
-        'label_specs': {
+        'labels_specifications': {
             'two_classes': {
                 'num_cls': 2,
                 'ignore_cls': [255]
@@ -371,7 +413,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     }
     os.makedirs(os.path.dirname(paths.config), exist_ok=True)
     with open(paths.config, 'w', encoding='utf-8') as f:
-        json.dump(config_data, f, indent=4)
+        json.dump(data_config, f, indent=4)
 
     print('\nDummy data generation completed successfully!')
     return paths
