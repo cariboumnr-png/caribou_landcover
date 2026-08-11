@@ -129,29 +129,42 @@ def _gdal_dtype_name(dtype) -> str:
     return _GDAL_DTYPE_MAP.get(s, s.capitalize())
 
 
-def _build_stacked_vrt_xml(source_paths: list[str], output_path: str) -> None:
+def _build_stacked_vrt_xml(
+    source_paths: list[str],
+    output_path: str,
+) -> None:
     '''Fallback manual VRT XML builder for stacking bands.'''
+    if not source_paths:
+        raise ValueError("source_paths must not be empty")
+
+    # read geometry from the first source raster
     with rasterio.open(source_paths[0]) as src:
         width, height = src.width, src.height
         crs_wkt = src.crs.to_wkt()
-        tr = src.transform
-        transform_text = f'{tr.c}, {tr.a}, {tr.b}, {tr.f}, {tr.d}, {tr.e}'
+        transform_txt = (
+            f'{src.transform.c}, {src.transform.a}, {src.transform.b}, '
+            f'{src.transform.f}, {src.transform.d}, {src.transform.e}'
+        )
 
+    # build root
     root = xml.etree.ElementTree.Element(
         'VRTDataset',
         rasterXSize=str(width),
         rasterYSize=str(height)
     )
     xml.etree.ElementTree.SubElement(root, 'SRS').text = crs_wkt
-    xml.etree.ElementTree.SubElement(root, 'GeoTransform').text = transform_text
+    xml.etree.ElementTree.SubElement(root, 'GeoTransform').text = transform_txt
 
+    # add bands
     band_idx = 1
     for path in source_paths:
+
         with rasterio.open(path) as src:
 
             for b in range(1, src.count + 1):
                 dtype = _gdal_dtype_name(src.dtypes[b - 1])
 
+                # band node
                 band_node = xml.etree.ElementTree.SubElement(
                     root,
                     'VRTRasterBand',
@@ -159,6 +172,15 @@ def _build_stacked_vrt_xml(source_paths: list[str], output_path: str) -> None:
                     band=str(band_idx)
                 )
 
+                # band name from source
+                band_name = src.descriptions[b - 1]
+                if band_name is not None:
+                    xml.etree.ElementTree.SubElement(
+                        band_node,
+                        'Description',
+                    ).text = str(band_name)
+
+                # nodata
                 nodata_val = (
                     src.nodatavals[b - 1]
                     if src.nodatavals and src.nodatavals[b - 1] is not None
@@ -170,6 +192,7 @@ def _build_stacked_vrt_xml(source_paths: list[str], output_path: str) -> None:
                         'NoDataValue'
                     ).text = str(nodata_val)
 
+                # source
                 source_node = xml.etree.ElementTree.SubElement(
                     band_node,
                     'SimpleSource'
@@ -190,8 +213,11 @@ def _build_stacked_vrt_xml(source_paths: list[str], output_path: str) -> None:
                     RasterYSize=str(height),
                     DataType=dtype
                 )
+
                 band_idx += 1
 
+    # pretty print
+    xml.etree.ElementTree.indent(root, space='  ', level=0)
     xml.etree.ElementTree.ElementTree(root).write(
         output_path,
         encoding='utf-8',

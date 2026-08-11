@@ -56,10 +56,6 @@ class HarmonizationPaths:
         return os.path.join(self.effective_root, 'valid_pixel_mask.vrt')
 
     @property
-    def dataset_config(self) -> str:
-        return os.path.join(self.effective_root, 'dataset_config.json')
-
-    @property
     def report(self) -> str:
         return os.path.join(self.effective_root, 'harmonize_report.json')
 
