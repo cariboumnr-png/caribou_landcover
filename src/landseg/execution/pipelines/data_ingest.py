@@ -32,7 +32,7 @@ import dataclasses
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
-import landseg.geopipe.harmonize as harmonize_data
+import landseg.geopipe.harmonize as harmonize_mod
 import landseg.geopipe.ingest as ingest_data
 
 
@@ -110,7 +110,6 @@ def ingest(config: configs.RootConfig):
         # config aliases
         domain_cfg = config.data.ingestion.domains
         grid_cfg = config.data.ingestion.grid
-        datablocks_cfg = config.data.ingestion.datablocks
 
         # world grid
         logger.log('INFO', '[START] World grid preparation')
@@ -171,18 +170,15 @@ def ingest(config: configs.RootConfig):
         else:
             logger.log('INFO', '[NOTE] No domain knowledge layers provided')
 
-        # dataset config path from harmonization
-        data_config_fpath = hm_paths.dataset_config
-
         # build dev data blocks
         logger.log('INFO', '[START] Development data blocks building')
         data_blocks_config = ingest_data.BlockBuildingParameters(
             stage='dev',
             image_fpath=harmonized.dev_features,
             label_fpath=harmonized.dev_labels,
-            data_config_fpath=data_config_fpath,
-            dem_pad=datablocks_cfg.image_dem_pad,
-            ignore_index=datablocks_cfg.ignore_index,
+            data_config_fpath=config.data.harmonization.dataset_config,
+            dem_pad=config.data.ingestion.datablocks.image_dem_pad,
+            ignore_index=config.data.ingestion.datablocks.ignore_index,
         )
         ingest_data.run_blocks_building(
             world_grid,
@@ -212,9 +208,9 @@ def ingest(config: configs.RootConfig):
                 stage='test',
                 image_fpath=harmonized.test_features,
                 label_fpath=harmonized.test_labels,
-                data_config_fpath=data_config_fpath,
-                dem_pad=datablocks_cfg.image_dem_pad,
-                ignore_index=datablocks_cfg.ignore_index,
+                data_config_fpath=config.data.harmonization.dataset_config,
+                dem_pad=config.data.ingestion.datablocks.image_dem_pad,
+                ignore_index=config.data.ingestion.datablocks.ignore_index,
             )
             ingest_data.run_blocks_building(
                 world_grid,
@@ -251,7 +247,7 @@ def _read_harmonization_report(report_path: str) -> _HarmonizedRasters:
     # read report into a typed dict
     try:
         controller = artifacts.Controller[
-            harmonize_data.HarmonizationReportSchema
+            harmonize_mod.HarmonizationReportSchema
         ].load_json_or_fail(report_path)
         report = controller.fetch()
         assert report

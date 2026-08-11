@@ -58,6 +58,7 @@ __all__ = [
     'build_single_block',
     'build_test_block',
     'build_blocks',
+    'read_band_map',
     'read_block_raster_data',
     'check_npz_integrity',
 ]
@@ -77,6 +78,7 @@ if typing.TYPE_CHECKING:
     from .io import (
         RasterReadInput,
         RasterReadOutput,
+        read_band_map,
         check_npz_integrity,
         read_block_raster_data,
     )
@@ -105,6 +107,7 @@ def __getattr__(name: str):
     if name in {
         'RasterReadInput',
         'RasterReadOutput',
+        'read_band_map',
         'check_npz_integrity',
         'read_block_raster_data',
     }:

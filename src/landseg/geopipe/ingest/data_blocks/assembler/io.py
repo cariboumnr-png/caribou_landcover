@@ -41,6 +41,8 @@ import zipfile
 import zlib
 # third-party imports
 import numpy
+import rasterio
+import rasterio.errors
 # local imports
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.ingest.common.alias as alias
@@ -67,6 +69,27 @@ class RasterReadOutput:
     image_nodata: float
     label_array: numpy.ndarray | None
     label_nodata: int | None
+
+
+def read_band_map(fpath: str) -> dict[str, int]:
+    '''Return lower-case band-description -> zero-based index, or {}.'''
+    try:
+        with rasterio.open(fpath) as src:
+            descriptions = src.descriptions
+    except rasterio.errors.RasterioError:
+        return {}
+
+    if (
+        not descriptions or
+        any(not name or not name.strip() for name in descriptions)
+    ):
+        return {}
+
+    names = [name.strip().lower() for name in descriptions]
+    if len(set(names)) != len(names):
+        return {}
+
+    return {name: index for index, name in enumerate(names)}
 
 
 def check_npz_integrity(
