@@ -34,8 +34,10 @@ import landseg.geopipe.harmonize.logger as harmonization_logger
 # ----- test cases
 def test_harmonization_logger_summary_lifecycle(tmp_path):
     '''
-    Given: A HarmonizationLogger initialized with a target CRS and output path.
-    When: Recording grid shape, source outputs, composite path, and closing.
+    Given: A HarmonizationLogger initialized with a target CRS and
+        output path.
+    When: Recording grid shape, source outputs, composite path, and
+        closing.
     Then: Persists structured harmonize_report.json to output_dpath.
     '''
     out_dpath = str(tmp_path / 'harmonize_out')
@@ -53,7 +55,7 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
     )
     logger.set_grid_shape(500, 500)
     logger.add_harmonized_source('sentinel2', '/path/to/s2.tif')
-    logger.add_stacked_raster('stacked', '/path/to/stacked.tif')
+    logger.add_finalized_raster('stacked', '/path/to/stacked.tif')
     logger.set_valid_mask_raster('/path/to/mask.tif')
     logger.set_summary_status('SUCCESS')
 
@@ -68,7 +70,7 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
     assert saved_report['target_resolution'] == 20.0
     assert saved_report['grid_shape'] == [500, 500]
     assert saved_report['harmonized_sources']['sentinel2'] == '/path/to/s2.tif'
-    assert saved_report['stacked_rasters']['stacked'] == '/path/to/stacked.tif'
+    assert saved_report['finalized_rasters']['stacked'] == '/path/to/stacked.tif'
     assert saved_report['valid_mask_raster'] == '/path/to/mask.tif'
 
 
@@ -76,7 +78,8 @@ def test_harmonization_logger_add_provenance(tmp_path):
     '''
     Given: A source file on disk and an initialized HarmonizationLogger.
     When: Calling `add_source_provenance`.
-    Then: Records file size_bytes, mtime, and absolute path in report summary.
+    Then: Records file size_bytes, mtime, and absolute path in report
+        summary.
     '''
     out_dpath = str(tmp_path / 'prov_out')
     os.makedirs(out_dpath, exist_ok=True)
@@ -104,3 +107,31 @@ def test_harmonization_logger_add_provenance(tmp_path):
     assert prov['size_bytes'] == len(b'dummy_content_bytes')
     assert 'mtime' in prov
     assert prov['path'] == os.path.abspath(str(sample_file))
+
+
+def test_harmonization_logger_schema_types():
+    '''
+    Given: Instantiated typed dict schemas `ProvenanceRecord` and
+        `HarmonizationReportSchema`.
+    When: Populating valid fields according to report schema.
+    Then: Successfully create structured schema instances.
+    '''
+    prov: harmonization_logger.ProvenanceRecord = {
+        'path': '/path/to/raster.tif',
+        'size_bytes': 1024,
+        'mtime': 123456.78,
+    }
+    summary: harmonization_logger.HarmonizationReportSchema = {
+        'run_id': 'run_0001',
+        'timestamp': '2026-01-01T00:00:00Z',
+        'status': 'SUCCESS',
+        'target_crs': 'EPSG:3161',
+        'target_resolution': 20.0,
+        'grid_shape': (500, 500),
+        'provenance': {'sentinel2': prov},
+        'harmonized_sources': {'sentinel2': '/path/to/s2.tif'},
+        'finalized_rasters': {'stacked': '/path/to/stacked.tif'},
+        'valid_mask_raster': '/path/to/mask.tif',
+    }
+    assert summary['status'] == 'SUCCESS'
+    assert summary['provenance']['sentinel2']['size_bytes'] == 1024
