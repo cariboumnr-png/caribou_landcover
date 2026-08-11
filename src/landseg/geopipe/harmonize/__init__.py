@@ -39,11 +39,17 @@ __all__ = [
     'unify_nodata_mask',
     'validate_domain_raster_index',
     # typing
+    'HarmonizationReportSchema',
+    'ProvenanceRecord',
 ]
 
 # for static check
 if typing.TYPE_CHECKING:
-    from .logger import HarmonizationLogger
+    from .logger import (
+        HarmonizationLogger,
+        HarmonizationReportSchema,
+        ProvenanceRecord,
+    )
     from .spatial import CanvasSpec, create_canvas, warp_to_canvas
     from .raster_ops import (
         stack_canonical_raster,
@@ -53,7 +59,11 @@ if typing.TYPE_CHECKING:
 
 def __getattr__(name: str):
 
-    if name in {'HarmonizationLogger'}:
+    if name in {
+        'HarmonizationLogger',
+        'HarmonizationReportSchema',
+        'ProvenanceRecord',
+    }:
         return getattr(importlib.import_module('.logger', __package__), name)
 
     if name in {'CanvasSpec', 'create_canvas', 'warp_to_canvas'}:

@@ -20,11 +20,12 @@
 # =========================================================================== #
 
 '''
-Subclass wrapper of Logger to handle structured ETL harmonization execution summaries.
+Subclass wrapper of `Logger` to handle structured ETL harmonization
+execution summaries.
 '''
 
-from __future__ import annotations
 # standard imports
+from __future__ import annotations
 import datetime
 import os
 import typing
@@ -34,16 +35,39 @@ import landseg.artifacts as artifacts
 import landseg.utils as utils
 
 
+# ----- report schema definitions
+class ProvenanceRecord(typing.TypedDict):
+    '''Provenance record for a raw source raster file.'''
+    path: str
+    size_bytes: int
+    mtime: float
+
+
+class HarmonizationReportSchema(typing.TypedDict):
+    '''Root report mapping the entire data harmonization pipeline run.'''
+    run_id: str
+    timestamp: str
+    status: typing.Literal['SUCCESS', 'FAILED', 'SKIPPED']
+    target_crs: str
+    target_resolution: float
+    grid_shape: tuple[int, int]
+    provenance: dict[str, ProvenanceRecord]
+    harmonized_sources: dict[str, str]
+    finalized_rasters: dict[str, str]
+    valid_mask_raster: str
+
+
+# ----- `HarmonizationLogger` definition
 class HarmonizationLogger(utils.Logger):
     '''
-    A specialized Logger wrapper that logs raster harmonization progress and
-    persists a structured JSON report at shutdown.
+    A specialized `Logger` wrapper that logs raster harmonization
+    progress and persists a structured JSON report at shutdown.
     '''
 
     def __init__(self, *args: typing.Any, **kwargs: typing.Any):
         '''Initialize the HarmonizationLogger instance.'''
         super().__init__(*args, **kwargs)
-        self.summary: dict[str, typing.Any] | None = None
+        self.summary: HarmonizationReportSchema | None = None
 
     def init_summary(
         self,

@@ -26,11 +26,13 @@ Prepares the world grid, materializes domain knowledge, and builds
 the immutable raw block catalogue for later experiments.
 '''
 
+from __future__ import annotations
 # standard imports
 import dataclasses
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
+import landseg.geopipe.harmonize as harmonize_data
 import landseg.geopipe.ingest as ingest_data
 
 
@@ -243,12 +245,14 @@ def ingest(config: configs.RootConfig):
         logger.close()
 
 
-#
+# ----- helper functions
 def _read_harmonization_report(report_path: str) -> _HarmonizedRasters:
     '''Read Harmonization report to get finalized rasters.'''
-    # read report into a dict
+    # read report into a typed dict
     try:
-        controller =  artifacts.Controller[dict].load_json_or_fail(report_path)
+        controller = artifacts.Controller[
+            harmonize_data.HarmonizationReportSchema
+        ].load_json_or_fail(report_path)
         report = controller.fetch()
         assert report
     except artifacts.ArtifactError as e:
@@ -256,6 +260,12 @@ def _read_harmonization_report(report_path: str) -> _HarmonizedRasters:
 
     finals = report['finalized_rasters']
     assert finals
+
+    dev_features = finals.get('dev_features')
+    if not dev_features:
+        raise artifacts.ArtifactError(
+            'Missing "dev_features" in harmonization report finalized_rasters.'
+        )
 
     # see if domains are present
     domains: list[str] = []
@@ -265,7 +275,7 @@ def _read_harmonization_report(report_path: str) -> _HarmonizedRasters:
 
     return _HarmonizedRasters(
         domains=domains,
-        dev_features=finals.get('dev_features'),
+        dev_features=dev_features,
         dev_labels=finals.get('dev_labels'),
         test_features=finals.get('test_features'),
         test_labels=finals.get('test_labels'),
