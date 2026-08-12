@@ -38,11 +38,13 @@ data-harmonize:
     dem: ./experiment/input/raw/sample_dev_dem.tif
   dev_labels:
     landcover: ./experiment/input/raw/sample_dev_landcover.tif
+    leadpsc: ./experiment/input/raw/sample_dev_leadspc.tif
   test_features:
     sentinel2: ./experiment/input/raw/sample_test_sentinel2.tif
     dem: ./experiment/input/raw/sample_test_dem.tif
   test_labels:
     landcover: ./experiment/input/raw/sample_test_landcover.tif
+    leadpsc: ./experiment/input/raw/sample_test_leadspc.tif
 
   # Path to the dataset metadata JSON file and dataset name
   dataset_name: sample_data

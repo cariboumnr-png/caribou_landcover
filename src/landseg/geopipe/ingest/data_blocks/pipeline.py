@@ -124,7 +124,7 @@ def run_blocks_building(
         dem_pad_px=config.dem_pad,
         block_size=ras_windows.tile_shape,
         image_band_map=assembler.read_band_map(config.image_fpath),
-        label_specs=dataset_config.get('labels_specifications', {}),
+        label_specs=dataset_config.get('label_specifications', {}),
     )
     # build data blocks
     result = assembler.build_blocks(

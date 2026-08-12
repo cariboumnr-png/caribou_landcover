@@ -38,6 +38,7 @@ __all__ = [
     'stack_canonical_raster',
     'unify_nodata_mask',
     'validate_domain_raster_index',
+    'add_tag_to_vrt',
     # typing
     'HarmonizationReportSchema',
     'ProvenanceRecord',
@@ -50,11 +51,16 @@ if typing.TYPE_CHECKING:
         HarmonizationReportSchema,
         ProvenanceRecord,
     )
-    from .spatial import CanvasSpec, create_canvas, warp_to_canvas
+    from .spatial import (
+        CanvasSpec,
+        create_canvas,
+        warp_to_canvas,
+    )
     from .raster_ops import (
         stack_canonical_raster,
         unify_nodata_mask,
         validate_domain_raster_index,
+        add_tag_to_vrt
     )
 
 def __getattr__(name: str):
@@ -66,13 +72,18 @@ def __getattr__(name: str):
     }:
         return getattr(importlib.import_module('.logger', __package__), name)
 
-    if name in {'CanvasSpec', 'create_canvas', 'warp_to_canvas'}:
+    if name in {
+        'CanvasSpec',
+        'create_canvas',
+        'warp_to_canvas',
+    }:
         return getattr(importlib.import_module('.spatial', __package__), name)
 
     if name in {
         'stack_canonical_raster',
         'unify_nodata_mask',
         'validate_domain_raster_index',
+        'add_tag_to_vrt'
     }:
         return getattr(importlib.import_module('.raster_ops', __package__), name)
 

@@ -28,6 +28,7 @@ import os
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
+import landseg.geopipe.core as geo_core
 import landseg.geopipe.harmonize as harmonize_mod
 
 
@@ -72,14 +73,15 @@ def harmonize(config: configs.RootConfig) -> None:
             f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
         )
 
-        # ----- get band mapping from JSON config
+        # ----- from dataset JSON config
         ctrl = artifacts.Controller[dict].load_json_or_fail(
             config.data.harmonization.dataset_config
         )
         ctrl.hash(overwrite=False) # hash once
         dataset_config = ctrl.fetch()
         assert dataset_config
-        band_mapping = dataset_config.get('band_mapping')
+        band_mapping: dict[str, dict[int, str]] = dataset_config.get('band_mapping', {})
+        label_specs: dict[str, geo_core.LabelSpecs] = dataset_config.get('label_specifications', {})
 
         # ----- categorical domain rasters
         for k, v in config.data.harmonization.raw_data.domains.items():
@@ -91,6 +93,7 @@ def harmonize(config: configs.RootConfig) -> None:
                 tag='domains',
                 resampling=config.data.harmonization.resampling_categorical,
                 band_mapping=band_mapping,
+                label_specs=None,
                 logger=logger
             )
             logger.add_finalized_raster(f'domain_{k}', output_path)
@@ -104,6 +107,7 @@ def harmonize(config: configs.RootConfig) -> None:
             tag='dev_features',
             resampling=config.data.harmonization.resampling_continuous,
             band_mapping=band_mapping,
+            label_specs=None,
             logger=logger
         )
         logger.add_finalized_raster('dev_features', output_path_dev_features)
@@ -116,6 +120,7 @@ def harmonize(config: configs.RootConfig) -> None:
             tag='dev_labels',
             resampling=config.data.harmonization.resampling_categorical,
             band_mapping=band_mapping,
+            label_specs=label_specs,
             logger=logger
         )
         logger.add_finalized_raster('dev_labels', output_path)
@@ -129,6 +134,7 @@ def harmonize(config: configs.RootConfig) -> None:
                 tag='test_features',
                 resampling=config.data.harmonization.resampling_continuous,
                 band_mapping=band_mapping,
+                label_specs=None,
                 logger=logger
             )
             logger.add_finalized_raster('test_features', output_path)
@@ -142,6 +148,7 @@ def harmonize(config: configs.RootConfig) -> None:
                 tag='test_labels',
                 resampling=config.data.harmonization.resampling_categorical,
                 band_mapping=band_mapping,
+                label_specs=label_specs,
                 logger=logger
             )
             logger.add_finalized_raster('test_labels', output_path)
@@ -173,6 +180,7 @@ def _process_source(
     tag: str,
     resampling: str,
     band_mapping: dict[str, dict[int, str]] | None,
+    label_specs: dict[str, geo_core.LabelSpecs] | None,
     logger: harmonize_mod.HarmonizationLogger,
 ) -> str:
     '''Process one data source.'''
@@ -200,8 +208,20 @@ def _process_source(
             canvas=canvas_spec,
             is_categorical='label' in tag or 'domain' in tag,
             resampling_method=resampling,
-            band_mapping=band_mapping.get(path)
+            band_mapping=band_mapping.get(os.path.basename(path))
         )
+
+        if label_specs:
+            specs = label_specs.get(os.path.basename(path), {})
+            harmonize_mod.add_tag_to_vrt(
+                warped,
+                num_cls=specs.get('num_cls'),
+                ignore_cls=specs.get('ignore_cls', []),
+                class_name=specs.get('class_name', []),
+                reclass=specs.get('reclass', {}),
+                reclass_name=specs.get('reclass_name', {})
+            )
+
         aligned.append(warped)
 
         logger.add_harmonized_source(f'{tag}_{name}', warped)

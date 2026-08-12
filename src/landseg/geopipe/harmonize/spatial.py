@@ -163,6 +163,7 @@ def warp_to_canvas(
             if src.nodata is not None
             else (255 if is_categorical else -9999)
         )
+
         with rasterio.vrt.WarpedVRT(
             src,
             crs=canvas.crs,

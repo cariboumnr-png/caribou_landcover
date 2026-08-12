@@ -360,8 +360,9 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     # dataset config JSON
     print(f'Creating dataset configuration: {paths.config}')
     data_config = {
+        'data_source_dir': f'{paths.input_root}/raw',
         'band_mapping': {
-            paths.raw_dev_sentinel2: {
+            os.path.basename(paths.raw_dev_sentinel2): {
                 1: 'blue',
                 2: 'green',
                 3: 'red',
@@ -373,16 +374,16 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
                 9: 'swir1',
                 10: 'swir2',
             },
-            paths.raw_dev_dem: {
+            os.path.basename(paths.raw_dev_dem): {
                 1: 'dem'
             },
-            paths.raw_dev_landcover: {
+            os.path.basename(paths.raw_dev_landcover): {
                 1: 'land_cover'
             },
-            paths.raw_dev_leadspc: {
+            os.path.basename(paths.raw_dev_leadspc): {
                 1: 'lead_species'
             },
-            paths.raw_test_sentinel2: {
+            os.path.basename(paths.raw_test_sentinel2): {
                 1: 'blue',
                 2: 'green',
                 3: 'red',
@@ -394,18 +395,30 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
                 9: 'swir1',
                 10: 'swir2',
             },
-            paths.raw_test_dem: {
+            os.path.basename(paths.raw_test_dem): {
                 1: 'dem'
             },
-            paths.raw_test_landcover: {
+            os.path.basename(paths.raw_test_landcover): {
                 1: 'land_cover'
             },
-            paths.raw_test_leadspc: {
+            os.path.basename(paths.raw_test_leadspc): {
                 1: 'lead_species'
             }
         },
-        'labels_specifications': {
-            'two_classes': {
+        'label_specifications': {
+            os.path.basename(paths.raw_dev_landcover): {
+                'num_cls': 2,
+                'ignore_cls': [255]
+            },
+            os.path.basename(paths.raw_dev_leadspc): {
+                'num_cls': 2,
+                'ignore_cls': [255]
+            },
+            os.path.basename(paths.raw_test_landcover): {
+                'num_cls': 2,
+                'ignore_cls': [255]
+            },
+            os.path.basename(paths.raw_test_leadspc): {
                 'num_cls': 2,
                 'ignore_cls': [255]
             }

@@ -57,7 +57,14 @@ def stack_canonical_raster(
 
     source_paths = [os.path.abspath(p) for p in source_paths]
     _build_stacked_vrt_xml(source_paths, output_path)
+
     return os.path.abspath(output_path)
+
+
+def add_tag_to_vrt(vrt_fpath: str, **kwargs):
+    '''Add metadata to `.vrt` raster file.'''
+    with rasterio.open(vrt_fpath, 'r+') as vrt:
+        vrt.update_tags(**kwargs)
 
 
 def unify_nodata_mask(
@@ -161,6 +168,12 @@ def _build_stacked_vrt_xml(
 
         with rasterio.open(path) as src:
 
+            # read dataset-level metadata once per source
+            source_tags = src.tags()
+
+            # keep track of the first output band for this source
+            first_band_idx = band_idx
+
             for b in range(1, src.count + 1):
                 dtype = _gdal_dtype_name(src.dtypes[b - 1])
 
@@ -179,6 +192,20 @@ def _build_stacked_vrt_xml(
                         band_node,
                         'Description',
                     ).text = str(band_name)
+
+                # copy source-level tags only once
+                if band_idx == first_band_idx and source_tags:
+                    metadata_node = xml.etree.ElementTree.SubElement(
+                        band_node,
+                        "Metadata",
+                    )
+
+                    for key, value in source_tags.items():
+                        xml.etree.ElementTree.SubElement(
+                            metadata_node,
+                            "MDI",
+                            key=str(key),
+                        ).text = str(value)
 
                 # nodata
                 nodata_val = (
