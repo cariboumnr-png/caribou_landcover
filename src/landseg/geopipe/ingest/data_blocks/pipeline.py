@@ -102,12 +102,6 @@ def run_blocks_building(
         policy=policy,
     )
 
-    # load dataset config JSON
-    ctrl = artifacts.Controller[dict].load_json_or_fail(config.data_config_fpath)
-    ctrl.hash(overwrite=False)  # Hash once
-    dataset_config = ctrl.fetch()
-    assert dataset_config
-
     # create a data block builder inputs, context, and config
     building_input = assembler.BlockBuildingInput(
         output_root=artfact_paths.blocks,
@@ -124,7 +118,7 @@ def run_blocks_building(
         dem_pad_px=config.dem_pad,
         block_size=ras_windows.tile_shape,
         image_band_map=assembler.read_band_map(config.image_fpath),
-        label_specs=dataset_config.get('label_specifications', {}),
+        label_specs=assembler.read_label_specs(config.label_fpath),
     )
     # build data blocks
     result = assembler.build_blocks(

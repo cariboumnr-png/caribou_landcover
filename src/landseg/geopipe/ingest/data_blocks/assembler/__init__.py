@@ -59,6 +59,7 @@ __all__ = [
     'build_test_block',
     'build_blocks',
     'read_band_map',
+    'read_label_specs',
     'read_block_raster_data',
     'check_npz_integrity',
 ]
@@ -79,6 +80,7 @@ if typing.TYPE_CHECKING:
         RasterReadInput,
         RasterReadOutput,
         read_band_map,
+        read_label_specs,
         check_npz_integrity,
         read_block_raster_data,
     )
@@ -108,6 +110,7 @@ def __getattr__(name: str):
         'RasterReadInput',
         'RasterReadOutput',
         'read_band_map',
+        'read_label_specs',
         'check_npz_integrity',
         'read_block_raster_data',
     }:
