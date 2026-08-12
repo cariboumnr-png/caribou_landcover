@@ -26,6 +26,7 @@ import json
 import os
 # third-party imports
 import numpy
+import rasterio
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.ingest as ingest_data
@@ -66,6 +67,9 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factor
         crs='EPSG:3161',
         dtype=numpy.uint8
     )
+    with rasterio.open(dev_lbl, 'r+') as dataset:
+        dataset.set_band_description(1, 'land_cover')
+        dataset.update_tags(1, num_cls=2, ignore_cls='[255]')
 
     # Prepare world grid from the reference raster
     grid_config = ingest_data.GridParameters(
@@ -162,6 +166,9 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths, dummy_geotiff_facto
         crs='EPSG:3161',
         dtype=numpy.uint8
     )
+    with rasterio.open(test_lbl, 'r+') as dataset:
+        dataset.set_band_description(1, 'land_cover')
+        dataset.update_tags(1, num_cls=2, ignore_cls='[255]')
 
     # Prepare world grid from the reference raster
     grid_config = ingest_data.GridParameters(

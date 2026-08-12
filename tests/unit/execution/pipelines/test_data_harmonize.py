@@ -32,9 +32,11 @@ import landseg.execution.executor as executor
 # ----- test cases
 def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
     '''
-    Given: Pre-generated dummy data paths for raw Sentinel-2, DEM, and landcover in EPSG:32618.
+    Given: Pre-generated dummy data paths for raw Sentinel-2, DEM, and
+        landcover in EPSG:32618.
     When: Calling `execute_pipeline` with pipeline.name='data-harmonize'.
-    Then: Warps features and labels to EPSG:3161 at 20m and writes harmonize_report.json and VRT outputs.
+    Then: Warps features and labels to EPSG:3161 at 20m and writes
+        `harmonize_report.json` and VRT outputs.
     '''
     out_dpath = str(tmp_path / 'harmonize_out')
 
@@ -43,29 +45,28 @@ def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
     root_cfg.data.harmonization.canvas.target_crs = 'EPSG:3161'
     root_cfg.data.harmonization.canvas.target_resolution = 20.0
     root_cfg.data.harmonization.output_dpath = out_dpath
+    root_cfg.data.harmonization.dataset_config = dummy_data_paths.config
     root_cfg.data.harmonization.raw_data.domains = {
         'domain_1': dummy_data_paths.domain_1
     }
     root_cfg.data.harmonization.raw_data.dev_features = {
-        'sentinel2': dummy_data_paths.raw_sentinel2,
-        'dem': dummy_data_paths.raw_dem
+        'sentinel2': dummy_data_paths.raw_dev_sentinel2,
+        'dem': dummy_data_paths.raw_dev_dem
     }
     root_cfg.data.harmonization.raw_data.dev_labels = {
-        'landcover': dummy_data_paths.raw_landcover
+        'landcover': dummy_data_paths.raw_dev_landcover
     }
 
-    report = executor.execute_pipeline(root_cfg)
+    executor.execute_pipeline(root_cfg)
 
-    assert report['status'] == 'SUCCESS'
-    assert report['target_crs'] == 'EPSG:3161'
-    assert report['target_resolution'] == 20.0
-
-    run_dir = os.path.join(out_dpath, report.get('run_id', 'run_0001'))
+    run_dir = os.path.join(out_dpath, 'run_0001')
     report_file = os.path.join(run_dir, 'harmonize_report.json')
     assert os.path.exists(report_file)
 
     with open(report_file, 'r', encoding='utf-8') as f:
         saved_report = json.load(f)
     assert saved_report['status'] == 'SUCCESS'
-    assert os.path.exists(os.path.join(run_dir, 'stacked_images.vrt'))
+    assert saved_report['target_crs'] == 'EPSG:3161'
+    assert saved_report['target_resolution'] == 20.0
+    assert os.path.exists(os.path.join(run_dir, 'harmonized_dev_features_STACKED.vrt'))
     assert os.path.exists(os.path.join(run_dir, 'valid_pixel_mask.vrt'))

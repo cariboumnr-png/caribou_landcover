@@ -91,8 +91,8 @@ def test_harmonization_paths(tmp_path):
     '''
     Given: A harmonization root directory path.
     When: Initializing `HarmonizationPaths` across runs.
-    Then: Return expected run-isolated valid mask raster, dataset config,
-        config, and harmonize_report.json file paths.
+    Then: Return expected run-isolated valid mask raster, config, and
+        harmonize_report.json file paths.
     '''
     e = str(tmp_path)
     paths = paths_mod.HarmonizationPaths(root=e)
@@ -101,7 +101,6 @@ def test_harmonization_paths(tmp_path):
     assert paths.run_id == 'run_0001'
     r = paths.effective_root
     assert paths.valid_mask_raster == os.path.join(r, 'valid_pixel_mask.vrt')
-    assert paths.dataset_config == os.path.join(r, 'dataset_config.json')
     assert paths.config == os.path.join(r, 'config.json')
     assert paths.report == os.path.join(r, 'harmonize_report.json')
 

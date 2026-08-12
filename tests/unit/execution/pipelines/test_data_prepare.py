@@ -65,11 +65,11 @@ def test_data_prepare_pipeline_success(tmp_path, dummy_data_paths):
         'domain_1': dummy_data_paths.domain_1
     }
     cfg_schema.data.harmonization.raw_data.dev_features = {
-        'sentinel2': dummy_data_paths.raw_sentinel2,
-        'dem': dummy_data_paths.raw_dem
+        'sentinel2': dummy_data_paths.raw_dev_sentinel2,
+        'dem': dummy_data_paths.raw_dev_dem
     }
     cfg_schema.data.harmonization.raw_data.dev_labels = {
-        'landcover': dummy_data_paths.raw_landcover
+        'landcover': dummy_data_paths.raw_dev_landcover
     }
     cfg_schema.data.harmonization.raw_data.test_features = {
         'sentinel2': dummy_data_paths.raw_test_sentinel2,

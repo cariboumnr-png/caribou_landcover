@@ -23,8 +23,6 @@
 
 # pylint: disable=protected-access
 
-# standard imports
-import os
 # third-party imports
 import pytest
 # local imports
@@ -32,108 +30,6 @@ import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.configs.schema.sections as secs
 import landseg.execution.executor as executor
-
-
-# ----- _normalize_val helper
-def test_normalize_val_primitives():
-    '''
-    Given: Primitive values (int, bool, simple string).
-    When: Normalizing values.
-    Then: Return the values unmodified.
-    '''
-    assert executor._normalize_val(42) == 42
-    assert executor._normalize_val(True) is True
-    assert executor._normalize_val("hello") == "hello"
-
-
-def test_normalize_val_paths():
-    '''
-    Given: String values that look like paths (contain slashes or
-        start with dot).
-    When: Normalizing values.
-    Then: Return absolute paths with forward slashes.
-    '''
-    normalized = executor._normalize_val("./test/path")
-    expected = os.path.abspath("./test/path").replace('\\', '/')
-    assert normalized == expected
-
-    normalized_backslash = executor._normalize_val("test\\path")
-    expected_backslash = os.path.abspath("test\\path").replace('\\', '/')
-    assert normalized_backslash == expected_backslash
-
-
-def test_normalize_val_recursive():
-    '''
-    Given: A dictionary containing nested dicts and lists with
-        path-like strings.
-    When: Normalizing values recursively.
-    Then: Paths are resolved inside all collections.
-    '''
-    input_data = {
-        'path1': './test',
-        'list': ['./test1', 42],
-        'nested': {'p2': 'foo/bar'}
-    }
-    norm = executor._normalize_val(input_data)
-    assert norm['path1'] == os.path.abspath('./test').replace('\\', '/')
-    assert norm['list'][0] == os.path.abspath('./test1').replace('\\', '/')
-    assert norm['list'][1] == 42
-    assert norm['nested']['p2'] == os.path.abspath('foo/bar').replace('\\', '/')
-
-
-# ----- _diff_configs helper
-def test_diff_configs_identical():
-    '''
-    Given: Two identical configuration dictionaries.
-    When: Diffing the configurations.
-    Then: Return an empty dictionary indicating no differences.
-    '''
-    dict1 = {'a': 1, 'b': {'c': 2}}
-    dict2 = {'a': 1, 'b': {'c': 2}}
-    assert not executor._diff_configs(dict1, dict2)
-
-
-def test_diff_configs_different_values():
-    '''
-    Given: Two dictionaries with overlapping keys but different values.
-    When: Diffing the configurations.
-    Then: Return a dictionary with paths pointing to tuples of
-        (val1, val2).
-    '''
-    dict1 = {'a': 1, 'b': {'c': 2}}
-    dict2 = {'a': 2, 'b': {'c': 3}}
-    diff = executor._diff_configs(dict1, dict2)
-    assert diff == {'a': (1, 2), 'b.c': (2, 3)}
-
-
-def test_diff_configs_missing_keys():
-    '''
-    Given: Two dictionaries where some keys exist only in one
-        dictionary.
-    When: Diffing the configurations.
-    Then: Missing keys appear as None for the dictionary that lacks them.
-    '''
-    dict1 = {'a': 1, 'b': 2}
-    dict2 = {'b': 2, 'c': 3}
-    diff = executor._diff_configs(dict1, dict2)
-    assert diff == {'a': (1, None), 'c': (None, 3)}
-
-
-def test_diff_configs_lists():
-    '''
-    Given: Dictionaries containing lists that differ in length or
-        elements.
-    When: Diffing the configurations.
-    Then: Lists of different lengths are fully reported, while lists of
-        the same length report item-by-item differences.
-    '''
-    dict1 = {'l1': [1, 2], 'l2': [3, 4]}
-    dict2 = {'l1': [1, 2, 3], 'l2': [3, 5]}
-    diff = executor._diff_configs(dict1, dict2)
-    assert diff == {
-        'l1': ([1, 2], [1, 2, 3]),
-        'l2[1]': (4, 5)
-    }
 
 
 # ----- _validate_upstream_pipelines logic
@@ -149,8 +45,9 @@ def test_validate_upstream_pipelines_entrypoints():
     )
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     # should not raise
-    executor._validate_upstream_pipelines(config, 'default')
-    executor._validate_upstream_pipelines(config, 'data-harmonize')
+    executor._validate_upstream_pipelines(config)
+    config.pipeline.name = 'data-harmonize'
+    executor._validate_upstream_pipelines(config)
 
 
 def test_validate_upstream_pipelines_missing_etl(tmp_path):
@@ -168,7 +65,7 @@ def test_validate_upstream_pipelines_missing_etl(tmp_path):
         artifacts.ArtifactError,
         match='Upstream pipeline "data-harmonize" has not been executed yet'
     ):
-        executor._validate_upstream_pipelines(config, 'data-ingest')
+        executor._validate_upstream_pipelines(config)
 
 
 def test_validate_upstream_pipelines_missing_ingest(tmp_path):
@@ -190,7 +87,7 @@ def test_validate_upstream_pipelines_missing_ingest(tmp_path):
         artifacts.ArtifactError,
         match='Upstream pipeline "data-ingest" has not been executed yet'
     ):
-        executor._validate_upstream_pipelines(config, 'data-prepare')
+        executor._validate_upstream_pipelines(config)
 
 
 def test_validate_upstream_pipelines_failed_ingest(tmp_path):
@@ -215,7 +112,7 @@ def test_validate_upstream_pipelines_failed_ingest(tmp_path):
         artifacts.ArtifactError,
         match='Upstream pipeline "data-ingest" status is "FAILED"'
     ):
-        executor._validate_upstream_pipelines(config, 'data-prepare')
+        executor._validate_upstream_pipelines(config)
 
 
 def test_validate_upstream_pipelines_success(tmp_path):
@@ -239,50 +136,7 @@ def test_validate_upstream_pipelines_success(tmp_path):
     config.data.preparation.output_dpath = tmp_path
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     # should not raise
-    executor._validate_upstream_pipelines(config, 'model-train')
-
-
-# ----- _compare_config_section logic
-def test_compare_config_section_missing_artifact(tmp_path):
-    '''
-    Given: An artifact path that does not exist.
-    When: Comparing a config section.
-    Then: Return an empty diff dict.
-    '''
-    diff = executor._compare_config_section(
-        str(tmp_path / "missing.json"),
-        "ingestion",
-        secs.data._IngestionCfg(
-            grid=secs.data._Grid(mode='grid'), output_dpath='out'
-        )
-    )
-    assert isinstance(diff, dict) and not diff
-
-
-def test_compare_config_section_with_differences(tmp_path):
-    '''
-    Given: A valid artifact with a saved configuration that differs from
-        the current configuration.
-    When: Comparing the config section.
-    Then: Return the differences found.
-    '''
-    artifact_path = str(tmp_path / "config.json")
-    saved_config = {'ingestion': {'grid': 'old_grid', 'output_dpath': 'out'}}
-    artifacts.Controller(artifact_path).persist(saved_config)
-
-    current_config = secs.data._IngestionCfg(
-        grid=secs.data._Grid(mode='new_grid'), output_dpath='out'
-    )
-
-    diff = executor._compare_config_section(
-        artifact_path,
-        "ingestion",
-        current_config
-    )
-
-    # We expect 'new_grid' to be normalized as an absolute path vs 'old_grid'
-    # depending on normalization
-    assert 'ingestion.grid' in diff
+    executor._validate_upstream_pipelines(config)
 
 
 # ----- execute_pipeline logic
@@ -299,7 +153,6 @@ def test_execute_pipeline_success(mocker):
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
 
     mocker.patch('landseg.execution.executor._validate_upstream_pipelines')
-    mocker.patch('landseg.execution.executor._check_config_staleness')
 
     mock_command = mocker.Mock(return_value='pipeline_result')
     mocker.patch('landseg.execution.pipelines.get', return_value=mock_command)
