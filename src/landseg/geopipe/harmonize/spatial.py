@@ -120,7 +120,6 @@ def warp_to_canvas(
     canvas: CanvasSpec,
     is_categorical: bool = False,
     resampling_method: str | None = None,
-    band_mapping: dict[int, str] | None = None
 ) -> str:
     '''
     Reproject and snap an input raster to target `CanvasSpec` grid as a VRT.
@@ -151,13 +150,6 @@ def warp_to_canvas(
 
     with rasterio.open(input_path) as src:
 
-        if band_mapping is not None:
-            if len(band_mapping) != src.count:
-                raise ValueError(
-                    f'Expected {src.count} band descriptions, '
-                    f'got {len(band_mapping)}'
-                )
-
         nodata_val = (
             src.nodata
             if src.nodata is not None
@@ -174,11 +166,5 @@ def warp_to_canvas(
             nodata=nodata_val
         ) as vrt:
             rasterio.shutil.copy(vrt, output_path, driver='VRT')
-
-    # add band description (name) to the resulting VRT
-    if band_mapping is not None:
-        with rasterio.open(output_path, 'r+') as dst:
-            for band, name in band_mapping.items():
-                dst.set_band_description(int(band), name)
 
     return os.path.abspath(output_path)

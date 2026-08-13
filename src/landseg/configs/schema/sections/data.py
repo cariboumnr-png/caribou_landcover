@@ -46,8 +46,8 @@ class _Canvas:
 
 @dataclasses.dataclass
 class _RawData:
-    dev_features: dict[str, str] = field(default_factory=dict)
     domains: dict[str, str] = field(default_factory=dict)
+    dev_features: dict[str, str] = field(default_factory=dict)
     dev_labels: dict[str, str] = field(default_factory=dict)
     test_features: dict[str, str] = field(default_factory=dict)
     test_labels: dict[str, str] = field(default_factory=dict)

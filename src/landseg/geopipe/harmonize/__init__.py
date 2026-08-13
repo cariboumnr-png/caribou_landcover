@@ -38,6 +38,7 @@ __all__ = [
     'stack_canonical_raster',
     'unify_nodata_mask',
     'validate_domain_raster_index',
+    'add_band_description_to_vrt',
     'add_tag_to_vrt',
     # typing
     'HarmonizationReportSchema',
@@ -60,6 +61,7 @@ if typing.TYPE_CHECKING:
         stack_canonical_raster,
         unify_nodata_mask,
         validate_domain_raster_index,
+        add_band_description_to_vrt,
         add_tag_to_vrt
     )
 
@@ -83,6 +85,7 @@ def __getattr__(name: str):
         'stack_canonical_raster',
         'unify_nodata_mask',
         'validate_domain_raster_index',
+        'add_band_description_to_vrt',
         'add_tag_to_vrt'
     }:
         return getattr(importlib.import_module('.raster_ops', __package__), name)

@@ -39,7 +39,9 @@ def stack_canonical_raster(
     output_path: str
 ) -> str:
     '''
-    Stack multiple single-band or multi-band rasters into one composite VRT.
+    Stack multiple rasters into one composite VRT.
+
+    Here input rasters are assumed to have identical CRS, transform etc.
 
     Args:
         source_paths:
@@ -61,27 +63,26 @@ def stack_canonical_raster(
     return os.path.abspath(output_path)
 
 
-def add_tag_to_vrt(vrt_fpath: str, **kwargs):
-    '''Add metadata to `.vrt` raster file.'''
-    with rasterio.open(vrt_fpath, 'r+') as vrt:
-        vrt.update_tags(**kwargs)
-
-
 def unify_nodata_mask(
     input_path: str,
     output_mask_path: str
 ) -> str:
     '''
-    Create a 1-band boolean valid pixel mask (1 = valid, 0 = nodata) across bands.
+    Create a 1-band boolean valid pixel mask across bands.
+
+    Value mapping: 1=valid, 0=nodata.
 
     Args:
-        input_path: Path to the multi-band source raster.
-        output_mask_path: Destination path for the valid-pixel mask raster.
+        input_path:
+            Path to the multi-band source raster.
+        output_mask_path:
+            Destination path for the valid-pixel mask raster.
 
     Returns:
         Absolute path to the created mask raster.
     '''
-    os.makedirs(os.path.dirname(os.path.abspath(output_mask_path)), exist_ok=True)
+    out_dir = os.path.dirname(os.path.abspath(output_mask_path))
+    os.makedirs(out_dir, exist_ok=True)
 
     with rasterio.open(input_path) as src:
         valid_mask = numpy.ones((src.height, src.width), dtype=numpy.uint8)
@@ -119,28 +120,59 @@ def unify_nodata_mask(
     return os.path.abspath(output_mask_path)
 
 
-_GDAL_DTYPE_MAP = {
-    'uint8': 'Byte',
-    'int8': 'Int8',
-    'uint16': 'UInt16',
-    'int16': 'Int16',
-    'uint32': 'UInt32',
-    'int32': 'Int32',
-    'float32': 'Float32',
-    'float64': 'Float64',
-}
+def validate_domain_raster_index(
+    input_path: str,
+    min_allowed: int = 1
+) -> None:
+    '''
+    Validate that a domain raster contains 1-based indices.
+
+    Args:
+        input_path: Path to the input domain raster file.
+        min_allowed: Minimum allowed index value (default: 1).
+
+    Raises:
+        ValueError: If valid pixel values contain any values < min_allowed.
+    '''
+    with rasterio.open(input_path) as src:
+        data = src.read(1)
+        nodata = src.nodata
+        valid_data = data[data != nodata] if nodata is not None else data
+        if valid_data.size > 0 and int(valid_data.min()) < min_allowed:
+            raise ValueError(
+                f'Domain raster [{input_path}] contains index values '
+                f'< {min_allowed} (minimum found: {valid_data.min()}). '
+                'Categorical domain rasters must use 1-based indexing.'
+            )
 
 
-def _gdal_dtype_name(dtype) -> str:
-    s = str(dtype).lower()
-    return _GDAL_DTYPE_MAP.get(s, s.capitalize())
+def add_band_description_to_vrt(
+    vrt_fpath: str,
+    band_mapping: dict[int, str]
+):
+    '''Simple helper to add band description to a `.vrt` raster file.'''
+    with rasterio.open(vrt_fpath, 'r+') as vrt:
+        if len(band_mapping) != vrt.count:
+            raise ValueError(
+                f'Expected {vrt.count} band descriptions, '
+                f'got {len(band_mapping)}'
+            )
+        for band, name in band_mapping.items():
+            vrt.set_band_description(int(band), name)
 
 
+def add_tag_to_vrt(vrt_fpath: str, **kwargs):
+    '''Simple helper to add metadata to a `.vrt` raster file.'''
+    with rasterio.open(vrt_fpath, 'r+') as vrt:
+        vrt.update_tags(**kwargs)
+
+
+# ----- private helpers
 def _build_stacked_vrt_xml(
     source_paths: list[str],
     output_path: str,
 ) -> None:
-    '''Fallback manual VRT XML builder for stacking bands.'''
+    '''Manual VRT XML builder for stacking bands.'''
     if not source_paths:
         raise ValueError("source_paths must not be empty")
 
@@ -168,12 +200,6 @@ def _build_stacked_vrt_xml(
 
         with rasterio.open(path) as src:
 
-            # read dataset-level metadata once per source
-            source_tags = src.tags()
-
-            # keep track of the first output band for this source
-            first_band_idx = band_idx
-
             for b in range(1, src.count + 1):
                 dtype = _gdal_dtype_name(src.dtypes[b - 1])
 
@@ -193,14 +219,14 @@ def _build_stacked_vrt_xml(
                         'Description',
                     ).text = str(band_name)
 
-                # copy source-level tags only once
-                if band_idx == first_band_idx and source_tags:
+                # copy source-level tags only once (first band)
+                if band_idx == 1 and src.tags():
                     metadata_node = xml.etree.ElementTree.SubElement(
                         band_node,
                         "Metadata",
                     )
 
-                    for key, value in source_tags.items():
+                    for key, value in src.tags().items():
                         xml.etree.ElementTree.SubElement(
                             metadata_node,
                             "MDI",
@@ -252,27 +278,16 @@ def _build_stacked_vrt_xml(
     )
 
 
-def validate_domain_raster_index(
-    input_path: str,
-    min_allowed: int = 1
-) -> None:
-    '''
-    Validate that a domain raster contains 1-based indices.
-
-    Args:
-        input_path: Path to the input domain raster file.
-        min_allowed: Minimum allowed index value (default: 1).
-
-    Raises:
-        ValueError: If valid pixel values contain any values < min_allowed.
-    '''
-    with rasterio.open(input_path) as src:
-        data = src.read(1)
-        nodata = src.nodata
-        valid_data = data[data != nodata] if nodata is not None else data
-        if valid_data.size > 0 and int(valid_data.min()) < min_allowed:
-            raise ValueError(
-                f'Domain raster [{input_path}] contains index values '
-                f'< {min_allowed} (minimum found: {valid_data.min()}). '
-                'Categorical domain rasters must use 1-based indexing.'
-            )
+def _gdal_dtype_name(dtype) -> str:
+    gdal_dtype_map = {
+        'uint8': 'Byte',
+        'int8': 'Int8',
+        'uint16': 'UInt16',
+        'int16': 'Int16',
+        'uint32': 'UInt32',
+        'int32': 'Int32',
+        'float32': 'Float32',
+        'float64': 'Float64',
+    }
+    s = str(dtype).lower()
+    return gdal_dtype_map.get(s, s.capitalize())

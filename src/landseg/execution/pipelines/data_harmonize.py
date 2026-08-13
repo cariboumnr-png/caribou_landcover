@@ -46,10 +46,12 @@ def harmonize(config: configs.RootConfig) -> None:
     paths = artifacts.ArtifactPaths.from_config(config).data_harmonization
     paths.init()
 
+    cfg = config.data.harmonization
+
     canvas_spec = harmonize_mod.create_canvas(
-        reference_raster=config.data.harmonization.canvas.reference_raster,
-        target_crs=config.data.harmonization.canvas.target_crs,
-        target_resolution=config.data.harmonization.canvas.target_resolution
+        reference_raster=cfg.canvas.reference_raster,
+        target_crs=cfg.canvas.target_crs,
+        target_resolution=cfg.canvas.target_resolution
     )
 
     logger = harmonize_mod.HarmonizationLogger(
@@ -73,25 +75,19 @@ def harmonize(config: configs.RootConfig) -> None:
             f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
         )
 
-        # ----- from dataset JSON config
-        ctrl = artifacts.Controller[dict].load_json_or_fail(
-            config.data.harmonization.dataset_config
-        )
-        ctrl.hash(overwrite=False) # hash once
-        dataset_config = ctrl.fetch()
-        assert dataset_config
-        band_mapping: dict[str, dict[int, str]] = dataset_config.get('band_mapping', {})
-        label_specs: dict[str, geo_core.LabelSpecs] = dataset_config.get('label_specifications', {})
+        # ----- read dataset JSON config
+        cfg_fpath = cfg.dataset_config
+        band_mapping, label_specs = _read_dataset_config(cfg_fpath)
 
         # ----- categorical domain rasters
-        for k, v in config.data.harmonization.raw_data.domains.items():
+        for k, v in cfg.raw_data.domains.items():
             harmonize_mod.validate_domain_raster_index(v, 1)
             output_path = _process_source(
                 canvas_spec=canvas_spec,
                 source={k: v},
                 output_dir=paths.effective_root,
                 tag='domains',
-                resampling=config.data.harmonization.resampling_categorical,
+                resampling=cfg.resampling_categorical,
                 band_mapping=band_mapping,
                 label_specs=None,
                 logger=logger
@@ -102,10 +98,10 @@ def harmonize(config: configs.RootConfig) -> None:
         # ----- continuous dev feature rasters
         output_path_dev_features = _process_source(
             canvas_spec=canvas_spec,
-            source=config.data.harmonization.raw_data.dev_features,
+            source=cfg.raw_data.dev_features,
             output_dir=paths.effective_root,
             tag='dev_features',
-            resampling=config.data.harmonization.resampling_continuous,
+            resampling=cfg.resampling_continuous,
             band_mapping=band_mapping,
             label_specs=None,
             logger=logger
@@ -115,10 +111,10 @@ def harmonize(config: configs.RootConfig) -> None:
         # ----- categorical dev label rasters
         output_path = _process_source(
             canvas_spec=canvas_spec,
-            source=config.data.harmonization.raw_data.dev_labels,
+            source=cfg.raw_data.dev_labels,
             output_dir=paths.effective_root,
             tag='dev_labels',
-            resampling=config.data.harmonization.resampling_categorical,
+            resampling=cfg.resampling_categorical,
             band_mapping=band_mapping,
             label_specs=label_specs,
             logger=logger
@@ -126,13 +122,13 @@ def harmonize(config: configs.RootConfig) -> None:
         logger.add_finalized_raster('dev_labels', output_path)
 
         # ----- test holdout feature rasters
-        if config.data.harmonization.raw_data.test_features:
+        if cfg.raw_data.test_features:
             output_path = _process_source(
                 canvas_spec=canvas_spec,
-                source=config.data.harmonization.raw_data.test_features,
+                source=cfg.raw_data.test_features,
                 output_dir=paths.effective_root,
                 tag='test_features',
-                resampling=config.data.harmonization.resampling_continuous,
+                resampling=cfg.resampling_continuous,
                 band_mapping=band_mapping,
                 label_specs=None,
                 logger=logger
@@ -140,13 +136,13 @@ def harmonize(config: configs.RootConfig) -> None:
             logger.add_finalized_raster('test_features', output_path)
 
         # ----- test holdout label rasters
-        if config.data.harmonization.raw_data.test_labels:
+        if cfg.raw_data.test_labels:
             output_path = _process_source(
                 canvas_spec=canvas_spec,
-                source=config.data.harmonization.raw_data.test_labels,
+                source=cfg.raw_data.test_labels,
                 output_dir=paths.effective_root,
                 tag='test_labels',
-                resampling=config.data.harmonization.resampling_categorical,
+                resampling=cfg.resampling_categorical,
                 band_mapping=band_mapping,
                 label_specs=label_specs,
                 logger=logger
@@ -172,6 +168,25 @@ def harmonize(config: configs.RootConfig) -> None:
 
 
 # ----- private helpers
+def _read_dataset_config(
+    fp: str
+) -> tuple[dict[str, dict[int, str]], dict[str, geo_core.LabelSpecs]]:
+    '''Read dataset config JSON.'''
+    # types
+    band_mapping: dict[str, dict[int, str]]
+    label_specs: dict[str, geo_core.LabelSpecs]
+
+    # load JSON as artifact
+    ctrl = artifacts.Controller[dict].load_json_or_fail(fp)
+    ctrl.hash(overwrite=False) # hash once
+    dt_cfg = ctrl.fetch()
+    assert dt_cfg # typing
+    band_mapping = dt_cfg.get('band_mapping', {})
+    label_specs = dt_cfg.get('label_specifications', {})
+
+    return band_mapping, label_specs
+
+
 def _process_source(
     *,
     canvas_spec: harmonize_mod.CanvasSpec,
@@ -208,7 +223,6 @@ def _process_source(
             canvas=canvas_spec,
             is_categorical='label' in tag or 'domain' in tag,
             resampling_method=resampling,
-            band_mapping=band_mapping.get(os.path.basename(path))
         )
 
         if label_specs:
