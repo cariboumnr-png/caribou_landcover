@@ -76,7 +76,7 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
         compiled = harmonize.compile_dataset_manifest(cfg.dataset_manifest)
         gen = harmonize.process_source(
             compiled,
-            cfg.output_dpath,
+            paths.effective_root,
             canvas_spec,
             categorical_resampling=cfg.resampling_categorical,
             continuous_resampling=cfg.resampling_continuous,
