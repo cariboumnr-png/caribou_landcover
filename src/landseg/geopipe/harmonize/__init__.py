@@ -40,9 +40,12 @@ __all__ = [
     'validate_domain_raster_index',
     'add_band_description_to_vrt',
     'add_tag_to_vrt',
+    'read_dataset_config',
+    'process_source',
     # typing
     'HarmonizationReportSchema',
     'ProvenanceRecord',
+    'DatasetConfigItem'
 ]
 
 # for static check
@@ -63,6 +66,13 @@ if typing.TYPE_CHECKING:
         validate_domain_raster_index,
         add_band_description_to_vrt,
         add_tag_to_vrt
+    )
+    from .processor import(
+        process_source
+    )
+    from .validator import(
+        DatasetConfigItem,
+        read_dataset_config
     )
 
 def __getattr__(name: str):
@@ -89,5 +99,16 @@ def __getattr__(name: str):
         'add_tag_to_vrt'
     }:
         return getattr(importlib.import_module('.raster_ops', __package__), name)
+
+    if name in {
+        'process_source',
+    }:
+        return getattr(importlib.import_module('.processor', __package__), name)
+
+    if name in {
+        'DatasetConfigItem',
+        'read_dataset_config',
+    }:
+        return getattr(importlib.import_module('.validator', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

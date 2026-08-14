@@ -31,24 +31,24 @@ data-harmonize:
   # Input Source Rasters (Features & Ground-Truth Labels)
   # ---------------------------------------------------------------------------
   domains:
-    domain_1: ./experiment/input/domain_knowledge/sample_domain_1.tif
-    domain_2: ./experiment/input/domain_knowledge/sample_domain_2.tif
+    domain_1: ./experiment/input/raw_data/sample_domain_1.tif
+    domain_2: ./experiment/input/raw_data/sample_domain_2.tif
   dev_features:
-    sentinel2: ./experiment/input/raw/sample_dev_sentinel2.tif
-    dem: ./experiment/input/raw/sample_dev_dem.tif
+    sentinel2: ./experiment/input/raw_data/sample_dev_sentinel2.tif
+    dem: ./experiment/input/raw_data/sample_dev_dem.tif
   dev_labels:
-    landcover: ./experiment/input/raw/sample_dev_landcover.tif
-    leadpsc: ./experiment/input/raw/sample_dev_leadspc.tif
+    landcover: ./experiment/input/raw_data/sample_dev_landcover.tif
+    leadspc: ./experiment/input/raw_data/sample_dev_leadspc.tif
   test_features:
-    sentinel2: ./experiment/input/raw/sample_test_sentinel2.tif
-    dem: ./experiment/input/raw/sample_test_dem.tif
+    sentinel2: ./experiment/input/raw_data/sample_test_sentinel2.tif
+    dem: ./experiment/input/raw_data/sample_test_dem.tif
   test_labels:
-    landcover: ./experiment/input/raw/sample_test_landcover.tif
-    leadpsc: ./experiment/input/raw/sample_test_leadspc.tif
+    landcover: ./experiment/input/raw_data/sample_test_landcover.tif
+    leadspc: ./experiment/input/raw_data/sample_test_leadspc.tif
 
   # Path to the dataset metadata JSON file and dataset name
   dataset_name: sample_data
-  dataset_config: ./experiment/input/raw/sample_config.json
+  dataset_config: ./experiment/input/raw_data/sample_config.json
 
 
 data-ingest:

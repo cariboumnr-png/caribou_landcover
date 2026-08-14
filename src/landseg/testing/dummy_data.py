@@ -51,55 +51,79 @@ class TIFFConfig:
 @dataclasses.dataclass
 class TIFFPaths:
     '''Container for dummy TIFF file paths.'''
-    input_root: str
+    root: str
 
     @property
     def extent(self) -> str:
-        return f'{self.input_root}/extent_reference/sample_extent.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'extent_reference/sample_extent.tif')
+        )
 
     @property
     def domain_1(self) -> str:
-        return f'{self.input_root}/domain_knowledge/sample_domain_1.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_domain_1.tif')
+        )
 
     @property
     def domain_2(self) -> str:
-        return f'{self.input_root}/domain_knowledge/sample_domain_2.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_domain_2.tif')
+        )
 
     @property
     def raw_dev_sentinel2(self) -> str:
-        return f'{self.input_root}/raw/sample_dev_sentinel2.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_dev_sentinel2.tif')
+        )
 
     @property
     def raw_dev_dem(self) -> str:
-        return f'{self.input_root}/raw/sample_dev_dem.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_dev_dem.tif')
+        )
 
     @property
     def raw_dev_landcover(self) -> str:
-        return f'{self.input_root}/raw/sample_dev_landcover.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_dev_landcover.tif')
+        )
 
     @property
     def raw_dev_leadspc(self) -> str:
-        return f'{self.input_root}/raw/sample_dev_leadspc.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_dev_leadspc.tif')
+        )
 
     @property
     def raw_test_sentinel2(self) -> str:
-        return f'{self.input_root}/raw/sample_test_sentinel2.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_test_sentinel2.tif')
+        )
 
     @property
     def raw_test_dem(self) -> str:
-        return f'{self.input_root}/raw/sample_test_dem.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_test_dem.tif')
+        )
 
     @property
     def raw_test_landcover(self) -> str:
-        return f'{self.input_root}/raw/sample_test_landcover.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_test_landcover.tif')
+        )
 
     @property
     def raw_test_leadspc(self) -> str:
-        return f'{self.input_root}/raw/sample_test_leadspc.tif'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_test_leadspc.tif')
+        )
 
     @property
     def config(self) -> str:
-        return f'{self.input_root}/raw/sample_config.json'
+        return os.path.abspath(
+            os.path.join(self.root, 'raw_data/sample_config.json')
+        )
 
     @property
     def all_paths_exist(self) -> bool:
@@ -185,7 +209,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     extent_transform = rasterio.transform.from_origin(orig_x, orig_y, pxs, pxs)
 
     # TIFF file paths
-    paths = TIFFPaths(input_root=input_root)
+    paths = TIFFPaths(root=input_root)
 
     # create extent reference (single band constant value on the wide extent)
     print(f'Creating extent reference: {paths.extent}')
@@ -359,10 +383,26 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
 
     # dataset config JSON
     print(f'Creating dataset configuration: {paths.config}')
-    data_config = {
-        'data_source_dir': f'{paths.input_root}/raw',
-        'band_mapping': {
-            os.path.basename(paths.raw_dev_sentinel2): {
+    data_config = [
+        {
+            'name': 'domain_1',
+            'path': paths.domain_1,
+            'category': 'domains',
+            'band_mapping': None,
+            'label_specs': None
+        },
+        {
+            'name': 'domain_2',
+            'path': paths.domain_2,
+            'category': 'domains',
+            'band_mapping': None,
+            'label_specs': None
+        },
+        {
+            'name': 'sentinel2',
+            'path': paths.raw_dev_sentinel2,
+            'category': 'dev_features',
+            'band_mapping': {
                 1: 'blue',
                 2: 'green',
                 3: 'red',
@@ -372,18 +412,42 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
                 7: 'nir',
                 8: 'narrow_nir',
                 9: 'swir1',
-                10: 'swir2',
+                10: 'swir2'
             },
-            os.path.basename(paths.raw_dev_dem): {
-                1: 'dem'
-            },
-            os.path.basename(paths.raw_dev_landcover): {
-                1: 'land_cover'
-            },
-            os.path.basename(paths.raw_dev_leadspc): {
-                1: 'lead_species'
-            },
-            os.path.basename(paths.raw_test_sentinel2): {
+            'label_specs': None
+        },
+        {
+            'name': 'dem',
+            'path': paths.raw_dev_dem,
+            'category': 'dev_features',
+            'band_mapping': None,
+            'label_specs': None
+        },
+        {
+            'name': 'landcover',
+            'path': paths.raw_dev_landcover,
+            'category': 'dev_labels',
+            'band_mapping': None,
+            'label_specs': {
+                'num_cls': 2,
+                'ignore_cls': [255]
+            }
+        },
+        {
+            'name': 'leadspc',
+            'path': paths.raw_dev_leadspc,
+            'category': 'dev_labels',
+            'band_mapping': None,
+            'label_specs': {
+                'num_cls': 2,
+                'ignore_cls': [255]
+            }
+        },
+        {
+            'name': 'sentinel2',
+            'path': paths.raw_test_sentinel2,
+            'category': 'test_features',
+            'band_mapping': {
                 1: 'blue',
                 2: 'green',
                 3: 'red',
@@ -393,37 +457,38 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
                 7: 'nir',
                 8: 'narrow_nir',
                 9: 'swir1',
-                10: 'swir2',
+                10: 'swir2'
             },
-            os.path.basename(paths.raw_test_dem): {
-                1: 'dem'
-            },
-            os.path.basename(paths.raw_test_landcover): {
-                1: 'land_cover'
-            },
-            os.path.basename(paths.raw_test_leadspc): {
-                1: 'lead_species'
-            }
+            'label_specs': None
         },
-        'label_specifications': {
-            os.path.basename(paths.raw_dev_landcover): {
-                'num_cls': 2,
-                'ignore_cls': [255]
-            },
-            os.path.basename(paths.raw_dev_leadspc): {
-                'num_cls': 2,
-                'ignore_cls': [255]
-            },
-            os.path.basename(paths.raw_test_landcover): {
-                'num_cls': 2,
-                'ignore_cls': [255]
-            },
-            os.path.basename(paths.raw_test_leadspc): {
+        {
+            'name': 'dem',
+            'path': paths.raw_test_dem,
+            'category': 'test_features',
+            'band_mapping': None,
+            'label_specs': None
+        },
+        {
+            'name': 'landcover',
+            'path': paths.raw_test_landcover,
+            'category': 'test_labels',
+            'band_mapping': None,
+            'label_specs': {
                 'num_cls': 2,
                 'ignore_cls': [255]
             }
         },
-    }
+        {
+            'name': 'leadspc',
+            'path': paths.raw_test_leadspc,
+            'category': 'test_labels',
+            'band_mapping': None,
+            'label_specs': {
+                'num_cls': 2,
+                'ignore_cls': [255]
+            }
+        }
+    ]
     os.makedirs(os.path.dirname(paths.config), exist_ok=True)
     with open(paths.config, 'w', encoding='utf-8') as f:
         json.dump(data_config, f, indent=4)

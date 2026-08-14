@@ -25,7 +25,6 @@ execution summaries.
 '''
 
 # standard imports
-from __future__ import annotations
 import datetime
 import os
 import typing
@@ -110,17 +109,17 @@ class HarmonizationLogger(utils.Logger):
     def add_harmonized_source(self, name: str, path: str) -> None:
         '''Record a harmonized raster layer output path.'''
         if self.summary is not None:
-            self.summary['harmonized_sources'][name] = path
+            self.summary['harmonized_sources'][name] = os.path.abspath(path)
 
     def add_finalized_raster(self, name: str, path: str) -> None:
         '''Record multi-channel feature composite raster path.'''
         if self.summary is not None:
-            self.summary['finalized_rasters'][name] = path
+            self.summary['finalized_rasters'][name] = os.path.abspath(path)
 
     def set_valid_mask_raster(self, path: str) -> None:
         '''Record valid pixel mask raster path.'''
         if self.summary is not None:
-            self.summary['valid_mask_raster'] = path
+            self.summary['valid_mask_raster'] = os.path.abspath(path)
 
     def set_summary_status(
         self,

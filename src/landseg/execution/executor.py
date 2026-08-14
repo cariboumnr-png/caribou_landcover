@@ -105,8 +105,11 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
             if report_ingest.get('status') != 'SUCCESS':
                 return # existing ingestion not successful, proceed
 
-            source = report_harmonize.get('stacked_rasters')
+            source = report_harmonize.get('finalized_rasters')
             assert source, 'Invalid harmonized data source'
+            configured = {
+
+            }
             configured = {
                 'domains': report_ingest['domain_maps'][0]['input_filepath'],
                 'dev_features': report_ingest['data_blocks']['dev']['image_filepath'],
