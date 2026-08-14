@@ -196,7 +196,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     print('Generating dummy geospatial data for landseg pipeline...')
     # spatial parameters matching configs/user.yaml
     crs = 'EPSG:3161'
-    pxs = 10.0
+    pxs = 20.0
     orig_x = 500000.0
     orig_y = 5000000.0
     width, height = 512, 512 # this gives 4 256*256 tiles per image
