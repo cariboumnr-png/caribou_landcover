@@ -45,28 +45,18 @@ class _Canvas:
 
 
 @dataclasses.dataclass
-class _RawData:
-    domains: dict[str, str] = field(default_factory=dict)
-    dev_features: dict[str, str] = field(default_factory=dict)
-    dev_labels: dict[str, str] = field(default_factory=dict)
-    test_features: dict[str, str] = field(default_factory=dict)
-    test_labels: dict[str, str] = field(default_factory=dict)
-
-
-@dataclasses.dataclass
 class _HarmonizationCfg:
     canvas: _Canvas = field(default_factory=_Canvas)
-    raw_data: _RawData = field(default_factory=_RawData)
     dataset_name: str = 'sample_data'
-    dataset_config: str = ''
+    dataset_manifest: str = ''
     resampling_continuous: str = 'bilinear'
     resampling_categorical: str = 'nearest'
     output_dpath: str = 'experiment/artifacts/harmonized_data'
 
     def validate(self) -> None:
         utils.must_exist(self.canvas.reference_raster, 'Reference raster')
-        if self.dataset_config:
-            utils.must_exist(self.dataset_config, 'Dataset configuration JSON')
+        if self.dataset_manifest:
+            utils.must_exist(self.dataset_manifest, 'Dataset configuration JSON')
 
         if (
             self.canvas.target_crs and

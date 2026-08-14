@@ -32,6 +32,7 @@ __all__ = [
     # classes
     'CanvasSpec',
     'HarmonizationLogger',
+    'ProcessedRasters',
     # functions
     'create_canvas',
     'warp_to_canvas',
@@ -40,7 +41,7 @@ __all__ = [
     'validate_domain_raster_index',
     'add_band_description_to_vrt',
     'add_tag_to_vrt',
-    'read_dataset_config',
+    'compile_dataset_manifest',
     'process_source',
     # typing
     'HarmonizationReportSchema',
@@ -68,11 +69,12 @@ if typing.TYPE_CHECKING:
         add_tag_to_vrt
     )
     from .processor import(
+        ProcessedRasters,
         process_source
     )
     from .validator import(
         DatasetConfigItem,
-        read_dataset_config
+        compile_dataset_manifest
     )
 
 def __getattr__(name: str):
@@ -101,13 +103,14 @@ def __getattr__(name: str):
         return getattr(importlib.import_module('.raster_ops', __package__), name)
 
     if name in {
+        'ProcessedRasters',
         'process_source',
     }:
         return getattr(importlib.import_module('.processor', __package__), name)
 
     if name in {
         'DatasetConfigItem',
-        'read_dataset_config',
+        'compile_dataset_manifest',
     }:
         return getattr(importlib.import_module('.validator', __package__), name)
 

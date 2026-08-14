@@ -22,34 +22,17 @@ data-harmonize:
   target_resolution: 20.0
 
   # ---------------------------------------------------------------------------
+  # Input Source Rasters (Features & Ground-Truth Labels)
+  # ---------------------------------------------------------------------------
+  # Path to the dataset metadata JSON file and dataset name
+  dataset_manifest: ./experiment/input/raw_data/manifest.json
+  dataset_name: sample_data
+
+  # ---------------------------------------------------------------------------
   # Resampling Rules
   # ---------------------------------------------------------------------------
   resampling_continuous: bilinear
   resampling_categorical: nearest
-
-  # ---------------------------------------------------------------------------
-  # Input Source Rasters (Features & Ground-Truth Labels)
-  # ---------------------------------------------------------------------------
-  domains:
-    domain_1: ./experiment/input/raw_data/sample_domain_1.tif
-    domain_2: ./experiment/input/raw_data/sample_domain_2.tif
-  dev_features:
-    sentinel2: ./experiment/input/raw_data/sample_dev_sentinel2.tif
-    dem: ./experiment/input/raw_data/sample_dev_dem.tif
-  dev_labels:
-    landcover: ./experiment/input/raw_data/sample_dev_landcover.tif
-    leadspc: ./experiment/input/raw_data/sample_dev_leadspc.tif
-  test_features:
-    sentinel2: ./experiment/input/raw_data/sample_test_sentinel2.tif
-    dem: ./experiment/input/raw_data/sample_test_dem.tif
-  test_labels:
-    landcover: ./experiment/input/raw_data/sample_test_landcover.tif
-    leadspc: ./experiment/input/raw_data/sample_test_leadspc.tif
-
-  # Path to the dataset metadata JSON file and dataset name
-  dataset_name: sample_data
-  dataset_config: ./experiment/input/raw_data/sample_config.json
-
 
 data-ingest:
   output_dpath: ./experiment/artifacts/ingested_data

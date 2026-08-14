@@ -35,56 +35,78 @@ class DatasetConfigItem(typing.TypedDict):
     '''Expected shape of dataset config (per raster).'''
     name: str
     path: str
-    category: str
+    category: typing.Literal[
+        'domains',
+        'dev_features,',
+        'dev_labels',
+        'test_features',
+        'test_labels'
+    ]
     band_mapping: dict[int, str] | None
     label_specs: geo_core.LabelSpecs | None
 
 
-def read_dataset_config(fp: str) -> dict[str, DatasetConfigItem]:
-    '''Read dataset config JSON.'''
+def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
+    '''Read dataset manifest JSON.'''
     # load JSON as artifact
-    ctrl = artifacts.Controller[list[dict]].load_json_or_fail(fp)
+    ctrl = artifacts.Controller[list[dict]].load_json_or_fail(manifest_fp)
     ctrl.hash(overwrite=False) # hash once
-    dt_cfg = ctrl.fetch()
-    assert dt_cfg # typing
+    manifest = ctrl.fetch()
+    assert manifest # typing
 
     # expect JSON rea as a list of dicts
-    if not isinstance(dt_cfg, list):
+    if not isinstance(manifest, list):
         raise ValueError(
-            f'User-provided JSON expected to read as a list dictionaries, '
-            f'got: {type(dt_cfg)}'
+            f'Manifest JSON expected to read as a list dictionaries, '
+            f'got: {type(manifest)}'
         )
 
-    # got through each item with checks
     compiled: list[DatasetConfigItem] = []
-    for i, cfg in enumerate(dt_cfg):
-        if not isinstance(cfg, dict):
+    # got through each item with checks
+    for i, mfst in enumerate(manifest):
+        if not isinstance(mfst, dict):
             raise ValueError(
-                f'User-provided JSON expected to read as a list dictionaries, '
-                f'got: {type(cfg)} at index {i}'
+                f'Manifest JSON expected to read as a list dictionaries, '
+                f'got: {type(mfst)} at index {i}'
             )
 
         # safe retrieve values
-        name = cfg.get('name')
-        path = cfg.get('path')
-        category = cfg.get('category')
-        band_mapping = cfg.get('band_mapping')
-        label_specs = cfg.get('label_specs')
+        name = mfst.get('name')
+        raster_p = mfst.get('path')
+        config_p = mfst.get('config')
 
-        # checks before appending
+        # checks before proceeding
         if not name or not isinstance(name, str):
             raise ValueError(
                 f'Required value for [name] missing or of wrong type, '
                 f'got: {name} ({type(name)} at dictionary index {i}'
             )
 
-        if not path or not isinstance(path, str):
+        if not raster_p or not isinstance(raster_p, str):
             raise ValueError(
                 f'Required value for [name] missing or of wrong type, '
-                f'got: {path} ({type(path)} at dictionary index {i}'
+                f'got: {raster_p} ({type(raster_p)} at dictionary index {i}'
             )
-        if not os.path.exists(path):
-            raise ValueError(f'Source file at {path} does not exsit')
+        if not os.path.exists(raster_p):
+            raise ValueError(f'Source file at {raster_p} does not exsit')
+
+        if not config_p or not isinstance(config_p, str):
+            raise ValueError(
+                f'Required value for [name] missing or of wrong type, '
+                f'got: {config_p} ({type(config_p)} at dictionary index {i}'
+            )
+        if not os.path.exists(config_p):
+            raise ValueError(f'Source file at {config_p} does not exsit')
+
+        # read config json
+        _ctrl = artifacts.Controller[DatasetConfigItem].load_json_or_fail(config_p)
+        _ctrl.hash(overwrite=False) # has once
+        cfg = _ctrl.fetch()
+        assert cfg # typing
+
+        category = cfg.get('category')
+        band_mapping = cfg.get('band_mapping')
+        label_specs = cfg.get('label_specs')
 
         if not category or not isinstance(category, str):
             raise ValueError(
@@ -95,7 +117,7 @@ def read_dataset_config(fp: str) -> dict[str, DatasetConfigItem]:
 
         compiled.append({
             'name': name,
-            'path': path,
+            'path': raster_p,
             'category': category,
             'band_mapping': band_mapping,
             'label_specs': label_specs

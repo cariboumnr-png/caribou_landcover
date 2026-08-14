@@ -36,13 +36,6 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
         'data':{
             'harmonization': {
                 'canvas': {},
-                'raw_data': {
-                    'domains': {},
-                    'dev_features': {},
-                    'dev_labels': {},
-                    'test_features': {},
-                    'test_labels': {},
-                }
             },
             'ingestion': {
                 'grid': {
@@ -102,14 +95,7 @@ def _translate_data_harmonize(
         'reference_raster': ['data.harmonization.canvas.reference_raster'],
         'resampling_continuous': ['data.harmonization.resampling_continuous'],
         'resampling_categorical': ['data.harmonization.resampling_categorical'],
-        'dev_features': ['data.harmonization.raw_data.dev_features'],
-        'features': ['data.harmonization.raw_data.dev_features'],
-        'domains': ['data.harmonization.raw_data.domains'],
-        'dev_labels': ['data.harmonization.raw_data.dev_labels'],
-        'labels': ['data.harmonization.raw_data.dev_labels'],
-        'test_features': ['data.harmonization.raw_data.test_features'],
-        'test_labels': ['data.harmonization.raw_data.test_labels'],
-        'dataset_config': ['data.harmonization.dataset_config'],
+        'dataset_manifest': ['data.harmonization.dataset_manifest'],
         'dataset_name': [
             'data.harmonization.dataset_name',
             'data.ingestion.datablocks.name'

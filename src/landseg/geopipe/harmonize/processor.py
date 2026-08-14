@@ -24,51 +24,82 @@ Data harmonization pipeline.
 '''
 
 # standard imports
+import dataclasses
 import os
+import typing
 # local imports
 import landseg.geopipe.harmonize as harmonize
 
 
+@dataclasses.dataclass
+class ProcessedRasters:
+    '''Container for processed raster paths dictionaries.'''
+    provenance: dict[str, str] = dataclasses.field(default_factory=dict)
+    harmonized: dict[str, str] = dataclasses.field(default_factory=dict)
+    finalized: dict[str, str] = dataclasses.field(default_factory=dict)
+
+
+@dataclasses.dataclass
+class _AlignedRasters:
+    '''Container for aligned rasters (`.vrt` file paths) by category.'''
+    domains: dict[str, str] = dataclasses.field(default_factory=dict)
+    dev_features: dict[str, str] = dataclasses.field(default_factory=dict)
+    dev_labels: dict[str, str] = dataclasses.field(default_factory=dict)
+    test_features: dict[str, str] = dataclasses.field(default_factory=dict)
+    test_labels: dict[str, str] = dataclasses.field(default_factory=dict)
+
+    def add_raster(
+        self,
+        category: str,
+        name: str,
+        filepath: str,
+    ) -> None:
+        '''Add raster by category'''
+        match category:
+            case 'domains': self.domains.update({name: filepath})
+            case 'dev_features': self.dev_features.update({name: filepath})
+            case 'dev_labels': self.dev_labels.update({name: filepath})
+            case 'test_features': self.test_features.update({name: filepath})
+            case 'test_labels': self.test_labels.update({name: filepath})
+            case _: raise ValueError(f'Unknown raster category: {category}')
+
+
 def process_source(
-    *,
-    source_fpaths: dict[str, str],
-    source_configs: dict[str, harmonize.DatasetConfigItem],
+    compiled_sources: dict[str, harmonize.DatasetConfigItem],
     output_dir: str,
     canvas_spec: harmonize.CanvasSpec,
-    resampling: str,
-    logger: harmonize.HarmonizationLogger,
-) -> str:
+    *,
+    categorical_resampling: str,
+    continuous_resampling: str,
+) -> typing.Generator[str, None, ProcessedRasters]:
     '''Process one data source.'''
-    aligned: list[str] = []
-    out_path: str = ''
-    category: str = ''
+    aligned = _AlignedRasters()
+    processed = ProcessedRasters()
+
     # iterate through raster source
-    for name, path in source_fpaths.items():
-        path = os.path.abspath(path) # align with config
-        cfg = source_configs.get(path)
+    for path, cfg in compiled_sources.items():
+        path = os.path.abspath(path) # guard
         if not cfg:
             raise ValueError(f'No configuration found for raster {path}')
 
-        if not (cfg['name'] == name and cfg['path'] == path):
-            raise ValueError(
-                f'Raster name or file path do not match between '
-                f'\nsource: {name}: {path} | '
-                f'\nconfig: {cfg["name"]}: {cfg["path"]}'
-            )
+        name = cfg['name']
         category = cfg['category']
-        tagged_name = f'{cfg["category"]}_{cfg["name"]}'
-
-
-        logger.add_source_provenance(tagged_name, path)
-        out_path = os.path.join(output_dir, f'{tagged_name}.vrt')
-
-        logger.log(
-            'INFO',
-            f'Harmonizing {cfg["category"]} layer [{cfg["name"]}] -> '
-            f'{out_path} (resampling: {resampling})'
+        tagged_name = f'{category}_{name}'
+        is_categorical = category in ['domains', 'dev_labels', 'test_labels']
+        resampling = (
+            categorical_resampling
+            if is_categorical
+            else continuous_resampling
         )
 
-        is_categorical = any(c in cfg['category'] for c in ['domain', 'label'])
+        processed.provenance.update({tagged_name: path})
+        out_path = os.path.join(output_dir, f'{tagged_name}.vrt')
+
+        yield (
+            f'Harmonizing {category} layer [{name}] -> {out_path} '
+            f'(resampling: {resampling})'
+        )
+
         warped = harmonize.warp_to_canvas(
             input_path=path,
             output_path=out_path,
@@ -76,6 +107,10 @@ def process_source(
             is_categorical=is_categorical,
             resampling_method=resampling,
         )
+
+        if category == 'domains':
+            processed.finalized.update({tagged_name: path})
+            continue # fast tracking domain rasters
 
         if cfg['band_mapping']:
             harmonize.add_band_description_to_vrt(warped, cfg['band_mapping'])
@@ -90,19 +125,80 @@ def process_source(
                 reclass_name=cfg['label_specs'].get('reclass_name', {})
             )
 
-        aligned.append(warped)
+        aligned.add_raster(category, tagged_name, out_path)
+        processed.harmonized.update({tagged_name: warped})
 
-        logger.add_harmonized_source(tagged_name, warped)
+    stacked: dict[str, str] = {}
+    gen = _stack_rasters(aligned, output_dir)
+    while True:
+        try:
+            yield next(gen)
+        except StopIteration as s:
+            stacked = s.value
+            break
 
-    assert aligned # should not be empty by now
+    processed.finalized.update(**stacked)
+    return processed
 
-    # stack if multiband
-    if len(aligned) > 1:
-        out_path = os.path.join(output_dir, f'harmonized_{category}_STACKED.vrt')
-        logger.log(
-            'INFO',
-            f' |- {len(aligned)} {category} layers stacked to {out_path}'
-        )
-        harmonize.stack_canonical_raster(aligned, out_path)
 
-    return out_path
+def _stack_rasters(
+    aligned: _AlignedRasters,
+    output_dir: str,
+) -> typing.Generator[str, None, dict[str, str]]:
+    '''Stack feature and label rasters if applicable.'''
+
+    def _out_path(tag: str) -> str:
+        return os.path.join(output_dir, f'harmonized_{tag}_STACKED.vrt')
+
+    stacked: dict[str, str] = {}
+    yield 'Stacking rasters if applicable'
+
+    fpaths = list(aligned.dev_features.values())
+    n = len(fpaths)
+    if n == 0:
+        pass
+    elif n == 1:
+        stacked.update({'dev_features': fpaths[0]})
+    else:
+        out_path = _out_path('dev_features')
+        harmonize.stack_canonical_raster(fpaths, out_path)
+        stacked.update({'dev_features': out_path})
+        yield f'Development feature rasters stacked to {out_path} (n={n})'
+
+    fpaths = list(aligned.dev_labels.values())
+    n = len(fpaths)
+    if n == 0:
+        pass
+    elif n == 1:
+        stacked.update({'dev_labels': fpaths[0]})
+    else:
+        out_path = _out_path('dev_labels')
+        harmonize.stack_canonical_raster(fpaths, out_path)
+        stacked.update({'dev_labels': out_path})
+        yield f'Development label rasters stacked to {out_path} (n={n})'
+
+    fpaths = list(aligned.test_features.values())
+    n = len(fpaths)
+    if n == 0:
+        pass
+    elif n == 1:
+        stacked.update({'test_features': fpaths[0]})
+    else:
+        out_path = _out_path('test_features')
+        harmonize.stack_canonical_raster(fpaths, out_path)
+        stacked.update({'test_features': out_path})
+        yield f'Test feature rasters stacked to {out_path} (n={n})'
+
+    fpaths = list(aligned.test_labels.values())
+    n = len(fpaths)
+    if n == 0:
+        pass
+    elif n == 1:
+        stacked.update({'test_labels': fpaths[0]})
+    else:
+        out_path = _out_path('test_labels')
+        harmonize.stack_canonical_raster(fpaths, out_path)
+        stacked.update({'test_labels': out_path})
+        yield f'Test label rasters stacked to {out_path} (n={n})'
+
+    return stacked

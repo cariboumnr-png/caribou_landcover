@@ -72,76 +72,45 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
             f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
         )
 
-        # ----- read dataset JSON config
-        cfg_fpath = cfg.dataset_config
-        dataset_cfg = harmonize.read_dataset_config(cfg_fpath)
-
-        # ----- categorical domain rasters
-        for k, v in cfg.raw_data.domains.items():
-            harmonize.validate_domain_raster_index(v, 1)
-            output_path = harmonize.process_source(
-                source_fpaths={k: v},
-                source_configs=dataset_cfg,
-                output_dir=paths.effective_root,
-                canvas_spec=canvas_spec,
-                resampling=cfg.resampling_categorical,
-                logger=logger
-            )
-            logger.add_finalized_raster(f'domain_{k}', output_path)
-            # handle each domain separately
-
-        # ----- continuous dev feature rasters
-        output_path_dev_features = harmonize.process_source(
-            source_fpaths=cfg.raw_data.dev_features,
-            source_configs=dataset_cfg,
-            output_dir=paths.effective_root,
-            canvas_spec=canvas_spec,
-            resampling=cfg.resampling_continuous,
-            logger=logger
+        # read dataset JSON config
+        compiled = harmonize.compile_dataset_manifest(cfg.dataset_manifest)
+        gen = harmonize.process_source(
+            compiled,
+            cfg.output_dpath,
+            canvas_spec,
+            categorical_resampling=cfg.resampling_categorical,
+            continuous_resampling=cfg.resampling_continuous,
         )
-        logger.add_finalized_raster('dev_features', output_path_dev_features)
 
-        # ----- categorical dev label rasters
-        output_path = harmonize.process_source(
-            source_fpaths=cfg.raw_data.dev_labels,
-            source_configs=dataset_cfg,
-            output_dir=paths.effective_root,
-            canvas_spec=canvas_spec,
-            resampling=cfg.resampling_categorical,
-            logger=logger
-        )
-        logger.add_finalized_raster('dev_labels', output_path)
+        # process sources
+        processed: harmonize.ProcessedRasters
+        while True:
+            try:
+                log_message = next(gen)
+                logger.log('INFO', log_message)
+            except StopIteration as s:
+                processed = s.value
+                break
 
-        # ----- test holdout feature rasters
-        if cfg.raw_data.test_features:
-            output_path = harmonize.process_source(
-                source_fpaths=cfg.raw_data.test_features,
-                source_configs=dataset_cfg,
-                output_dir=paths.effective_root,
-                canvas_spec=canvas_spec,
-                resampling=cfg.resampling_continuous,
-                logger=logger
-            )
-            logger.add_finalized_raster('test_features', output_path)
+        # log processed file paths
+        for name, path in processed.provenance.items():
+            logger.add_source_provenance(name, path)
 
-        # ----- test holdout label rasters
-        if cfg.raw_data.test_labels:
-            output_path = harmonize.process_source(
-                source_fpaths=cfg.raw_data.test_labels,
-                source_configs=dataset_cfg,
-                output_dir=paths.effective_root,
-                canvas_spec=canvas_spec,
-                resampling=cfg.resampling_categorical,
-                logger=logger
-            )
-            logger.add_finalized_raster('test_labels', output_path)
+        for name, path in processed.harmonized.items():
+            logger.add_harmonized_source(name, path)
 
-        # ----- generate valid feature pixel mask
-        mask_path = paths.valid_mask_raster
-        logger.log('INFO', f'Generating valid mask raster: {mask_path}')
-        harmonize.unify_nodata_mask(output_path_dev_features, mask_path)
-        logger.set_valid_mask_raster(mask_path)
+        for name, path in processed.finalized.items():
+            logger.add_finalized_raster(name, path)
 
+        # generate valid feature pixel mask if dev feature raster is provided
+        if processed.finalized.get('dev_features'):
+            output_path = processed.finalized['dev_features']
+            mask_path = paths.valid_mask_raster
+            logger.log('INFO', f'Generating valid mask raster: {mask_path}')
+            harmonize.unify_nodata_mask(output_path, mask_path)
+            logger.set_valid_mask_raster(mask_path)
+
+        # persist the whole config dict
         artifacts.Controller[dict](paths.config).persist(config.as_dict)
 
     except Exception as err:

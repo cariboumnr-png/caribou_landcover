@@ -120,9 +120,9 @@ class TIFFPaths:
         )
 
     @property
-    def config(self) -> str:
+    def manifest(self) -> str:
         return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_config.json')
+            os.path.join(self.root, 'raw_data/manifest.json')
         )
 
     @property
@@ -138,7 +138,7 @@ class TIFFPaths:
                 self.raw_test_sentinel2,
                 self.raw_test_dem,
                 self.raw_test_landcover,
-                self.config
+                self.manifest
             ]
         )
 
@@ -210,6 +210,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
 
     # TIFF file paths
     paths = TIFFPaths(root=input_root)
+    os.makedirs(os.path.dirname(paths.root), exist_ok=True)
 
     # create extent reference (single band constant value on the wide extent)
     print(f'Creating extent reference: {paths.extent}')
@@ -382,8 +383,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     )
 
     # dataset config JSON
-    print(f'Creating dataset configuration: {paths.config}')
-    data_config = [
+    data_configs = [
         {
             'name': 'domain_1',
             'path': paths.domain_1,
@@ -489,9 +489,21 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             }
         }
     ]
-    os.makedirs(os.path.dirname(paths.config), exist_ok=True)
-    with open(paths.config, 'w', encoding='utf-8') as f:
-        json.dump(data_config, f, indent=4)
+
+    # write one JSON for each tif
+    manifest = []
+    for cfg in data_configs:
+        json_fpath = cfg['path'].replace('tif', 'json')
+        with open(json_fpath, 'w', encoding='utf-8') as f:
+            json.dump(cfg, f, indent=4)
+        manifest.append({
+            'name': cfg['name'],
+            'path': cfg['path'],
+            'config': json_fpath
+        })
+    # write a manifest
+    with open(paths.manifest, 'w', encoding='utf-8') as f:
+        json.dump(manifest, f, indent=4)
 
     print('\nDummy data generation completed successfully!')
     return paths
