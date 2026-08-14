@@ -168,18 +168,17 @@ class Controller(typing.Generic[T]):
     def hash(self, overwrite: bool = True):
         '''Create or add hash record.'''
 
-        # load hash record with some error handling (create new if so)
+        # create a new _hash.json if non exists
         try:
             records = self._json_read(self.hash_fpath)
         except (FileNotFoundError, json.JSONDecodeError):
             self._json_write(self.hash_fpath, {'root': self.dir})
-            records = self._json_read(self.hash_fpath)
-            records[self.fname] = self.sha256 # get hash after file is written
-            self._json_write(self.hash_fpath, records)
 
-        # append/update hash in record and save
-        if overwrite:
-            records[self.fname] = self.sha256 # get hash after file is written
+        # read current records
+        records = self._json_read(self.hash_fpath)
+        # add hash record to json if not present or to overwrite
+        if overwrite or self.fname not in records:
+            records[self.fname] = self.sha256
             self._json_write(self.hash_fpath, records)
 
     @staticmethod
