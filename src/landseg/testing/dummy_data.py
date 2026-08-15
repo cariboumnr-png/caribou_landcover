@@ -420,7 +420,9 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'name': 'dem',
             'path': paths.raw_dev_dem,
             'category': 'dev_features',
-            'band_mapping': None,
+            'band_mapping': {
+                1: 'dem'
+            },
             'label_specs': None
         },
         {
@@ -465,7 +467,9 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'name': 'dem',
             'path': paths.raw_test_dem,
             'category': 'test_features',
-            'band_mapping': None,
+            'band_mapping': {
+                1: 'dem'
+            },
             'label_specs': None
         },
         {
