@@ -50,28 +50,13 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     blocks_cfg = cfg_schema.data.ingestion.datablocks
     blocks_cfg.name = 'test_ingest_run'
 
-    cfg_schema.data.harmonization.canvas.reference_raster = dummy_data_paths.extent
+    cfg_schema.data.harmonization.canvas.reference_raster = (
+        dummy_data_paths.extent
+    )
     cfg_schema.data.harmonization.canvas.target_crs = 'EPSG:3161'
     cfg_schema.data.harmonization.canvas.target_resolution = 10.0
-    cfg_schema.data.harmonization.dataset_config = dummy_data_paths.config
+    cfg_schema.data.harmonization.dataset_manifest = dummy_data_paths.manifest
     cfg_schema.data.harmonization.output_dpath = str(tmp_path / 'harmonized')
-    cfg_schema.data.harmonization.raw_data.domains = {
-        'domain_1': dummy_data_paths.domain_1
-    }
-    cfg_schema.data.harmonization.raw_data.dev_features = {
-        'sentinel2': dummy_data_paths.raw_dev_sentinel2,
-        'dem': dummy_data_paths.raw_dev_dem
-    }
-    cfg_schema.data.harmonization.raw_data.dev_labels = {
-        'landcover': dummy_data_paths.raw_dev_landcover
-    }
-    cfg_schema.data.harmonization.raw_data.test_features = {
-        'sentinel2': dummy_data_paths.raw_test_sentinel2,
-        'dem': dummy_data_paths.raw_test_dem
-    }
-    cfg_schema.data.harmonization.raw_data.test_labels = {
-        'landcover': dummy_data_paths.raw_test_landcover
-    }
 
     cfg_schema.data.ingestion.output_dpath = str(tmp_path / 'ingested_data')
     cfg_schema.data.ingestion.rebuild = True
@@ -83,10 +68,10 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     )
 
     # run harmonize first to generate matching CRS rasters
-    pipelines.harmonize(config)
+    pipelines.exec_harmonize_data(config)
 
     # run the ingestion pipeline
-    pipelines.ingest(config)
+    pipelines.exec_ingest_data(config)
 
     # verify the generated outputs
     out_dpath = config.data.ingestion.output_dpath
@@ -124,14 +109,8 @@ def test_data_ingest_pipeline_targeted_harmonization_run(
     )
     cfg_schema.data.harmonization.canvas.target_crs = 'EPSG:3161'
     cfg_schema.data.harmonization.canvas.target_resolution = 10.0
-    cfg_schema.data.harmonization.dataset_config = dummy_data_paths.config
+    cfg_schema.data.harmonization.dataset_manifest = dummy_data_paths.manifest
     cfg_schema.data.harmonization.output_dpath = str(tmp_path / 'harmonized')
-    cfg_schema.data.harmonization.raw_data.dev_features = {
-        'sentinel2': dummy_data_paths.raw_dev_sentinel2
-    }
-    cfg_schema.data.harmonization.raw_data.dev_labels = {
-        'landcover': dummy_data_paths.raw_dev_landcover
-    }
     cfg_schema.data.ingestion.output_dpath = str(tmp_path / 'ingested_data')
     cfg_schema.data.ingestion.rebuild = True
     cfg_schema.data.ingestion.harmonization_run = 1
@@ -142,15 +121,15 @@ def test_data_ingest_pipeline_targeted_harmonization_run(
     )
 
     # run harmonization twice to create run_0001 and run_0002
-    pipelines.harmonize(config)
-    pipelines.harmonize(config)
+    pipelines.exec_harmonize_data(config)
+    pipelines.exec_harmonize_data(config)
 
     h_root = str(tmp_path / 'harmonized')
     assert os.path.exists(os.path.join(h_root, 'run_0001'))
     assert os.path.exists(os.path.join(h_root, 'run_0002'))
 
     # ingest targeting run_0001
-    pipelines.ingest(config)
+    pipelines.exec_ingest_data(config)
     out_dpath = config.data.ingestion.output_dpath
     assert os.path.exists(
         os.path.join(out_dpath, 'data_blocks', 'model_dev', 'catalog.json')

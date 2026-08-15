@@ -69,9 +69,15 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
     assert saved_report['target_crs'] == 'EPSG:3161'
     assert saved_report['target_resolution'] == 20.0
     assert saved_report['grid_shape'] == [500, 500]
-    assert saved_report['harmonized_sources']['sentinel2'] == '/path/to/s2.tif'
-    assert saved_report['finalized_rasters']['stacked'] == '/path/to/stacked.tif'
-    assert saved_report['valid_mask_raster'] == '/path/to/mask.tif'
+    assert saved_report['harmonized_sources']['sentinel2'] == os.path.abspath(
+        '/path/to/s2.tif'
+    )
+    assert saved_report['finalized_rasters']['stacked'] == os.path.abspath(
+        '/path/to/stacked.tif'
+    )
+    assert saved_report['valid_mask_raster'] == os.path.abspath(
+        '/path/to/mask.tif'
+    )
 
 
 def test_harmonization_logger_add_provenance(tmp_path):

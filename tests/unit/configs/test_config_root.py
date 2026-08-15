@@ -97,7 +97,7 @@ def test_root_config_validate_all(tmp_path):
 
     root = root_mod.RootConfig()
     root.data.harmonization.canvas.reference_raster = str(ref_tif)
-    root.data.harmonization.dataset_config = str(cfg_json)
+    root.data.harmonization.dataset_manifest = str(cfg_json)
     root.data.ingestion.datablocks.name = 'test_blocks'
     root.data.ingestion.grid.mode = 'ref'
     root.data.ingestion.grid.crs = 'EPSG:32617'
@@ -110,7 +110,7 @@ def test_ingestion_config_harmonization_run_validation():
     '''
     Given: An `_IngestionCfg` instance.
     When: Setting valid and invalid `harmonization_run` values.
-    Then: Accept valid int/str values and raise ValueError/TypeError on invalid.
+    Then: Accept valid int/str values and raise error on invalid.
     '''
     cfg = sec.data._IngestionCfg()
     cfg.grid.mode = 'ref'

@@ -19,48 +19,61 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-'''Smoke test for pipeline=data-harmonize execution.'''
+'''Unit tests for programmatic API module.'''
 
-# standard imports
-import json
-import os
+# third-party imports
+import pytest
 # local imports
+import landseg.adapters.api as api
 import landseg.configs as configs
-import landseg.execution.executor as executor
 
 
-# ----- test cases
-def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
+# ----- `api.run` tests
+def test_api_run_success(mocker):
     '''
-    Given: Pre-generated dummy data paths for raw Sentinel-2, DEM, and
-        landcover in EPSG:32618.
-    When: Calling `execute_pipeline` with pipeline.name='data-harmonize'.
-    Then: Warps features and labels to EPSG:3161 at 20m and writes
-        `harmonize_report.json` and VRT outputs.
+    Given: A valid `RootConfig` instance.
+    When: Calling `api.run`.
+    Then: Delegate execution to `execution.execute_pipeline`.
     '''
-    out_dpath = str(tmp_path / 'harmonize_out')
-
-    root_cfg = configs.RootConfig()
-    root_cfg.pipeline.name = 'data-harmonize'
-    root_cfg.data.harmonization.canvas.reference_raster = (
-        dummy_data_paths.extent
+    mock_exec = mocker.patch(
+        'landseg.execution.execute_pipeline',
+        return_value={'status': 'SUCCESS'}
     )
-    root_cfg.data.harmonization.canvas.target_crs = 'EPSG:3161'
-    root_cfg.data.harmonization.canvas.target_resolution = 20.0
-    root_cfg.data.harmonization.output_dpath = out_dpath
-    root_cfg.data.harmonization.dataset_manifest = dummy_data_paths.manifest
+    cfg = configs.RootConfig()
+    cfg.pipeline.name = 'data-harmonize'
 
-    executor.execute_pipeline(root_cfg)
+    result = api.run(cfg)
+    mock_exec.assert_called_once_with(cfg)
+    assert result == {'status': 'SUCCESS'}
 
-    run_dir = os.path.join(out_dpath, 'run_0001')
-    report_file = os.path.join(run_dir, 'harmonize_report.json')
-    assert os.path.exists(report_file)
 
-    with open(report_file, 'r', encoding='utf-8') as f:
-        saved_report = json.load(f)
-    assert saved_report['status'] == 'SUCCESS'
-    assert saved_report['target_crs'] == 'EPSG:3161'
-    assert saved_report['target_resolution'] == 20.0
-    vrt_path = os.path.join(run_dir, 'harmonized_dev_features_STACKED.vrt')
-    assert os.path.exists(vrt_path)
-    assert os.path.exists(os.path.join(run_dir, 'valid_pixel_mask.vrt'))
+def test_api_run_keyboard_interrupt(mocker):
+    '''
+    Given: A pipeline run that is interrupted by user.
+    When: `execution.execute_pipeline` raises KeyboardInterrupt.
+    Then: Propagate KeyboardInterrupt.
+    '''
+    mocker.patch(
+        'landseg.execution.execute_pipeline',
+        side_effect=KeyboardInterrupt
+    )
+    cfg = configs.RootConfig()
+
+    with pytest.raises(KeyboardInterrupt):
+        api.run(cfg)
+
+
+def test_api_run_exception(mocker):
+    '''
+    Given: A pipeline run that raises an unhandled exception.
+    When: `execution.execute_pipeline` raises RuntimeError.
+    Then: Log error and re-raise the exception.
+    '''
+    mocker.patch(
+        'landseg.execution.execute_pipeline',
+        side_effect=RuntimeError('Pipeline failed')
+    )
+    cfg = configs.RootConfig()
+
+    with pytest.raises(RuntimeError, match='Pipeline failed'):
+        api.run(cfg)

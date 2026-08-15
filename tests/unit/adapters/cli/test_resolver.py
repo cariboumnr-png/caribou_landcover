@@ -36,8 +36,10 @@ import landseg.adapters.cli.resolver as resolver_mod
 def test_resolve_configs_base(tmp_path):
     '''
     Given: A minimal `DictConfig` with valid mock file paths.
-    When: Calling `resolve_configs` with `use_additional_settings=False`.
-    Then: Resolve OmegaConf structure, set `cli_mode=True`, and validate.
+    When: Calling `resolve_configs` with
+        `use_additional_settings=False`.
+    Then: Resolve OmegaConf structure, set `cli_mode=True`,
+        and validate.
     '''
     dev_img = tmp_path / 'dev_img.tif'
     dev_lbl = tmp_path / 'dev_lbl.tif'
@@ -49,7 +51,7 @@ def test_resolve_configs_base(tmp_path):
         'data': {
             'harmonization': {
                 'canvas': {'reference_raster': str(dev_img)},
-                'dataset_config': str(cfg_json),
+                'dataset_manifest': str(cfg_json),
             },
             'ingestion': {
                 'datablocks': {
@@ -85,7 +87,8 @@ def test_resolve_configs_base(tmp_path):
 def test_resolve_configs_missing_user_file():
     '''
     Given: Non-existent user config path in `execution.user_cfg`.
-    When: `resolve_configs` executes with `use_additional_settings=True`.
+    When: `resolve_configs` executes with
+        `use_additional_settings=True`.
     Then: Raise a FileNotFoundError indicating missing user config file.
     '''
     cfg_dict = omegaconf.OmegaConf.create({

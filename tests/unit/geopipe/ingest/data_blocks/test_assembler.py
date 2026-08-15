@@ -134,9 +134,9 @@ def test_build_single_block_success(dummy_geotiff_factory):
         filename='label.tif', width=16, height=16, bands=1
     ))
 
-    window = alias.RasterWindow(col_off=4, row_off=4, width=8, height=8) # type: ignore
+    window = alias.RasterWindow(4, 4, 8, 8)  # type: ignore
 
-    label_specs = {
+    label_specs: dict[str, geo_core.LabelSpecs] = {
         'class_head': {
             'num_cls': 2,
             'ignore_cls': [255]
@@ -156,7 +156,7 @@ def test_build_single_block_success(dummy_geotiff_factory):
         image_dem_pad_px=2,
         label_fpath=lbl_path,
         label_window=window,
-        label_specs=label_specs # type: ignore
+        label_specs=label_specs
     )
 
     block = assembler.build_single_block(
@@ -173,7 +173,7 @@ def test_build_single_block_success(dummy_geotiff_factory):
 
 def test_build_single_block_defaults(dummy_geotiff_factory):
     '''
-    Given: Valid image and label rasters without extra features requested.
+    Given: Valid rasters without extra features requested.
     When: Running build_single_block with default options.
     Then: Return a block containing only the original image bands.
     '''
@@ -184,8 +184,8 @@ def test_build_single_block_defaults(dummy_geotiff_factory):
         filename='label2.tif', width=16, height=16, bands=1
     ))
 
-    window = alias.RasterWindow(col_off=4, row_off=4, width=8, height=8) # type: ignore
-    label_specs = {
+    window = alias.RasterWindow(4, 4, 8, 8)  # type: ignore
+    label_specs: dict[str, geo_core.LabelSpecs] = {
         'class_head': {
             'num_cls': 2,
             'ignore_cls': [255]
@@ -205,20 +205,22 @@ def test_build_single_block_defaults(dummy_geotiff_factory):
         image_dem_pad_px=2,
         label_fpath=lbl_path,
         label_window=window,
-        label_specs=label_specs # type: ignore
+        label_specs=label_specs
     )
 
     block = assembler.build_single_block(
-        name='block_defaults',
-        inputs=inputs
+        name='block_4_4_def',
+        inputs=inputs,
+        ignore_index=255
     )
+    assert block.manifest['block_name'] == 'block_4_4_def'
+    assert block.manifest['has_label'] is True
     assert block.data.image.shape == (5, 8, 8)
 
 
 # ----- batch block construction
 def test_build_blocks_orchestrator(
     dummy_geotiff_factory,
-    assembler_config_json,
     tmp_path
 ):
     '''
@@ -237,14 +239,13 @@ def test_build_blocks_orchestrator(
         output_root=str(tmp_path / 'blocks'),
         image_fpath=img_path,
         label_fpath=lbl_path,
-        config_fpath=str(assembler_config_json)
     )
 
     image_windows = {
-        (0, 0): alias.RasterWindow(col_off=0, row_off=0, width=8, height=8), # type: ignore
-        (0, 8): alias.RasterWindow(col_off=8, row_off=0, width=8, height=8), # type: ignore
-        (8, 0): alias.RasterWindow(col_off=0, row_off=8, width=8, height=8), # type: ignore
-        (8, 8): alias.RasterWindow(col_off=8, row_off=8, width=8, height=8), # type: ignore
+        (0, 0): alias.RasterWindow(0, 0, 8, 8),  # type: ignore
+        (0, 8): alias.RasterWindow(8, 0, 8, 8),  # type: ignore
+        (8, 0): alias.RasterWindow(0, 8, 8, 8),  # type: ignore
+        (8, 8): alias.RasterWindow(8, 8, 8, 8),  # type: ignore
     }
 
     label_windows = dict(image_windows)
@@ -253,7 +254,7 @@ def test_build_blocks_orchestrator(
         label=label_windows
     )
 
-    label_specs = {
+    label_specs: dict[str, geo_core.LabelSpecs] = {
         'class_head': {
             'num_cls': 2,
             'ignore_cls': [255]
@@ -271,7 +272,7 @@ def test_build_blocks_orchestrator(
             'nir': 3,
             'dem': 4,
         },
-        label_specs=label_specs, # type: ignore
+        label_specs=label_specs,
         add_spectral=['ndvi'],
         add_topo=True
     )
@@ -285,7 +286,7 @@ def test_build_blocks_orchestrator(
     assert len(result.coords_created) == 4
     assert result.stats['blocks_created'] == 4
     assert result.stats['blocks_on_disk_before'] == 0
-    assert result.label_color_map == {'1': [0, 255, 0]}
+    assert result.label_color_map is None
 
     for coord in image_windows:
         name = geo_utils.xy_name(coord)
@@ -312,9 +313,9 @@ def test_build_test_block_success(dummy_geotiff_factory, tmp_path):
         arr[0, 8:16, :] = 2
         src.write(arr)
 
-    window = alias.RasterWindow(col_off=0, row_off=0, width=16, height=16) # type: ignore
+    window = alias.RasterWindow(0, 0, 16, 16)  # type: ignore
 
-    label_specs = {
+    label_specs: dict[str, geo_core.LabelSpecs] = {
         'class_head': {
             'num_cls': 2,
             'ignore_cls': [255]

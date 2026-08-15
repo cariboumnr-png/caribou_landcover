@@ -129,9 +129,10 @@ def test_datablocks_and_data_validation():
 # ----- `_HarmonizationCfg` tests
 def test_harmonization_cfg_validation(tmp_path):
     '''
-    Given: `_HarmonizationCfg` instances with valid or invalid parameters.
+    Given: `_HarmonizationCfg` instances with parameters.
     When: `_HarmonizationCfg.validate()` is called.
-    Then: Accept valid settings and raise errors on invalid paths or CRS.
+    Then: Accept valid settings and raise errors on invalid paths
+        or CRS.
     '''
     ref_tif = tmp_path / 'ref.tif'
     ref_tif.write_text('dummy')
@@ -145,7 +146,7 @@ def test_harmonization_cfg_validation(tmp_path):
             target_crs='EPSG:3161',
             target_resolution=20.0
         ),
-        dataset_config=str(cfg_json)
+        dataset_manifest=str(cfg_json)
     )
     h_cfg.validate()
 

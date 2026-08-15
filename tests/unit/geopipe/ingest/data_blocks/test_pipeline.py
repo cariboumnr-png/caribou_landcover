@@ -35,7 +35,7 @@ import landseg.geopipe.ingest.data_blocks as data_blocks
 
 
 # ----- pipeline execution
-def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factory):
+def test_pipeline_run_dev_stage(tmp_path, dummy_geotiff_factory):
     '''
     Given: A clean layout, grid parameters, and development inputs.
     When: Running data blocks building for the dev stage.
@@ -98,7 +98,6 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factor
         stage='dev',
         image_fpath=str(dev_img),
         label_fpath=str(dev_lbl),
-        data_config_fpath=dummy_data_paths.config,
         dem_pad=8,
         ignore_index=255
     )
@@ -126,7 +125,7 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factor
     assert 'block_name' in catalog_data[first_key]
     assert 'file_path' in catalog_data[first_key]
 
-    # Verify logger records reports correctly
+    # Read and inspect report
     assert logger.summary is not None
     assert 'data_blocks' in logger.summary
     assert 'dev' in logger.summary['data_blocks']
@@ -135,7 +134,7 @@ def test_pipeline_run_dev_stage(tmp_path, dummy_data_paths, dummy_geotiff_factor
     assert report['label_filepath'] == str(dev_lbl)
 
 
-def test_pipeline_run_test_stage(tmp_path, dummy_data_paths, dummy_geotiff_factory):
+def test_pipeline_run_test_stage(tmp_path, dummy_geotiff_factory):
     '''
     Given: A clean layout, grid parameters, and test inputs.
     When: Running data blocks building for the test stage.
@@ -148,7 +147,10 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths, dummy_geotiff_facto
         log_file=report_file,
         enable_file_log=False
     )
-    logger.init_summary(run_id='test_run_test', timestamp='2026-07-08T18:00:00Z')
+    logger.init_summary(
+        run_id='test_run_test',
+        timestamp='2026-07-08T18:00:00Z'
+    )
 
     test_img = dummy_geotiff_factory(
         filename='comp_11band_test.tif',
@@ -197,7 +199,6 @@ def test_pipeline_run_test_stage(tmp_path, dummy_data_paths, dummy_geotiff_facto
         stage='test',
         image_fpath=str(test_img),
         label_fpath=str(test_lbl),
-        data_config_fpath=dummy_data_paths.config,
         dem_pad=8,
         ignore_index=255
     )

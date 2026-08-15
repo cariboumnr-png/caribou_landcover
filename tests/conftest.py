@@ -47,7 +47,7 @@ def dummy_data_paths():
     ensure the integration tests pass out-of-the-box.
     '''
     in_dir = os.path.join(ROOT_DIR, 'experiment', 'input')
-    paths = testing.TIFFPaths(input_root=in_dir)
+    paths = testing.TIFFPaths(root=in_dir)
 
     if not paths.all_paths_exist:
         testing.generate_dummy_data(in_dir)
@@ -73,7 +73,9 @@ def dummy_geotiff_factory(tmp_path):
         data_gen_func=None
     ):
         file_path = tmp_path / filename
-        tf = transform or rasterio.transform.from_origin(500000.0, 6000000.0, 20.0, 20.0)
+        tf = transform or rasterio.transform.from_origin(
+            500000.0, 6000000.0, 20.0, 20.0
+        )
 
         config = testing.TIFFConfig(
             shape=(height, width),
