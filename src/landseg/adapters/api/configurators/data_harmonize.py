@@ -43,62 +43,41 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
         self,
         target_crs: str,
         target_resolution: float,
-        reference_raster: str | None = None
+        reference_raster: str | None = None,
     ) -> typing.Self:
         '''Set canvas spatial reference specs.'''
         self._cfg.data.harmonization.canvas.target_crs = target_crs
-        self._cfg.data.harmonization.canvas.target_resolution = target_resolution
+        self._cfg.data.harmonization.canvas.target_resolution = (
+            target_resolution
+        )
         if reference_raster:
-            self._cfg.data.harmonization.canvas.reference_raster = reference_raster
+            self._cfg.data.harmonization.canvas.reference_raster = (
+                reference_raster
+            )
         return self
 
-    def set_dev_features(
+    def set_dataset_manifest(
         self,
-        dev_features: dict[str, str]
+        dataset_manifest: str,
+        dataset_name: str = 'sample_data',
     ) -> typing.Self:
-        '''Set continuous development feature rasters map.'''
-        self._cfg.data.harmonization.raw_data.dev_features = dev_features
-        return self
-
-    def set_features(
-        self,
-        features: dict[str, str]
-    ) -> typing.Self:
-        '''Set continuous feature rasters map.'''
-        return self.set_dev_features(features)
-
-    def set_dev_labels(
-        self,
-        dev_labels: dict[str, str]
-    ) -> typing.Self:
-        '''Set categorical development label rasters map.'''
-        self._cfg.data.harmonization.raw_data.dev_labels = dev_labels
-        return self
-
-    def set_labels(
-        self,
-        labels: dict[str, str]
-    ) -> typing.Self:
-        '''Set categorical label rasters map.'''
-        return self.set_dev_labels(labels)
-
-    def set_dataset_config(
-        self,
-        dataset_config: str,
-        dataset_name: str = 'sample_data'
-    ) -> typing.Self:
-        '''Set dataset metadata configuration path and name.'''
-        self._cfg.data.harmonization.dataset_config = dataset_config
+        '''Set dataset metadata manifest path and dataset name.'''
+        self._cfg.data.harmonization.dataset_manifest = dataset_manifest
         self._cfg.data.harmonization.dataset_name = dataset_name
         self._cfg.data.ingestion.datablocks.name = dataset_name
         return self
 
-    def set_test_holdout(
+    def set_resampling(
         self,
-        test_features: dict[str, str],
-        test_labels: dict[str, str]
+        continuous: str = 'bilinear',
+        categorical: str = 'nearest',
     ) -> typing.Self:
-        '''Set test holdout rasters map.'''
-        self._cfg.data.harmonization.raw_data.test_features = test_features
-        self._cfg.data.harmonization.raw_data.test_labels = test_labels
+        '''Set raster resampling methods.'''
+        self._cfg.data.harmonization.resampling_continuous = continuous
+        self._cfg.data.harmonization.resampling_categorical = categorical
+        return self
+
+    def set_output_dpath(self, output_dpath: str) -> typing.Self:
+        '''Set output directory path for harmonized artifacts.'''
+        self._cfg.data.harmonization.output_dpath = output_dpath
         return self
