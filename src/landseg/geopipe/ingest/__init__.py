@@ -36,7 +36,9 @@ __all__ = [
     'DomainBuildingParameters',
     'GridParameters',
     'IngestionLogger',
+    'HarmonizedRasters',
     # functions
+    'read_harmonization_report',
     'prepare_domain_maps',
     'prepare_world_grid',
     'run_blocks_building',
@@ -45,12 +47,16 @@ __all__ = [
 
 # for static check
 if typing.TYPE_CHECKING:
+    from .adapter import HarmonizedRasters, read_harmonization_report
     from .common import IngestionLogger
     from .data_blocks import BlockBuildingParameters, run_blocks_building
     from .domain_maps import DomainBuildingParameters, prepare_domain_maps
     from .world_grids import GridParameters, prepare_world_grid
 
 def __getattr__(name: str):
+
+    if name in {'HarmonizedRasters', 'read_harmonization_report'}:
+        return getattr(importlib.import_module('.adapter', __package__), name)
 
     if name in {'IngestionLogger'}:
         return getattr(importlib.import_module('.common', __package__), name)
