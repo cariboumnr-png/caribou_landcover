@@ -39,7 +39,7 @@ __all__ = [
     'default_action',
     'evaluate',
     'exec_harmonize_data',
-    'ingest',
+    'exec_ingest_data',
     'overfit',
     'prepare',
     'sweep',
@@ -53,7 +53,7 @@ if typing.TYPE_CHECKING:
     from ._registry import get
     from .default import default_action
     from .data_harmonize import exec_harmonize_data
-    from .data_ingest import ingest
+    from .data_ingest import exec_ingest_data
     from .data_prepare import prepare
     from .diagnose_overfit import overfit
     from .model_evaluate import evaluate
@@ -75,7 +75,7 @@ def __getattr__(name: str):
     if name in {'overfit'}:
         return getattr(importlib.import_module('.diagnose_overfit', __package__), name)
 
-    if name in {'ingest'}:
+    if name in {'exec_ingest_data'}:
         return getattr(importlib.import_module('.data_ingest', __package__), name)
 
     if name in {'prepare'}:

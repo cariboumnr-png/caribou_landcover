@@ -64,7 +64,6 @@ class BlockBuildingParameters:
     stage: typing.Literal['dev', 'test']
     image_fpath: str
     label_fpath: str | None
-    data_config_fpath: str
     dem_pad: int
     ignore_index: int
 
@@ -107,7 +106,6 @@ def run_blocks_building(
         output_root=artfact_paths.blocks,
         image_fpath=config.image_fpath,
         label_fpath=config.label_fpath,
-        config_fpath=config.data_config_fpath,
     )
     building_context = assembler.BlockBuildingContext(
         image=ras_windows.image,

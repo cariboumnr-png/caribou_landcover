@@ -57,7 +57,7 @@ class PipelineFn(typing.Protocol):
 PIPELINES: dict[PipelineName, PipelineFn] = {
     'default': pipelines.default_action,
     'data-harmonize': pipelines.exec_harmonize_data,
-    'data-ingest': pipelines.ingest,
+    'data-ingest': pipelines.exec_ingest_data,
     'data-prepare': pipelines.prepare,
     'diagnose-overfit': pipelines.overfit,
     'model-evaluate': pipelines.evaluate,
