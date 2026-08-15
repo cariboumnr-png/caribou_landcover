@@ -29,6 +29,7 @@ import xml.etree.ElementTree
 # third-party imports
 import numpy
 import rasterio
+import rasterio.crs
 import rasterio.shutil
 import rasterio.vrt
 
@@ -172,109 +173,156 @@ def _build_stacked_vrt_xml(
     source_paths: list[str],
     output_path: str,
 ) -> None:
-    '''Manual VRT XML builder for stacking bands.'''
+    '''Build a VRT by stacking bands from multiple source rasters.'''
     if not source_paths:
-        raise ValueError("source_paths must not be empty")
+        raise ValueError('source_paths must not be empty')
 
-    # read geometry from the first source raster
     with rasterio.open(source_paths[0]) as src:
-        width, height = src.width, src.height
-        crs_wkt = src.crs.to_wkt()
+        width = src.width
+        height = src.height
+        crs = src.crs
+        crs_wkt = crs.to_wkt()
         transform_txt = (
             f'{src.transform.c}, {src.transform.a}, {src.transform.b}, '
             f'{src.transform.f}, {src.transform.d}, {src.transform.e}'
         )
 
-    # build root
     root = xml.etree.ElementTree.Element(
         'VRTDataset',
         rasterXSize=str(width),
-        rasterYSize=str(height)
+        rasterYSize=str(height),
     )
+
     xml.etree.ElementTree.SubElement(root, 'SRS').text = crs_wkt
-    xml.etree.ElementTree.SubElement(root, 'GeoTransform').text = transform_txt
+    xml.etree.ElementTree.SubElement(
+        root,
+        'GeoTransform',
+    ).text = transform_txt
 
-    # add bands
     band_idx = 1
-    for path in source_paths:
 
+    for path in source_paths:
         with rasterio.open(path) as src:
+            if src.width != width or src.height != height:
+                raise ValueError(
+                    f'Source raster has different dimensions: {path} '
+                    f'({src.width}x{src.height} != {width}x{height})'
+                )
+
+            if src.crs != crs:
+                raise ValueError(
+                    f'Source raster has a different CRS: {path}'
+                )
+
+            # Dataset-level metadata from the source.
+            dataset_tags = src.tags()
 
             for b in range(1, src.count + 1):
                 dtype = _gdal_dtype_name(src.dtypes[b - 1])
 
-                # band node
                 band_node = xml.etree.ElementTree.SubElement(
                     root,
                     'VRTRasterBand',
                     dataType=dtype,
-                    band=str(band_idx)
+                    band=str(band_idx),
                 )
 
-                # band name from source
+                # -------------------------------------------------------------
+                # Description
+                # -------------------------------------------------------------
                 band_name = src.descriptions[b - 1]
-                if band_name is not None:
-                    xml.etree.ElementTree.SubElement(
-                        band_node,
-                        'Description',
-                    ).text = str(band_name)
 
-                # copy source-level tags only once (first band)
-                if band_idx == 1 and src.tags():
+                if band_name and band_name.strip():
+                    band_name = band_name.strip()
+                else:
+                    band_name = f'band_{band_idx}'
+
+                xml.etree.ElementTree.SubElement(
+                    band_node,
+                    'Description',
+                ).text = band_name
+
+                # -------------------------------------------------------------
+                # Metadata
+                #
+                # Start with dataset-level tags, then overlay band-level tags.
+                # This preserves the behavior of the original resolver:
+                #
+                #     src.tags(b) or src.tags()
+                #
+                # while also preserving both types of metadata.
+                # -------------------------------------------------------------
+                band_tags = src.tags(b)
+
+                tags = {
+                    **dataset_tags,
+                    **band_tags,
+                }
+
+                if tags:
                     metadata_node = xml.etree.ElementTree.SubElement(
                         band_node,
-                        "Metadata",
+                        'Metadata',
                     )
 
-                    for key, value in src.tags().items():
+                    for key, value in tags.items():
                         xml.etree.ElementTree.SubElement(
                             metadata_node,
-                            "MDI",
+                            'MDI',
                             key=str(key),
                         ).text = str(value)
 
-                # nodata
+                # -------------------------------------------------------------
+                # NoData
+                # -------------------------------------------------------------
                 nodata_val = (
                     src.nodatavals[b - 1]
-                    if src.nodatavals and src.nodatavals[b - 1] is not None
+                    if src.nodatavals
+                    and src.nodatavals[b - 1] is not None
                     else src.nodata
                 )
+
                 if nodata_val is not None:
                     xml.etree.ElementTree.SubElement(
                         band_node,
-                        'NoDataValue'
+                        'NoDataValue',
                     ).text = str(nodata_val)
 
-                # source
+                # -------------------------------------------------------------
+                # Source
+                # -------------------------------------------------------------
                 source_node = xml.etree.ElementTree.SubElement(
                     band_node,
-                    'SimpleSource'
+                    'SimpleSource',
                 )
+
                 xml.etree.ElementTree.SubElement(
                     source_node,
                     'SourceFilename',
-                    relativeToVRT='0'
+                    relativeToVRT='0',
                 ).text = path
+
                 xml.etree.ElementTree.SubElement(
                     source_node,
-                    'SourceBand'
+                    'SourceBand',
                 ).text = str(b)
+
                 xml.etree.ElementTree.SubElement(
                     source_node,
                     'SourceProperties',
-                    RasterXSize=str(width),
-                    RasterYSize=str(height),
-                    DataType=dtype
+                    RasterXSize=str(src.width),
+                    RasterYSize=str(src.height),
+                    DataType=dtype,
                 )
 
                 band_idx += 1
 
-    # pretty print
     xml.etree.ElementTree.indent(root, space='  ', level=0)
+
     xml.etree.ElementTree.ElementTree(root).write(
         output_path,
         encoding='utf-8',
-        xml_declaration=True
+        xml_declaration=True,
     )
 
 

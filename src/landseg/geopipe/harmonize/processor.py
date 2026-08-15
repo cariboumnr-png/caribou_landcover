@@ -64,6 +64,7 @@ class _AlignedRasters:
             case _: raise ValueError(f'Unknown raster category: {category}')
 
 
+# TODO enforce input label rasters to be single banded
 def process_source(
     compiled_sources: dict[str, harmonize.DatasetConfigItem],
     output_dir: str,
@@ -109,7 +110,8 @@ def process_source(
         )
 
         if category == 'domains':
-            processed.finalized.update({tagged_name: path})
+            processed.harmonized.update({tagged_name: warped})
+            processed.finalized.update({tagged_name: warped})
             continue # fast tracking domain rasters
 
         if cfg['band_mapping']:
