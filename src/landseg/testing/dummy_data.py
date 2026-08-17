@@ -205,7 +205,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
 
     # TIFF file paths
     paths = TIFFPaths(root=input_root)
-    os.makedirs(os.path.dirname(paths.root), exist_ok=True)
+    os.makedirs(paths.root, exist_ok=True)
 
     # create extent reference (single band constant value on the wide extent)
     print(f'Creating extent reference: {paths.extent}')
