@@ -31,11 +31,14 @@ import typing
 __all__ = [
     # classes
     'CanvasSpec',
+    'GridParameters',
     'HarmonizationLogger',
     'ProcessedRasters',
     # functions
     'create_canvas',
     'warp_to_canvas',
+    'build_grid',
+    'prepare_world_grid',
     'stack_canonical_raster',
     'unify_nodata_mask',
     'validate_domain_raster_index',
@@ -46,7 +49,8 @@ __all__ = [
     # typing
     'HarmonizationReportSchema',
     'ProvenanceRecord',
-    'DatasetConfigItem'
+    'WorldGridReport',
+    'DatasetConfigItem',
 ]
 
 # for static check
@@ -55,27 +59,34 @@ if typing.TYPE_CHECKING:
         HarmonizationLogger,
         HarmonizationReportSchema,
         ProvenanceRecord,
+        WorldGridReport,
     )
     from .spatial import (
         CanvasSpec,
         create_canvas,
         warp_to_canvas,
     )
+    from .world_grids import (
+        GridParameters,
+        build_grid,
+        prepare_world_grid,
+    )
     from .raster_ops import (
         stack_canonical_raster,
         unify_nodata_mask,
         validate_domain_raster_index,
         add_band_description_to_vrt,
-        add_tag_to_vrt
+        add_tag_to_vrt,
     )
-    from .processor import(
+    from .processor import (
         ProcessedRasters,
-        process_source
+        process_source,
     )
-    from .validator import(
+    from .validator import (
         DatasetConfigItem,
-        compile_dataset_manifest
+        compile_dataset_manifest,
     )
+
 
 def __getattr__(name: str):
 
@@ -83,6 +94,7 @@ def __getattr__(name: str):
         'HarmonizationLogger',
         'HarmonizationReportSchema',
         'ProvenanceRecord',
+        'WorldGridReport',
     }:
         return getattr(importlib.import_module('.logger', __package__), name)
 
@@ -94,24 +106,40 @@ def __getattr__(name: str):
         return getattr(importlib.import_module('.spatial', __package__), name)
 
     if name in {
+        'GridParameters',
+        'build_grid',
+        'prepare_world_grid',
+    }:
+        return getattr(
+            importlib.import_module('.world_grids', __package__), name
+        )
+
+    if name in {
         'stack_canonical_raster',
         'unify_nodata_mask',
         'validate_domain_raster_index',
         'add_band_description_to_vrt',
-        'add_tag_to_vrt'
+        'add_tag_to_vrt',
     }:
-        return getattr(importlib.import_module('.raster_ops', __package__), name)
+        return getattr(
+            importlib.import_module('.raster_ops', __package__), name
+        )
 
     if name in {
         'ProcessedRasters',
         'process_source',
     }:
-        return getattr(importlib.import_module('.processor', __package__), name)
+        return getattr(
+            importlib.import_module('.processor', __package__), name
+        )
 
     if name in {
         'DatasetConfigItem',
         'compile_dataset_manifest',
     }:
-        return getattr(importlib.import_module('.validator', __package__), name)
+        return getattr(
+            importlib.import_module('.validator', __package__), name
+        )
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+

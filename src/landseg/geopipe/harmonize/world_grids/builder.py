@@ -40,7 +40,8 @@ import typing
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.utils as geo_utils
 
-# ------------------------------Public  Dataclass------------------------------
+
+# ------------------------------Public Dataclass------------------------------
 @dataclasses.dataclass
 class GridParameters:
     '''Container for grid generation configuration.'''
@@ -52,6 +53,7 @@ class GridParameters:
     grid_extent: tuple[float, float] | None
     grid_shape: tuple[int, int] | None
     tile_specs: tuple[int, int, int, int]
+
 
 # -------------------------------Public Function-------------------------------
 def build_grid(config: GridParameters) -> geo_core.GridLayout:
@@ -65,7 +67,6 @@ def build_grid(config: GridParameters) -> geo_core.GridLayout:
     The grid extent may be derived from a reference raster, an explicit
     AOI, or a tile-based definition.
     '''
-
     # get gridspec from extent config
     grid_spec = _get_grid_spec(config)
 
@@ -74,10 +75,10 @@ def build_grid(config: GridParameters) -> geo_core.GridLayout:
     output_grid = geo_core.GridLayout(_mode, grid_spec)
     return output_grid
 
-# ------------------------------private  function------------------------------
+
+# ------------------------------private function------------------------------
 def _get_grid_spec(config: GridParameters) -> geo_core.GridSpec:
     '''Parse grid extent and returns a partially filled `GridSpec`.'''
-
     # static tile size and overlap
     tile_size = (config.tile_specs[0], config.tile_specs[1])
     tile_overlap = (config.tile_specs[2], config.tile_specs[3])
@@ -95,15 +96,15 @@ def _get_grid_spec(config: GridParameters) -> geo_core.GridSpec:
             # assign to gridspec
             return geo_core.GridSpec(
                 crs=config.crs or str(src.crs),
-                origin=(l, t),              # left, ,top as x, y
-                pixel_size=(px, py),        # pixel size in x, y
+                origin=(l, t),             # left, top as x, y
+                pixel_size=(px, py),       # pixel size in x, y
                 tile_size=tile_size,
                 tile_overlap=tile_overlap,
-                grid_extent=(t - b, r - l)  # top-bottom as H, right-left as W
+                grid_extent=(t - b, r - l) # top-bottom as H, right-left as W
             )
 
     # from aoi (manual)
-    elif config.mode  == 'aoi':
+    if config.mode == 'aoi':
         # retrieve inputs and validate
         assert config.grid_extent
         assert all(isinstance(x, float) for x in config.grid_extent)
@@ -117,7 +118,7 @@ def _get_grid_spec(config: GridParameters) -> geo_core.GridSpec:
         )
 
     # from tiles count (manual)
-    elif config.mode  == 'tiles':
+    if config.mode == 'tiles':
         assert config.grid_shape
         assert all(isinstance(x, int) for x in config.grid_shape)
         return geo_core.GridSpec(
@@ -128,5 +129,5 @@ def _get_grid_spec(config: GridParameters) -> geo_core.GridSpec:
             tile_overlap=tile_overlap,
             grid_shape=config.grid_shape
         )
-    #
+
     raise ValueError(f'Invalid extent mode: {config.mode}')

@@ -45,6 +45,10 @@ def test_data_harmonization_configurator(tmp_path):
         target_crs='EPSG:3161',
         target_resolution=20.0,
         reference_raster=str(ref_tif)
+    ).set_grid(
+        tile_size=512,
+        tile_overlap=64,
+        crs='EPSG:3161'
     ).set_dataset_manifest(
         dataset_manifest=str(manifest_json),
         dataset_name='test_ds'
@@ -60,6 +64,11 @@ def test_data_harmonization_configurator(tmp_path):
     assert root.data.harmonization.canvas.target_crs == 'EPSG:3161'
     assert root.data.harmonization.canvas.target_resolution == 20.0
     assert root.data.harmonization.canvas.reference_raster == str(ref_tif)
+    assert root.data.harmonization.grid.tile_specs.size_row == 512
+    assert root.data.harmonization.grid.tile_specs.size_col == 512
+    assert root.data.harmonization.grid.tile_specs.overlap_row == 64
+    assert root.data.harmonization.grid.tile_specs.overlap_col == 64
+    assert root.data.harmonization.grid.crs == 'EPSG:3161'
     assert root.data.harmonization.dataset_manifest == str(manifest_json)
     assert root.data.harmonization.dataset_name == 'test_ds'
     assert root.data.harmonization.resampling_continuous == 'bilinear'
@@ -72,17 +81,13 @@ def test_data_ingestion_configurator(tmp_path):
     '''
     Given: Parameters for data ingestion pipeline.
     When: Chaining methods on `DataIngestionConfigurator`.
-    Then: Correctly populate ingestion grid, rebuild, and run fields.
+    Then: Correctly populate ingestion rebuild and harmonization run fields.
     '''
     cfg_builder = configurators.DataIngestionConfigurator(
         experiment_root=str(tmp_path),
         dataset_name='test_ds'
     )
-    cfg_builder.set_grid(
-        tile_size=512,
-        tile_overlap=64,
-        crs='EPSG:3161'
-    ).set_rebuild(
+    cfg_builder.set_rebuild(
         rebuild=True
     ).set_harmonization_run(
         target_run=1
@@ -90,13 +95,9 @@ def test_data_ingestion_configurator(tmp_path):
 
     root = cfg_builder.running_root_config
     assert root.pipeline.name == 'data-ingest'
-    assert root.data.ingestion.grid.tile_specs.size_row == 512
-    assert root.data.ingestion.grid.tile_specs.size_col == 512
-    assert root.data.ingestion.grid.tile_specs.overlap_row == 64
-    assert root.data.ingestion.grid.tile_specs.overlap_col == 64
-    assert root.data.ingestion.grid.crs == 'EPSG:3161'
     assert root.data.ingestion.rebuild is True
     assert root.data.ingestion.harmonization_run == 1
+
 
 
 # ----- `DataPreparationConfigurator` tests

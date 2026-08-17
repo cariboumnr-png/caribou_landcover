@@ -70,6 +70,7 @@ def dummy_geotiff_factory(tmp_path):
         crs='EPSG:3161',
         transform=None,
         dtype=numpy.uint8,
+        nodata=0,
         data_gen_func=None
     ):
         file_path = tmp_path / filename
@@ -82,8 +83,10 @@ def dummy_geotiff_factory(tmp_path):
             bands=bands,
             crs=crs,
             transform=tf,
-            dtype=dtype
+            dtype=dtype,
+            nodata=nodata
         )
+
 
         def _default_gen(shape, _):
             return numpy.random.randint(0, 256, shape).astype(dtype)

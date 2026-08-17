@@ -93,6 +93,16 @@ def _translate_data_harmonize(
         'target_crs': ['data.harmonization.canvas.target_crs'],
         'target_resolution': ['data.harmonization.canvas.target_resolution'],
         'reference_raster': ['data.harmonization.canvas.reference_raster'],
+        'grid_mode': ['data.harmonization.grid.mode'],
+        'grid_crs': ['data.harmonization.grid.crs'],
+        'tile_size': [
+            'data.harmonization.grid.tile_specs.size_row',
+            'data.harmonization.grid.tile_specs.size_col'
+        ],
+        'tile_overlap': [
+            'data.harmonization.grid.tile_specs.overlap_row',
+            'data.harmonization.grid.tile_specs.overlap_col'
+        ],
         'resampling_continuous': ['data.harmonization.resampling_continuous'],
         'resampling_categorical': ['data.harmonization.resampling_categorical'],
         'dataset_manifest': ['data.harmonization.dataset_manifest'],
@@ -113,15 +123,6 @@ def _translate_data_ingest(
 
     mapping = {
         'harmonization_run': ['data.ingestion.harmonization_run'],
-        'grid_crs': ['data.ingestion.grid.crs'],
-        'tile_size': [
-            'data.ingestion.grid.tile_specs.size_row',
-            'data.ingestion.grid.tile_specs.size_col'
-        ],
-        'tile_overlap': [
-            'data.ingestion.grid.tile_specs.overlap_row',
-            'data.ingestion.grid.tile_specs.overlap_col'
-        ],
         'domain_ids_name': ['dataspecs.domain_ids_name'],
         'domain_vec_name': ['dataspecs.domain_vec_name'],
         'dataset_name': ['data.ingestion.datablocks.name'],
@@ -129,6 +130,7 @@ def _translate_data_ingest(
         'output_dpath': ['data.ingestion.output_dpath'],
     }
     _apply_mapping(ingestion, translated, mapping)
+
 
 
 def _translate_data_prepare(

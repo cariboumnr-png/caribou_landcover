@@ -20,12 +20,13 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.geopipe.ingest.world_grids`.
+Top-level namespace for `landseg.geopipe.harmonize.world_grids`.
 
 Exposes selected public functions via lazy resolution to keep import
 order simple and circular-free.
 '''
 
+# standard imports
 from __future__ import annotations
 import importlib
 import typing
@@ -36,7 +37,6 @@ __all__ = [
     # functions
     'build_grid',
     'prepare_world_grid',
-    # typing
 ]
 
 # for static check
@@ -44,13 +44,11 @@ if typing.TYPE_CHECKING:
     from .builder import GridParameters, build_grid
     from .lifecycle import prepare_world_grid
 
+
 def __getattr__(name: str):
 
     if name in {'GridParameters', 'build_grid'}:
         return getattr(importlib.import_module('.builder', __package__), name)
-
-    if name in {'load_grid', 'save_grid'}:
-        return getattr(importlib.import_module('.grid_io', __package__), name)
 
     if name in {'prepare_world_grid'}:
         return getattr(importlib.import_module('.lifecycle', __package__), name)

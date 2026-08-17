@@ -99,8 +99,9 @@ def test_root_config_validate_all(tmp_path):
     root.data.harmonization.canvas.reference_raster = str(ref_tif)
     root.data.harmonization.dataset_manifest = str(cfg_json)
     root.data.ingestion.datablocks.name = 'test_blocks'
-    root.data.ingestion.grid.mode = 'ref'
-    root.data.ingestion.grid.crs = 'EPSG:32617'
+    root.data.harmonization.grid.mode = 'ref'
+    root.data.harmonization.grid.crs = 'EPSG:32617'
+
 
     root.session.orchestration.single_phase.num_epochs = 10
     root.validate_all()
@@ -113,12 +114,11 @@ def test_ingestion_config_harmonization_run_validation():
     Then: Accept valid int/str values and raise error on invalid.
     '''
     cfg = sec.data._IngestionCfg()
-    cfg.grid.mode = 'ref'
-    cfg.grid.crs = 'EPSG:32617'
 
     # valid int, str, path, None
     cfg.harmonization_run = None
     cfg.validate()
+
 
     cfg.harmonization_run = 1
     cfg.validate()

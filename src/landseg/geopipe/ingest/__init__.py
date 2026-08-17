@@ -34,13 +34,11 @@ __all__ = [
     # classes
     'BlockBuildingParameters',
     'DomainBuildingParameters',
-    'GridParameters',
     'IngestionLogger',
     'HarmonizedRasters',
     # functions
     'read_harmonization_report',
     'prepare_domain_maps',
-    'prepare_world_grid',
     'run_blocks_building',
     # types
 ]
@@ -51,7 +49,7 @@ if typing.TYPE_CHECKING:
     from .common import IngestionLogger
     from .data_blocks import BlockBuildingParameters, run_blocks_building
     from .domain_maps import DomainBuildingParameters, prepare_domain_maps
-    from .world_grids import GridParameters, prepare_world_grid
+
 
 def __getattr__(name: str):
 
@@ -62,12 +60,14 @@ def __getattr__(name: str):
         return getattr(importlib.import_module('.common', __package__), name)
 
     if name in {'BlockBuildingParameters', 'run_blocks_building'}:
-        return getattr(importlib.import_module('.data_blocks', __package__), name)
+        return getattr(
+            importlib.import_module('.data_blocks', __package__), name
+        )
 
     if name in {'DomainBuildingParameters', 'prepare_domain_maps'}:
-        return getattr(importlib.import_module('.domain_maps', __package__), name)
-
-    if name in {'GridParameters', 'prepare_world_grid'}:
-        return getattr(importlib.import_module('.world_grids', __package__), name)
+        return getattr(
+            importlib.import_module('.domain_maps', __package__), name
+        )
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+

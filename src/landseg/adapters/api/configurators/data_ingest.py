@@ -38,21 +38,6 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
     ):
         super().__init__(experiment_root, 'data-ingest', dataset_name)
 
-    def set_grid(
-        self,
-        tile_size: int = 256,
-        tile_overlap: int = 0,
-        crs: str = ''
-    ) -> typing.Self:
-        '''Set study extent and grid specs.'''
-        self._cfg.data.ingestion.grid.mode = 'ref'
-        self._cfg.data.ingestion.grid.crs = crs
-        self._cfg.data.ingestion.grid.tile_specs.size_row = tile_size
-        self._cfg.data.ingestion.grid.tile_specs.size_col = tile_size
-        self._cfg.data.ingestion.grid.tile_specs.overlap_row = tile_overlap
-        self._cfg.data.ingestion.grid.tile_specs.overlap_col = tile_overlap
-        return self
-
     def set_rebuild(self, rebuild: bool) -> typing.Self:
         '''Set whether to force rebuild ingestion artifacts.'''
         self._cfg.data.ingestion.rebuild = rebuild
@@ -65,3 +50,4 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
         '''Set targeted harmonization run index, folder name, or path.'''
         self._cfg.data.ingestion.harmonization_run = target_run
         return self
+

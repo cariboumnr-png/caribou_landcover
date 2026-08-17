@@ -45,34 +45,6 @@ class _Canvas:
 
 
 @dataclasses.dataclass
-class _HarmonizationCfg:
-    canvas: _Canvas = field(default_factory=_Canvas)
-    dataset_name: str = 'sample_data'
-    dataset_manifest: str = ''
-    resampling_continuous: str = 'bilinear'
-    resampling_categorical: str = 'nearest'
-    output_dpath: str = 'experiment/artifacts/harmonized_data'
-
-    def validate(self) -> None:
-        utils.must_exist(self.canvas.reference_raster, 'Reference raster')
-        if self.dataset_manifest:
-            utils.must_exist(self.dataset_manifest, 'Dataset configuration JSON')
-
-        if (
-            self.canvas.target_crs and
-            not bool(re.fullmatch(r'epsg:\d+', self.canvas.target_crs, re.I))
-        ):
-            raise ValueError('Invalid CRS identifier. Must be "EPSG:...."')
-
-        if (
-            self.canvas.target_resolution and
-            self.canvas.target_resolution <= 0.0
-        ):
-            raise ValueError('target_resolution must be positive.')
-
-
-# ----- data ingestion
-@dataclasses.dataclass
 class _Extent:
     origin: tuple[float, float] = (0.0, 0.0)
     pixel_size: tuple[float, float] = (0.0, 0.0)
@@ -88,7 +60,7 @@ class _TileSpecs:
     overlap_col: int = 0
 
     def validate(self):
-        # current we only accept equal row and col sizes and strides
+        # currently we only accept equal row and col sizes and strides
         if self.size_row != self.size_col:
             raise ValueError('Only square blocks are supported.')
 
@@ -118,8 +90,7 @@ class _Grid:
         if self.mode != 'ref':
             raise ValueError(
                 f'Invalid grid mode: {self.mode}. '
-                'Data ingestion requires "ref" grid mode mandated by '
-                'data harmonization.'
+                'Data harmonization requires "ref" grid mode.'
             )
         # crs string format (optional if derived from ref raster)
         if self.crs and not bool(re.fullmatch(r'epsg:\d+', self.crs, re.I)):
@@ -128,6 +99,37 @@ class _Grid:
         self.tile_specs.validate()
 
 
+@dataclasses.dataclass
+class _HarmonizationCfg:
+    canvas: _Canvas = field(default_factory=_Canvas)
+    grid: _Grid = field(default_factory=_Grid)
+    dataset_name: str = 'sample_data'
+    dataset_manifest: str = ''
+    resampling_continuous: str = 'bilinear'
+    resampling_categorical: str = 'nearest'
+    output_dpath: str = 'experiment/artifacts/harmonized_data'
+
+    def validate(self) -> None:
+        utils.must_exist(self.canvas.reference_raster, 'Reference raster')
+        if self.dataset_manifest:
+            utils.must_exist(self.dataset_manifest, 'Dataset configuration JSON')
+
+        if (
+            self.canvas.target_crs and
+            not bool(re.fullmatch(r'epsg:\d+', self.canvas.target_crs, re.I))
+        ):
+            raise ValueError('Invalid CRS identifier. Must be "EPSG:...."')
+
+        if (
+            self.canvas.target_resolution and
+            self.canvas.target_resolution <= 0.0
+        ):
+            raise ValueError('target_resolution must be positive.')
+
+        self.grid.validate()
+
+
+# ----- data ingestion
 @dataclasses.dataclass
 class _Domains:
     valid_threshold: float = 0.7
@@ -149,7 +151,6 @@ class _DataBlocks:
 
 @dataclasses.dataclass
 class _IngestionCfg:
-    grid: _Grid = field(default_factory=_Grid)
     domains: _Domains = field(default_factory=_Domains)
     datablocks: _DataBlocks = field(default_factory=_DataBlocks)
     rebuild: bool = False
@@ -157,7 +158,6 @@ class _IngestionCfg:
     output_dpath: str = '${execution.exp_root}/artifacts/ingested_data'
 
     def validate(self) -> None:
-        self.grid.validate()
         self.domains.validate()
         self.datablocks.validate()
         if self.harmonization_run is not None:
@@ -176,6 +176,7 @@ class _IngestionCfg:
                     'Invalid harmonization_run type: '
                     f'{type(self.harmonization_run)}'
                 )
+
 
 
 # ----- data preparation

@@ -42,6 +42,18 @@ class ProvenanceRecord(typing.TypedDict):
     mtime: float
 
 
+class WorldGridReport(typing.TypedDict):
+    '''Summary report for a generated world grid layout.'''
+    grid_id: str
+    status: typing.Literal['loaded', 'created_and_loaded']
+    grid_filepath: str
+    crs: str
+    pixel_size: tuple[float, float]
+    tile_size: tuple[int, int]
+    tile_overlap: tuple[int, int]
+    duration_sec: float
+
+
 class HarmonizationReportSchema(typing.TypedDict):
     '''Root report mapping the entire data harmonization pipeline run.'''
     run_id: str
@@ -54,6 +66,7 @@ class HarmonizationReportSchema(typing.TypedDict):
     harmonized_sources: dict[str, str]
     finalized_rasters: dict[str, str]
     valid_mask_raster: str
+    world_grid: WorldGridReport | None
 
 
 # ----- `HarmonizationLogger` definition
@@ -88,7 +101,8 @@ class HarmonizationLogger(utils.Logger):
             'provenance': {},
             'harmonized_sources': {},
             'finalized_rasters': {},
-            'valid_mask_raster': ''
+            'valid_mask_raster': '',
+            'world_grid': None
         }
 
     def set_grid_shape(self, height: int, width: int) -> None:
@@ -120,6 +134,11 @@ class HarmonizationLogger(utils.Logger):
         '''Record valid pixel mask raster path.'''
         if self.summary is not None:
             self.summary['valid_mask_raster'] = os.path.abspath(path)
+
+    def set_world_grid_report(self, report: WorldGridReport) -> None:
+        '''Record world grid preparation report.'''
+        if self.summary is not None:
+            self.summary['world_grid'] = report
 
     def set_summary_status(
         self,
