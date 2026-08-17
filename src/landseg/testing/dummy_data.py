@@ -46,6 +46,7 @@ class TIFFConfig:
     crs: str
     transform: rasterio.transform.Affine
     dtype: typing.Any
+    nodata: int | float
 
 # ------------------------------private dataclass------------------------------
 @dataclasses.dataclass
@@ -163,12 +164,6 @@ def create_dummy_geotiff(
 
     # make sure output directory exists
     os.makedirs(os.path.dirname(fpath), exist_ok=True)
-    # set nodata based on dtype
-    nodata_val = (
-        0 if config.dtype == numpy.uint8
-        else 255 if config.dtype == numpy.uint16
-        else -9999.0
-    )
     # write GeoTIFF
     with rasterio.open(
         fpath,
@@ -180,7 +175,7 @@ def create_dummy_geotiff(
         dtype=config.dtype,
         crs=config.crs,
         transform=config.transform,
-        nodata=nodata_val,
+        nodata=config.nodata,
     ) as dst:
         for b in range(1, config.bands + 1):
             band_data = data_gen_func(config.shape, b)
@@ -222,6 +217,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=crs,
             transform=extent_transform,
             dtype=numpy.uint8,
+            nodata=0
         ),
         data_gen_func=lambda s, b: numpy.ones(s, dtype=numpy.uint8),
     )
@@ -236,6 +232,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=crs,
             transform=extent_transform,
             dtype=numpy.uint8,
+            nodata=255,
         ),
         data_gen_func=lambda s, b: numpy.random.randint(
             1, 5, size=s, dtype=numpy.uint8
@@ -251,6 +248,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=crs,
             transform=extent_transform,
             dtype=numpy.uint8,
+            nodata=255
         ),
         data_gen_func=lambda s, b: numpy.random.randint(
             1, 10, size=s, dtype=numpy.uint8
@@ -283,6 +281,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=utm_crs,
             transform=utm_dev_transform,
             dtype=numpy.uint16,
+            nodata=65535
         ),
         data_gen_func=lambda s, b: numpy.random.randint(
             100, 3000, size=s, dtype=numpy.uint16
@@ -298,6 +297,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=utm_crs,
             transform=utm_dev_transform,
             dtype=numpy.float32,
+            nodata=-9999.9
         ),
         data_gen_func=lambda s, _: _gen_image_data(s, 1),
     )
@@ -311,6 +311,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=utm_crs,
             transform=utm_dev_transform,
             dtype=numpy.uint8,
+            nodata=255
         ),
         data_gen_func=_gen_label_data,
     )
@@ -324,6 +325,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=utm_crs,
             transform=utm_dev_transform,
             dtype=numpy.uint8,
+            nodata=255
         ),
         data_gen_func=_gen_label_data,
     )
@@ -337,6 +339,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=utm_crs,
             transform=utm_test_transform,
             dtype=numpy.uint16,
+            nodata=65535
         ),
         data_gen_func=lambda s, b: numpy.random.randint(
             100, 3000, size=s, dtype=numpy.uint16
@@ -352,6 +355,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=utm_crs,
             transform=utm_test_transform,
             dtype=numpy.float32,
+            nodata=-9999.9
         ),
         data_gen_func=lambda s, _: _gen_image_data(s, 1),
     )
@@ -365,6 +369,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=utm_crs,
             transform=utm_test_transform,
             dtype=numpy.uint8,
+            nodata=255
         ),
         data_gen_func=_gen_label_data,
     )
@@ -378,6 +383,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=utm_crs,
             transform=utm_test_transform,
             dtype=numpy.uint8,
+            nodata=255
         ),
         data_gen_func=_gen_label_data,
     )
@@ -529,5 +535,5 @@ def _gen_image_data(shape: tuple[int, int], band_idx: int) -> numpy.ndarray:
 def _gen_label_data(shape: tuple[int, int], _: int) -> numpy.ndarray:
     '''Generate dummy label data with ignore index.'''
 
-    labels = numpy.random.choice([0, 1, 255], size=shape, p=[0.45, 0.45, 0.10])
+    labels = numpy.random.choice([1, 2, 255], size=shape, p=[0.45, 0.45, 0.10])
     return labels.astype(numpy.uint8)
