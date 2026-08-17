@@ -61,11 +61,12 @@ class _PipelinePaths(typing.Protocol):
 @dataclasses.dataclass
 class BlockBuildingParameters:
     '''Config container for the canonical block-building pipeline.'''
-    stage: typing.Literal['dev', 'test']
     image_fpath: str
     label_fpath: str | None
     dem_pad: int
     ignore_index: int
+    stage: str = 'canonical'
+
 
 # -------------------------------Public Function-------------------------------
 def run_blocks_building(

@@ -25,6 +25,7 @@
 Canonical filesystem paths for data ingestion artifacts.
 '''
 
+
 # standard imports
 import dataclasses
 import os
@@ -86,21 +87,7 @@ class _DomainMaps:
 
 @dataclasses.dataclass
 class _DataBlocks:
-    '''Root container for model dev and test data blocks.'''
-    root: str
-
-    @property
-    def dev(self):
-        return _DataBlockPaths(os.path.join(self.root, 'model_dev'))
-
-    @property
-    def test(self):
-        return _DataBlockPaths(os.path.join(self.root, 'test_holdout'))
-
-
-@dataclasses.dataclass
-class _DataBlockPaths:
-    '''Paths for a single data block partition (dev/test).'''
+    '''Container for canonical dataset data blocks.'''
     root: str
 
     @property
@@ -121,3 +108,11 @@ class _DataBlockPaths:
 
     def mapped_window(self, gid: str) -> str:
         return os.path.join(self.windows, f'windows_{gid}.json')
+
+    @property
+    def dev(self) -> '_DataBlocks':
+        return self
+
+    @property
+    def test(self) -> '_DataBlocks':
+        return self

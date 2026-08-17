@@ -38,8 +38,8 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     # compose config with OmegaConf
     cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
 
-    # override foundation fields
-    grid_cfg = cfg_schema.data.ingestion.grid
+    # override harmonization grid fields
+    grid_cfg = cfg_schema.data.harmonization.grid
     grid_cfg.mode = 'ref'
     grid_cfg.crs = 'EPSG:3161'
     grid_cfg.tile_specs.size_row = 256
@@ -76,10 +76,13 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
     # verify the generated outputs
     out_dpath = config.data.ingestion.output_dpath
     assert os.path.exists(
-        os.path.join(out_dpath, 'data_blocks', 'model_dev', 'catalog.json')
+        os.path.join(out_dpath, 'data_blocks', 'catalog.json')
     )
     assert os.path.exists(
-        os.path.join(out_dpath, 'data_blocks', 'test_holdout', 'catalog.json')
+        os.path.join(out_dpath, 'data_blocks', 'schema.json')
+    )
+    assert os.path.exists(
+        os.path.join(out_dpath, 'data_blocks', 'blocks')
     )
     assert os.path.exists(
         os.path.join(out_dpath, 'ingest_report.json')
@@ -96,7 +99,7 @@ def test_data_ingest_pipeline_targeted_harmonization_run(
     Then: Ingestion targets run_0001 output artifacts.
     '''
     cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
-    grid_cfg = cfg_schema.data.ingestion.grid
+    grid_cfg = cfg_schema.data.harmonization.grid
     grid_cfg.mode = 'ref'
     grid_cfg.crs = 'EPSG:3161'
     grid_cfg.tile_specs.size_row = 256
@@ -132,5 +135,5 @@ def test_data_ingest_pipeline_targeted_harmonization_run(
     pipelines.exec_ingest_data(config)
     out_dpath = config.data.ingestion.output_dpath
     assert os.path.exists(
-        os.path.join(out_dpath, 'data_blocks', 'model_dev', 'catalog.json')
+        os.path.join(out_dpath, 'data_blocks', 'catalog.json')
     )

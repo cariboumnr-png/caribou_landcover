@@ -29,6 +29,7 @@ the immutable raw block catalogue for later experiments.
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
+import landseg.geopipe.harmonize as harmonize
 import landseg.geopipe.ingest as ingest
 
 # aliases
@@ -40,10 +41,10 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
     Run the ingestion pipeline.
 
     Steps:
-    1) Build or load the world grid.
+    1) Load the canonical world grid from harmonization.
     2) Prepare domain knowledge aligned to the grid.
-    3) Build raw `.npz` data blocks, and update `catalog.json` and
-    `schema.json`.
+    3) Build raw canonical `.npz` data blocks, and update `catalog.json` and
+       `schema.json`.
 
     Args:
         config: RootConfig with ingestion settings.
@@ -77,11 +78,11 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
             else artifacts.LifecyclePolicy.BUILD_IF_MISSING
         )
 
-        # ----- generate world grid
-        grid_cfg = config.data.ingestion.grid
+        # ----- load/prepare canonical world grid
+        grid_cfg = config.data.harmonization.grid
         logger.log('INFO', '[START] World grid preparation')
-        grid_config = ingest.GridParameters(
-            mode='ref',
+        grid_config = harmonize.GridParameters(
+            mode=grid_cfg.mode,
             crs=grid_cfg.crs,
             ref_fpath=harmonized.valid_mask_raster,
             origin=grid_cfg.extent.origin,
@@ -90,16 +91,18 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
             grid_shape=grid_cfg.extent.grid_shape,
             tile_specs=grid_cfg.tile_specs_tuple,
         )
-        world_grid = ingest.prepare_world_grid(
-            ingestion_paths.grids.fpath(grid_cfg.tile_specs_tuple),
+        grid_fpath = (
+            harmonized.world_grid_fpath
+            or artifact_paths.data_harmonization.grids.fpath(
+                grid_cfg.tile_specs_tuple
+            )
+        )
+        world_grid = harmonize.prepare_world_grid(
+            grid_fpath,
             grid_config,
             policy=policy,
-            logger=logger,
         )
-
-        assert logger.summary['world_grid'] # typing: should already populate
-        d = logger.summary['world_grid']['duration_sec']
-        logger.log('INFO', f'[COMPLETE] World grid preparation (D_{d:.2f}s)')
+        logger.log('INFO', f'[COMPLETE] World grid loaded: {world_grid.gid}')
 
         # ----- materialize domain maps
         domain_cfg = config.data.ingestion.domains
@@ -109,7 +112,9 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
                 ingest.DomainBuildingParameters(
                     input_fpath=path,
                     domain_fpath=ingestion_paths.domains.domain_map_fpath(name),
-                    tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(name, world_grid.gid),
+                    tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(
+                        name, world_grid.gid
+                    ),
                     index_base=1,
                     valid_threshold=domain_cfg.valid_threshold,
                     target_variance=domain_cfg.target_variance,
@@ -123,58 +128,40 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
             )
 
             d = sum(dm['duration_sec'] for dm in logger.summary['domain_maps'])
-            logger.log('INFO', f'[COMPLETE] Domain maps preparation (D_{d:.2f}s)')
+            logger.log(
+                'INFO',
+                f'[COMPLETE] Domain maps preparation (D_{d:.2f}s)'
+            )
         else:
             logger.log('INFO', '[NOTE] No domain knowledge layers provided')
 
-        # ----- build dev data blocks if provided
-        if not harmonized.has_dev_data:
-            logger.log('INFO', 'Development data rasters not provided')
+        # ----- build canonical data blocks if provided
+        if not harmonized.has_data:
+            logger.log('INFO', 'Harmonized feature/label rasters not provided')
         else:
-            logger.log('INFO', '[START] Development data blocks building')
-            assert harmonized.dev_features # typing, ensured by has_dev_data
+            logger.log('INFO', '[START] Canonical data blocks building')
+            assert harmonized.features
             data_blocks_config = ingest.BlockBuildingParameters(
-                stage='dev',
-                image_fpath=harmonized.dev_features,
-                label_fpath=harmonized.dev_labels,
+                stage='canonical',
+                image_fpath=harmonized.features,
+                label_fpath=harmonized.labels,
                 dem_pad=config.data.ingestion.datablocks.image_dem_pad,
                 ignore_index=config.data.ingestion.datablocks.ignore_index,
             )
             ingest.run_blocks_building(
                 world_grid,
-                ingestion_paths.data_blocks.dev,
+                ingestion_paths.data_blocks,
                 data_blocks_config,
                 policy=policy,
                 logger=logger,
             )
 
-        d = logger.summary['data_blocks']['dev']['duration_sec']
-        logger.log('INFO', f'[COMPLETE] Development data blocks preparation (D_{d:.2f}s)')
-
-        # ----- build test data blocks if provided
-        if not harmonized.has_test_data:
-            logger.log('INFO', '[NOTE] Test holdout dataset not provided')
-        else:
-            logger.log('INFO', '[START] Test data blocks building')
-            assert harmonized.test_features # typing, ensured by has_test_data
-            data_blocks_config = ingest.BlockBuildingParameters(
-                stage='test',
-                image_fpath=harmonized.test_features,
-                label_fpath=harmonized.test_labels,
-                dem_pad=config.data.ingestion.datablocks.image_dem_pad,
-                ignore_index=config.data.ingestion.datablocks.ignore_index,
-            )
-            ingest.run_blocks_building(
-                world_grid,
-                ingestion_paths.data_blocks.test,
-                data_blocks_config,
-                policy=policy,
-                logger=logger,
-            )
-
-            assert logger.summary['data_blocks']['test']
-            d = logger.summary['data_blocks']['test']['duration_sec']
-            logger.log('INFO', f'[COMPLETE] Test data blocks preparation (D_{d:.2f}s)')
+            if 'canonical' in logger.summary['data_blocks']:
+                d = logger.summary['data_blocks']['canonical']['duration_sec']
+                logger.log(
+                    'INFO',
+                    f'[COMPLETE] Canonical data blocks preparation (D_{d:.2f}s)'
+                )
 
         # persist the config -> JSON
         ConfigController(ingestion_paths.config).persist(config.as_dict)

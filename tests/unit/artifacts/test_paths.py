@@ -175,19 +175,19 @@ def test_ingestion_paths():
 def test_data_blocks_paths():
     '''
     Given: A data blocks root directory string.
-    When: Accessing `_DataBlocks` dev/test paths and window map methods.
-    Then: Return expected model dev and test holdout artifact paths.
+    When: Accessing `_DataBlocks` paths and window map methods.
+    Then: Return expected canonical data block artifact paths.
     '''
     b = os.path.join('/tmp', 'exp', 'ingested_data', 'data_blocks')
     db = f_mod._DataBlocks(root=b)
 
-    d = os.path.join(b, 'model_dev')
-    assert db.dev.blocks == os.path.join(d, 'blocks')
-    assert db.dev.catalog == os.path.join(d, 'catalog.json')
-    assert db.dev.schema == os.path.join(d, 'schema.json')
+    assert db.blocks == os.path.join(b, 'blocks')
+    assert db.catalog == os.path.join(b, 'catalog.json')
+    assert db.schema == os.path.join(b, 'schema.json')
 
-    win_path = db.test.mapped_window('g1')
-    assert win_path == os.path.join(db.test.windows, 'windows_g1.json')
+    win_path = db.mapped_window('g1')
+    assert win_path == os.path.join(db.windows, 'windows_g1.json')
+
 
 
 # ----- `PreparationPaths` tests

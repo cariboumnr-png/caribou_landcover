@@ -80,12 +80,13 @@ class IngestionLogger(utils.Logger):
 
     def set_data_blocks_report(
         self,
-        phase: typing.Literal['dev', 'test'],
+        phase: str,
         report: DataBlocksReport
     ) -> None:
-        '''Record the dev or test data blocks report to summary.'''
+        '''Record the data blocks report to summary.'''
         if self.summary is not None:
             self.summary['data_blocks'][phase] = report
+
 
     def set_summary_status(
         self,
