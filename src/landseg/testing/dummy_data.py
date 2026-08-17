@@ -407,7 +407,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         {
             'name': 'sentinel2',
             'path': paths.raw_dev_sentinel2,
-            'category': 'dev_features',
+            'category': 'features',
             'band_mapping': {
                 1: 'blue',
                 2: 'green',
@@ -425,7 +425,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         {
             'name': 'dem',
             'path': paths.raw_dev_dem,
-            'category': 'dev_features',
+            'category': 'features',
             'band_mapping': {
                 1: 'dem'
             },
@@ -434,7 +434,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         {
             'name': 'landcover',
             'path': paths.raw_dev_landcover,
-            'category': 'dev_labels',
+            'category': 'labels',
             'band_mapping': None,
             'label_specs': {
                 'num_cls': 2,
@@ -444,54 +444,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         {
             'name': 'leadspc',
             'path': paths.raw_dev_leadspc,
-            'category': 'dev_labels',
-            'band_mapping': None,
-            'label_specs': {
-                'num_cls': 2,
-                'ignore_cls': [255]
-            }
-        },
-        {
-            'name': 'sentinel2',
-            'path': paths.raw_test_sentinel2,
-            'category': 'test_features',
-            'band_mapping': {
-                1: 'blue',
-                2: 'green',
-                3: 'red',
-                4: 'red_edge1',
-                5: 'red_edge2',
-                6: 'red_edge3',
-                7: 'nir',
-                8: 'narrow_nir',
-                9: 'swir1',
-                10: 'swir2'
-            },
-            'label_specs': None
-        },
-        {
-            'name': 'dem',
-            'path': paths.raw_test_dem,
-            'category': 'test_features',
-            'band_mapping': {
-                1: 'dem'
-            },
-            'label_specs': None
-        },
-        {
-            'name': 'landcover',
-            'path': paths.raw_test_landcover,
-            'category': 'test_labels',
-            'band_mapping': None,
-            'label_specs': {
-                'num_cls': 2,
-                'ignore_cls': [255]
-            }
-        },
-        {
-            'name': 'leadspc',
-            'path': paths.raw_test_leadspc,
-            'category': 'test_labels',
+            'category': 'labels',
             'band_mapping': None,
             'label_specs': {
                 'num_cls': 2,
@@ -499,6 +452,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             }
         }
     ]
+
 
     # write one JSON for each tif
     manifest = []

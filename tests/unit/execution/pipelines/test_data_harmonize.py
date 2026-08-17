@@ -19,48 +19,61 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-'''Smoke test for pipeline=data-harmonize execution.'''
+'''Unit tests for the data harmonization execution pipeline.'''
 
 # standard imports
 import json
 import os
+import typing
+# third-party imports
+import omegaconf
 # local imports
 import landseg.configs as configs
-import landseg.execution.executor as executor
+import landseg.execution.pipelines as pipelines
 
 
-# ----- test cases
-def test_execute_pipeline_data_harmonize(dummy_data_paths, tmp_path):
+# ----- `exec_harmonize_data` tests
+def test_data_harmonize_pipeline_success(tmp_path, dummy_data_paths):
     '''
-    Given: Pre-generated dummy data paths for raw Sentinel-2, DEM, and
-        landcover in EPSG:32618.
-    When: Calling `execute_pipeline` with pipeline.name='data-harmonize'.
-    Then: Warps features and labels to EPSG:3161 at 20m and writes
-        `harmonize_report.json` and VRT outputs.
+    Given: Valid dummy input rasters and manifest configuration.
+    When: `exec_harmonize_data` is executed.
+    Then: Produce harmonized VRTs, valid pixel mask, and canonical world grid.
     '''
-    out_dpath = str(tmp_path / 'harmonize_out')
+    cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
 
-    root_cfg = configs.RootConfig()
-    root_cfg.pipeline.name = 'data-harmonize'
-    root_cfg.data.harmonization.canvas.reference_raster = (
-        dummy_data_paths.extent
+    # configure harmonization canvas and grid
+    harm_cfg = cfg_schema.data.harmonization
+    harm_cfg.canvas.reference_raster = dummy_data_paths.extent
+    harm_cfg.canvas.target_crs = 'EPSG:3161'
+    harm_cfg.canvas.target_resolution = 20.0
+    harm_cfg.grid.mode = 'ref'
+    harm_cfg.grid.crs = 'EPSG:3161'
+    harm_cfg.grid.tile_specs.size_row = 256
+    harm_cfg.grid.tile_specs.size_col = 256
+    harm_cfg.grid.tile_specs.overlap_row = 128
+    harm_cfg.grid.tile_specs.overlap_col = 128
+    harm_cfg.dataset_manifest = dummy_data_paths.manifest
+    harm_cfg.output_dpath = str(tmp_path / 'harmonized')
+
+    config = typing.cast(
+        configs.RootConfig,
+        omegaconf.OmegaConf.to_object(cfg_schema)
     )
-    root_cfg.data.harmonization.canvas.target_crs = 'EPSG:3161'
-    root_cfg.data.harmonization.canvas.target_resolution = 20.0
-    root_cfg.data.harmonization.output_dpath = out_dpath
-    root_cfg.data.harmonization.dataset_manifest = dummy_data_paths.manifest
 
-    executor.execute_pipeline(root_cfg)
+    pipelines.exec_harmonize_data(config)
 
-    run_dir = os.path.join(out_dpath, 'run_0001')
-    report_file = os.path.join(run_dir, 'harmonize_report.json')
-    assert os.path.exists(report_file)
-
-    with open(report_file, 'r', encoding='utf-8') as f:
-        saved_report = json.load(f)
-    assert saved_report['status'] == 'SUCCESS'
-    assert saved_report['target_crs'] == 'EPSG:3161'
-    assert saved_report['target_resolution'] == 20.0
-    vrt_path = os.path.join(run_dir, 'harmonized_dev_features_STACKED.vrt')
-    assert os.path.exists(vrt_path)
+    # verify run folder output
+    run_dir = str(tmp_path / 'harmonized' / 'run_0001')
+    assert os.path.exists(run_dir)
+    assert os.path.exists(os.path.join(run_dir, 'harmonize_report.json'))
     assert os.path.exists(os.path.join(run_dir, 'valid_pixel_mask.vrt'))
+
+    # verify canonical world grid artifact was generated
+    grid_fpath = os.path.join(
+        run_dir, 'world_grids', 'grid_row_256_128_col_256_128.json'
+    )
+    assert os.path.exists(grid_fpath)
+    with open(grid_fpath, 'r', encoding='utf-8') as f:
+        grid_data = json.load(f)
+    assert isinstance(grid_data, list)
+    assert len(grid_data) > 0

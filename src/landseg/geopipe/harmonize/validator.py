@@ -37,13 +37,15 @@ class DatasetConfigItem(typing.TypedDict):
     path: str
     category: typing.Literal[
         'domains',
-        'dev_features,',
-        'dev_labels',
-        'test_features',
-        'test_labels'
+        'domain',
+        'features',
+        'feature',
+        'labels',
+        'label',
     ]
     band_mapping: dict[int, str] | None
     label_specs: geo_core.LabelSpecs | None
+
 
 
 def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:

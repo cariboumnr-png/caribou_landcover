@@ -118,12 +118,9 @@ def test_datablocks_and_data_validation():
     blocks = data._DataBlocks(name='test_blocks')
     blocks.validate()
 
-    grid = data._Grid(
-        mode='ref',
-        crs='EPSG:32617',
-    )
-    df = data._IngestionCfg(grid=grid, datablocks=blocks)
+    df = data._IngestionCfg(datablocks=blocks)
     df.validate()
+
 
 
 # ----- `_HarmonizationCfg` tests

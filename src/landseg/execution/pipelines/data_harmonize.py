@@ -23,6 +23,8 @@
 Data harmonization pipeline command implementation.
 '''
 
+# standard imports
+import os
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
@@ -102,13 +104,46 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
         for name, path in processed.finalized.items():
             logger.add_finalized_raster(name, path)
 
-        # generate valid feature pixel mask if dev feature raster is provided
-        if processed.finalized.get('dev_features'):
-            output_path = processed.finalized['dev_features']
+        # generate valid feature pixel mask if feature raster is provided
+        feature_raster = (
+            processed.finalized.get('features')
+            or processed.finalized.get('dev_features')
+        )
+        if feature_raster:
             mask_path = paths.valid_mask_raster
             logger.log('INFO', f'Generating valid mask raster: {mask_path}')
-            harmonize.unify_nodata_mask(output_path, mask_path)
+            harmonize.unify_nodata_mask(feature_raster, mask_path)
             logger.set_valid_mask_raster(mask_path)
+
+        # build canonical world grid
+        grid_cfg = cfg.grid
+        ref_fpath = (
+            paths.valid_mask_raster
+            if os.path.exists(paths.valid_mask_raster)
+            else cfg.canvas.reference_raster
+        )
+        grid_config = harmonize.GridParameters(
+            mode=grid_cfg.mode,
+            crs=grid_cfg.crs or canvas_spec.crs,
+            ref_fpath=ref_fpath,
+            origin=grid_cfg.extent.origin,
+            pixel_size=(
+                grid_cfg.extent.pixel_size
+                if grid_cfg.extent.pixel_size != (0.0, 0.0)
+                else (canvas_spec.resolution, canvas_spec.resolution)
+            ),
+            grid_extent=grid_cfg.extent.grid_extent,
+            grid_shape=grid_cfg.extent.grid_shape,
+            tile_specs=grid_cfg.tile_specs_tuple,
+        )
+        grid_fpath = paths.grids.fpath(grid_cfg.tile_specs_tuple)
+        logger.log('INFO', f'Building canonical world grid: {grid_fpath}')
+        harmonize.prepare_world_grid(
+            grid_fpath,
+            grid_config,
+            policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING,
+            logger=logger,
+        )
 
         # persist the whole config dict
         artifacts.Controller[dict](paths.config).persist(config.as_dict)

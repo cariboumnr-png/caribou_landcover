@@ -52,17 +52,18 @@ def test_resolve_configs_base(tmp_path):
             'harmonization': {
                 'canvas': {'reference_raster': str(dev_img)},
                 'dataset_manifest': str(cfg_json),
-            },
-            'ingestion': {
-                'datablocks': {
-                    'name': 'test_ds',
-                },
                 'grid': {
                     'mode': 'ref',
                     'crs': 'EPSG:32617',
                 },
             },
+            'ingestion': {
+                'datablocks': {
+                    'name': 'test_ds',
+                },
+            },
         },
+
         'session': {
             'orchestration': {
                 'curriculum': {
