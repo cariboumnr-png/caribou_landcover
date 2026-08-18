@@ -1,3 +1,7 @@
+defaults:
+  - _self_
+  - grid: default
+
 canvas:
   reference_raster: ''
   target_crs: EPSG:3161

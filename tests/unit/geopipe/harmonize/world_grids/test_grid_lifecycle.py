@@ -19,7 +19,10 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=duplicate-code
+
 '''Unit tests for world grid lifecycle management (lifecycle.py).'''
+
 
 # local imports
 import landseg.artifacts as artifacts

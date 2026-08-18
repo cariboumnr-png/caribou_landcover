@@ -36,15 +36,16 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
         'data':{
             'harmonization': {
                 'canvas': {},
-            },
-            'ingestion': {
                 'grid': {
                     'extent': {},
                     'tile_specs': {},
                 },
+            },
+            'ingestion': {
                 'domains': {},
                 'datablocks': {},
             },
+
             'preparation': {
                 'catalog': {},
                 'partition': {},

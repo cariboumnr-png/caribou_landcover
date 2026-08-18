@@ -19,7 +19,10 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=duplicate-code
+
 '''Unit tests for world grid builder (builder.py).'''
+
 
 # third-party imports
 import pytest

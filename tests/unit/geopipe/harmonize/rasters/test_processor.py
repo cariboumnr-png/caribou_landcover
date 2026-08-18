@@ -31,7 +31,8 @@ import typing
 import rasterio
 # local imports
 import landseg.geopipe.harmonize as harmonize
-import landseg.geopipe.harmonize.processor as processor
+import landseg.geopipe.harmonize.rasters.processor as processor
+
 
 
 # ----- `process_source` tests
