@@ -107,17 +107,18 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
 
             source = report_harmonize.get('finalized_rasters')
             assert source, 'Invalid harmonized data source'
-            configured = {
-
-            }
-            configured = {
-                'domains': report_ingest['domain_maps'][0]['input_filepath'],
-                'dev_features': report_ingest['data_blocks']['dev']['image_filepath'],
-                'dev_labels': report_ingest['data_blocks']['dev']['label_filepath'],
-                'test_features': report_ingest['data_blocks']['test']['image_filepath'],
-                'test_labels': report_ingest['data_blocks']['test']['label_filepath'],
-            }
-            if source == configured:
+            canonical_blocks = (
+                report_ingest.get('data_blocks', {}).get('canonical')
+                or report_ingest.get('data_blocks', {}).get('dev')
+                or next(iter(report_ingest.get('data_blocks', {}).values()), {})
+            )
+            image_fp = canonical_blocks.get('image_filepath')
+            label_fp = canonical_blocks.get('label_filepath')
+            if (
+                source.get('features') == image_fp
+                and source.get('labels') == label_fp
+                and not config.data.ingestion.rebuild
+            ):
                 print('\n' + '=' * 80)
                 print(
                     f'[WARNING] Ingesting the same harmonized data source '

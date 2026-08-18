@@ -89,7 +89,11 @@ def run_datablocks_partition(
     summary_ctrl = SplitsSummaryCtrl(paths.splits_summary, policy)
     summary = summary_ctrl.fetch()
 
-    if not (partition_fpaths and summary): # rebuild if either is missing
+    if (
+        policy == artifacts.LifecyclePolicy.REBUILD
+        or not (partition_fpaths and summary)
+    ):
+
         # blocks fpaths
         partition_results = split.create_blocks_partition(
             parsed_catalog.base_class_counts,

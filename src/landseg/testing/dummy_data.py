@@ -22,14 +22,14 @@
 # pylint: disable=missing-function-docstring
 
 '''
-Utility script to generate dummy/mock geospatial datasets (GeoTIFFs)
-and corresponding configurations for local pipeline runs and testing.
+Dummy dataset generator for landseg integration testing and local execution.
 '''
 
 # standard imports
 import dataclasses
 import json
 import os
+import shutil
 import typing
 # third-party imports
 import numpy
@@ -37,7 +37,8 @@ import rasterio
 import rasterio.transform
 import rasterio.warp
 
-# Public Dataclass
+
+# ----- public dataclass
 @dataclasses.dataclass
 class TIFFConfig:
     '''Container for creating a dummy GeoTIFF file via `rasterio`.'''
@@ -48,7 +49,8 @@ class TIFFConfig:
     dtype: typing.Any
     nodata: int | float
 
-# ------------------------------private dataclass------------------------------
+
+# ----- private dataclass
 @dataclasses.dataclass
 class TIFFPaths:
     '''Container for dummy TIFF file paths.'''
@@ -57,7 +59,20 @@ class TIFFPaths:
     @property
     def extent(self) -> str:
         return os.path.abspath(
-            os.path.join(self.root, 'extent_reference/sample_extent.tif')
+            os.path.join(self.root, 'reference_raster/sample_extent.tif')
+        )
+
+    @property
+    def test_aoi(self) -> str:
+        return os.path.abspath(
+            os.path.join(self.root, 'reference_raster/sample_test_aoi.tif')
+        )
+
+    @property
+    def test_aio(self) -> str:
+        '''Alias for test_aoi matching alternative naming.'''
+        return os.path.abspath(
+            os.path.join(self.root, 'reference_raster/sample_test_aio.tif')
         )
 
     @property
@@ -131,19 +146,22 @@ class TIFFPaths:
         return all(
             os.path.exists(p) for p in [
                 self.extent,
+                self.test_aoi,
                 self.domain_1,
                 self.domain_2,
                 self.raw_dev_sentinel2,
                 self.raw_dev_dem,
                 self.raw_dev_landcover,
+                self.raw_dev_leadspc,
                 self.raw_test_sentinel2,
                 self.raw_test_dem,
                 self.raw_test_landcover,
-                self.manifest
+                self.manifest,
             ]
         )
 
-# -------------------------------Public  Function------------------------------
+
+# ----- public function
 def create_dummy_geotiff(
     fpath: str,
     *,
@@ -154,17 +172,10 @@ def create_dummy_geotiff(
 
     Args:
         fpath: Output file path.
-        shape: Height and width in pixels.
-        bands: Number of bands to write.
-        crs: Coordinate Reference System string.
-        transform: Affine geospatial transform.
-        dtype: NumPy datatype of pixels.
+        config: TIFFConfig with shape, bands, crs, transform, dtype, nodata.
         data_gen_func: Callback generating data per band.
     '''
-
-    # make sure output directory exists
     os.makedirs(os.path.dirname(fpath), exist_ok=True)
-    # write GeoTIFF
     with rasterio.open(
         fpath,
         'w',
@@ -181,33 +192,39 @@ def create_dummy_geotiff(
             band_data = data_gen_func(config.shape, b)
             dst.write(band_data, b)
 
-def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
+
+def generate_dummy_data(
+    input_root: str = './experiment/input'
+) -> TIFFPaths:
     '''Generate the full dummy dataset under input root.
 
     Args:
         input_root: Root directory for output files.
     '''
-
     print('Generating dummy geospatial data for landseg pipeline...')
-    # spatial parameters matching configs/user.yaml
     crs = 'EPSG:3161'
     pxs = 20.0
     orig_x = 500000.0
     orig_y = 5000000.0
-    width, height = 512, 512 # this gives 4 256*256 tiles per image
-    shape = (height, width)
+    # 512 height x 768 width gives 2 rows x 3 cols = 6 base blocks in 20m canvas
+    height, width = 512, 768
+    # raw source rasters are generated in 10m resolution (double dimensions)
+    raw_shape = (height * 2, width * 2)
 
-    # combined extent shape covers both dev and test side-by-side
+    # combined extent shape covers dev and test side-by-side
     extent_shape = (height, width * 2)
-
-    # create affine transform for extent reference
     extent_transform = rasterio.transform.from_origin(orig_x, orig_y, pxs, pxs)
 
-    # TIFF file paths
+    # test AOI covers exactly the top-left (0, 0) block (256x256)
+    test_aoi_shape = (256, 256)
+    test_aoi_transform = rasterio.transform.from_origin(
+        orig_x, orig_y, pxs, pxs
+    )
+
     paths = TIFFPaths(root=input_root)
     os.makedirs(paths.root, exist_ok=True)
 
-    # create extent reference (single band constant value on the wide extent)
+    # create extent reference
     print(f'Creating extent reference: {paths.extent}')
     create_dummy_geotiff(
         paths.extent,
@@ -217,12 +234,28 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=crs,
             transform=extent_transform,
             dtype=numpy.uint8,
-            nodata=0
+            nodata=0,
         ),
         data_gen_func=lambda s, b: numpy.ones(s, dtype=numpy.uint8),
     )
 
-    # domain knowledge layers (covering the wide extent)
+    # create test AOI raster
+    print(f'Creating test AOI reference: {paths.test_aoi}')
+    create_dummy_geotiff(
+        paths.test_aoi,
+        config=TIFFConfig(
+            shape=test_aoi_shape,
+            bands=1,
+            crs=crs,
+            transform=test_aoi_transform,
+            dtype=numpy.uint8,
+            nodata=0,
+        ),
+        data_gen_func=lambda s, b: numpy.ones(s, dtype=numpy.uint8),
+    )
+    shutil.copyfile(paths.test_aoi, paths.test_aio)
+
+    # domain knowledge layers
     print(f'Creating domain knowledge 1: {paths.domain_1}')
     create_dummy_geotiff(
         paths.domain_1,
@@ -248,16 +281,15 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             crs=crs,
             transform=extent_transform,
             dtype=numpy.uint8,
-            nodata=255
+            nodata=255,
         ),
         data_gen_func=lambda s, b: numpy.random.randint(
             1, 10, size=s, dtype=numpy.uint8
         ),
     )
 
-    # raw input rasters in a different CRS  to test reprojection
-    utm_crs = 'EPSG:2958' # e.g., EPSG:2958
-    # transform target canvas origin (500000, 5000000 in EPSG:3161) to source
+    # raw input rasters in UTM CRS
+    utm_crs = 'EPSG:2958'
     dev_res = rasterio.warp.transform(
         'EPSG:3161', utm_crs, [500000.0], [5000000.0]
     )
@@ -266,7 +298,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     )
 
     test_res = rasterio.warp.transform(
-        'EPSG:3161', utm_crs, [500000.0 + (width * 10.0)], [5000000.0]
+        'EPSG:3161', utm_crs, [500000.0 + (width * pxs)], [5000000.0]
     )
     utm_test_transform = rasterio.transform.from_origin(
         test_res[0][0], test_res[1][0], 10.0, 10.0
@@ -276,12 +308,12 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     create_dummy_geotiff(
         paths.raw_dev_sentinel2,
         config=TIFFConfig(
-            shape=shape,
+            shape=raw_shape,
             bands=10,
             crs=utm_crs,
             transform=utm_dev_transform,
             dtype=numpy.uint16,
-            nodata=65535
+            nodata=65535,
         ),
         data_gen_func=lambda s, b: numpy.random.randint(
             100, 3000, size=s, dtype=numpy.uint16
@@ -292,12 +324,12 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     create_dummy_geotiff(
         paths.raw_dev_dem,
         config=TIFFConfig(
-            shape=shape,
+            shape=raw_shape,
             bands=1,
             crs=utm_crs,
             transform=utm_dev_transform,
             dtype=numpy.float32,
-            nodata=-9999.9
+            nodata=-9999.9,
         ),
         data_gen_func=lambda s, _: _gen_image_data(s, 1),
     )
@@ -306,12 +338,12 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     create_dummy_geotiff(
         paths.raw_dev_landcover,
         config=TIFFConfig(
-            shape=shape,
+            shape=raw_shape,
             bands=1,
             crs=utm_crs,
             transform=utm_dev_transform,
             dtype=numpy.uint8,
-            nodata=255
+            nodata=255,
         ),
         data_gen_func=_gen_label_data,
     )
@@ -320,12 +352,12 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     create_dummy_geotiff(
         paths.raw_dev_leadspc,
         config=TIFFConfig(
-            shape=shape,
+            shape=raw_shape,
             bands=1,
             crs=utm_crs,
             transform=utm_dev_transform,
             dtype=numpy.uint8,
-            nodata=255
+            nodata=255,
         ),
         data_gen_func=_gen_label_data,
     )
@@ -334,12 +366,12 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     create_dummy_geotiff(
         paths.raw_test_sentinel2,
         config=TIFFConfig(
-            shape=shape,
+            shape=raw_shape,
             bands=10,
             crs=utm_crs,
             transform=utm_test_transform,
             dtype=numpy.uint16,
-            nodata=65535
+            nodata=65535,
         ),
         data_gen_func=lambda s, b: numpy.random.randint(
             100, 3000, size=s, dtype=numpy.uint16
@@ -350,12 +382,12 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     create_dummy_geotiff(
         paths.raw_test_dem,
         config=TIFFConfig(
-            shape=shape,
+            shape=raw_shape,
             bands=1,
             crs=utm_crs,
             transform=utm_test_transform,
             dtype=numpy.float32,
-            nodata=-9999.9
+            nodata=-9999.9,
         ),
         data_gen_func=lambda s, _: _gen_image_data(s, 1),
     )
@@ -364,12 +396,12 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     create_dummy_geotiff(
         paths.raw_test_landcover,
         config=TIFFConfig(
-            shape=shape,
+            shape=raw_shape,
             bands=1,
             crs=utm_crs,
             transform=utm_test_transform,
             dtype=numpy.uint8,
-            nodata=255
+            nodata=255,
         ),
         data_gen_func=_gen_label_data,
     )
@@ -378,31 +410,30 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     create_dummy_geotiff(
         paths.raw_test_leadspc,
         config=TIFFConfig(
-            shape=shape,
+            shape=raw_shape,
             bands=1,
             crs=utm_crs,
             transform=utm_test_transform,
             dtype=numpy.uint8,
-            nodata=255
+            nodata=255,
         ),
         data_gen_func=_gen_label_data,
     )
 
-    # dataset config JSON
     data_configs = [
         {
             'name': 'domain_1',
             'path': paths.domain_1,
             'category': 'domains',
             'band_mapping': None,
-            'label_specs': None
+            'label_specs': None,
         },
         {
             'name': 'domain_2',
             'path': paths.domain_2,
             'category': 'domains',
             'band_mapping': None,
-            'label_specs': None
+            'label_specs': None,
         },
         {
             'name': 'sentinel2',
@@ -418,18 +449,18 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
                 7: 'nir',
                 8: 'narrow_nir',
                 9: 'swir1',
-                10: 'swir2'
+                10: 'swir2',
             },
-            'label_specs': None
+            'label_specs': None,
         },
         {
             'name': 'dem',
             'path': paths.raw_dev_dem,
             'category': 'features',
             'band_mapping': {
-                1: 'dem'
+                1: 'dem',
             },
-            'label_specs': None
+            'label_specs': None,
         },
         {
             'name': 'landcover',
@@ -438,8 +469,8 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'band_mapping': None,
             'label_specs': {
                 'num_cls': 2,
-                'ignore_cls': [255]
-            }
+                'ignore_cls': [255],
+            },
         },
         {
             'name': 'leadspc',
@@ -448,13 +479,11 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'band_mapping': None,
             'label_specs': {
                 'num_cls': 2,
-                'ignore_cls': [255]
-            }
-        }
+                'ignore_cls': [255],
+            },
+        },
     ]
 
-
-    # write one JSON for each tif
     manifest = []
     for cfg in data_configs:
         json_fpath = cfg['path'].replace('tif', 'json')
@@ -463,31 +492,28 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         manifest.append({
             'name': cfg['name'],
             'path': cfg['path'],
-            'config': json_fpath
+            'config': json_fpath,
         })
-    # write a manifest
+
     with open(paths.manifest, 'w', encoding='utf-8') as f:
         json.dump(manifest, f, indent=4)
 
     print('\nDummy data generation completed successfully!')
     return paths
 
-# -------------------------------Private Functions-----------------------------
+
+# ----- private functions
 def _gen_image_data(shape: tuple[int, int], band_idx: int) -> numpy.ndarray:
     '''Generate dummy image band or terrain elevation data.'''
-
-    # first band as DEM (1-based)
     if band_idx == 1:
-        # generates a gradient representing terrain elevation
         x = numpy.linspace(100.0, 300.0, shape[1])
         return numpy.tile(x, (shape[0], 1)).astype(numpy.float32)
-    # random mock values for visual image bands
     return numpy.random.randint(
         100, 1000, size=shape, dtype=numpy.uint16
     )
 
+
 def _gen_label_data(shape: tuple[int, int], _: int) -> numpy.ndarray:
     '''Generate dummy label data with ignore index.'''
-
     labels = numpy.random.choice([1, 2, 255], size=shape, p=[0.45, 0.45, 0.10])
     return labels.astype(numpy.uint8)

@@ -46,8 +46,9 @@ indépendante sans couplage séquentiel strict.
 │   │   ├── sample_domain_1.tif                  # Carte de connaissances du domaine 1
 │   │   └── sample_domain_2.tif                  # Carte de connaissances du domaine 2
 │   │
-│   └── extent_reference/                        # Rasters de référence d'étendue spatiale et de projection
-│       └── sample_extent.tif                    # GeoTIFF de référence d'étendue spatiale (EPSG:3161)
+│   └── reference_raster/                        # Rasters de référence d'étendue spatiale et AOI
+│       ├── sample_extent.tif                    # Raster de référence d'étendue (EPSG:3161)
+│       └── sample_test_aoi.tif                  # Raster AOI de test (EPSG:3161)
 │
 ├── artifacts/                                   # Généré par l'exécution des pipelines
 │   │

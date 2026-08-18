@@ -95,7 +95,7 @@ def run_normalize_blocks(
     # aggregate stats on training blocks
     ctrl = ImageStatsCtrl(paths.image_stats, policy)
     aggregated_stats = ctrl.fetch()
-    if aggregated_stats:
+    if policy != artifacts.LifecyclePolicy.REBUILD and aggregated_stats:
         logger.log('INFO', '[CHECKPOINT] Loaded image stats from training split')
     else:
         aggregated_stats = stats.aggregate_image_stats(train)
@@ -108,7 +108,7 @@ def run_normalize_blocks(
     loaded = transform is not None
 
     purged_total = 0
-    if transform:
+    if policy != artifacts.LifecyclePolicy.REBUILD and transform:
         logger.log('INFO', '[CHECKPOINT] Loaded normalized dataset blocks')
     else:
         transform, purged_total = _normalize(
