@@ -40,12 +40,10 @@ class WorldGridReport(typing.TypedDict):
     '''Summary report for a generated world grid layout.'''
     grid_id: str
     status: typing.Literal['loaded', 'created_and_loaded']
-    grid_filepath: str
     crs: str
     pixel_size: tuple[float, float]
     tile_size: tuple[int, int]
     tile_overlap: tuple[int, int]
-    duration_sec: float
 
 
 class HarmonizationReportSchema(typing.TypedDict):

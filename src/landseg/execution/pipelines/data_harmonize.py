@@ -23,11 +23,10 @@
 Data harmonization pipeline command implementation.
 '''
 
-# standard imports
-import os
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
+import landseg.geopipe.grid as grid
 import landseg.geopipe.harmonize as harmonize
 
 
@@ -42,7 +41,9 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
     Returns:
         Summary report dictionary of the data harmonization execution.
     '''
-    paths = artifacts.ArtifactPaths.from_config(config).data_harmonization
+    root_paths = artifacts.ArtifactPaths.from_config(config)
+
+    paths = root_paths.data_harmonization
     paths.init()
 
     cfg = config.data.harmonization
@@ -73,6 +74,24 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
             f'Starting data harmonization pipeline... '
             f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
         )
+
+        # build/load canonical world grid - TEMP hosting here
+        logger.log('INFO', 'Building/loading canonical world grid')
+        is_loaded, _grid = grid.prepare_world_grid(
+            root_paths.world_grid,
+            config.data.world_grid.mode,
+            config.data.world_grid.params,
+            policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING,
+        )
+        grid_report: harmonize.WorldGridReport = {
+            'grid_id': _grid.gid,
+            'status': 'loaded' if is_loaded else 'created_and_loaded',
+            'crs': str(_grid.crs),
+            'pixel_size': _grid.pixel_size,
+            'tile_size': _grid.tile_size,
+            'tile_overlap': _grid.tile_overlap,
+        }
+        logger.set_world_grid_report(grid_report)
 
         # read dataset JSON config
         compiled = harmonize.compile_dataset_manifest(cfg.dataset_manifest)
@@ -115,35 +134,6 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
             harmonize.unify_nodata_mask(feature_raster, mask_path)
             logger.set_valid_mask_raster(mask_path)
 
-        # build canonical world grid
-        grid_cfg = cfg.grid
-        ref_fpath = (
-            paths.valid_mask_raster
-            if os.path.exists(paths.valid_mask_raster)
-            else cfg.canvas.reference_raster
-        )
-        grid_config = harmonize.GridParameters(
-            mode=grid_cfg.mode,
-            crs=grid_cfg.crs or canvas_spec.crs,
-            ref_fpath=ref_fpath,
-            origin=grid_cfg.extent.origin,
-            pixel_size=(
-                grid_cfg.extent.pixel_size
-                if grid_cfg.extent.pixel_size != (0.0, 0.0)
-                else (canvas_spec.resolution, canvas_spec.resolution)
-            ),
-            grid_extent=grid_cfg.extent.grid_extent,
-            grid_shape=grid_cfg.extent.grid_shape,
-            tile_specs=grid_cfg.tile_specs_tuple,
-        )
-        grid_fpath = paths.grids.fpath(grid_cfg.tile_specs_tuple)
-        logger.log('INFO', f'Building canonical world grid: {grid_fpath}')
-        harmonize.prepare_world_grid(
-            grid_fpath,
-            grid_config,
-            policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING,
-            logger=logger,
-        )
 
         # persist the whole config dict
         artifacts.Controller[dict](paths.config).persist(config.as_dict)

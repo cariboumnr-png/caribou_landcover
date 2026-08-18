@@ -1,5 +1,6 @@
 defaults:
   - _self_
+  - world_grid: default
   - harmonization: default
   - ingestion: default
   - preparation: default

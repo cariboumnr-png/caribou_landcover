@@ -29,7 +29,7 @@ the immutable raw block catalogue for later experiments.
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
-import landseg.geopipe.harmonize as harmonize
+import landseg.geopipe.grid as grid
 import landseg.geopipe.ingest as ingest
 
 # aliases
@@ -78,30 +78,10 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
             else artifacts.LifecyclePolicy.BUILD_IF_MISSING
         )
 
-        # ----- load/prepare canonical world grid
-        grid_cfg = config.data.harmonization.grid
+        # ----- load canonical world grid
+        grid_cfg = config.data.world_grid
         logger.log('INFO', '[START] World grid preparation')
-        grid_config = harmonize.GridParameters(
-            mode=grid_cfg.mode,
-            crs=grid_cfg.crs,
-            ref_fpath=harmonized.valid_mask_raster,
-            origin=grid_cfg.extent.origin,
-            pixel_size=grid_cfg.extent.pixel_size,
-            grid_extent=grid_cfg.extent.grid_extent,
-            grid_shape=grid_cfg.extent.grid_shape,
-            tile_specs=grid_cfg.tile_specs_tuple,
-        )
-        grid_fpath = (
-            harmonized.world_grid_fpath
-            or artifact_paths.data_harmonization.grids.fpath(
-                grid_cfg.tile_specs_tuple
-            )
-        )
-        world_grid = harmonize.prepare_world_grid(
-            grid_fpath,
-            grid_config,
-            policy=policy,
-        )
+        world_grid = grid.build_grid(grid_cfg.mode, grid_cfg.params)
         logger.log('INFO', f'[COMPLETE] World grid loaded: {world_grid.gid}')
 
         # ----- materialize domain maps

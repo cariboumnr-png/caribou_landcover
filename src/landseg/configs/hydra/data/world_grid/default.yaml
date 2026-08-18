@@ -1,0 +1,10 @@
+mode: ref # ref | manual
+params:
+  tile_size: [256, 256]
+  tile_stride: [128, 128]
+  ref_fpath: ''
+  crs_string: epsg:3161
+  origin: [0.0, 0.0] # x, y in CRS units
+  pixel_size: [0.0, 0.0] # x, y positive magnitudes; we assume north up
+  extent_in_crs_units: [0.0, 0.0] # height and width in CRS units
+output_dpath: ${execution.exp_root}/artifacts/world_grids

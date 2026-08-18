@@ -12,6 +12,15 @@
 # Root directory for experiment outputs, logs, and checkpoints
 exp_root: ./experiment
 
+world-grid:
+  output_dpath: ./experiment/artifacts/world_grids
+
+  tile_size: [256, 256]
+  tile_stride: [128, 128]
+
+  extent_reference_raster: ./experiment/input/reference_raster/sample_extent.tif
+
+
 data-harmonize:
   output_dpath: ./experiment/artifacts/harmonized_data
   # ---------------------------------------------------------------------------
@@ -20,8 +29,6 @@ data-harmonize:
   reference_raster: ./experiment/input/reference_raster/sample_extent.tif
   target_crs: EPSG:3161
   target_resolution: 20.0
-  tile_size: 256
-  tile_overlap: 128
 
   # ---------------------------------------------------------------------------
   # Input Source Rasters (Features & Ground-Truth Labels)

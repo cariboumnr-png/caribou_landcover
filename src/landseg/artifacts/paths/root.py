@@ -41,6 +41,7 @@ if typing.TYPE_CHECKING:
 class ArtifactPaths:
     '''Root entrypoint for all artifact path namespaces.'''
     root: str = './experiment'
+    world_grid_root: str | None = None
     harmonization_root: str | None = None
     ingestion_root: str | None = None
     preparation_root: str | None = None
@@ -51,6 +52,7 @@ class ArtifactPaths:
         '''Construct `ArtifactPaths` from a `RootConfig` instance.'''
         return cls(
             root=config.execution.exp_root,
+            world_grid_root=config.data.world_grid.output_dpath,
             harmonization_root=config.data.harmonization.output_dpath,
             ingestion_root=config.data.ingestion.output_dpath,
             preparation_root=config.data.preparation.output_dpath,
@@ -58,37 +60,25 @@ class ArtifactPaths:
         )
 
     @property
+    def world_grid(self) -> str:
+        return self.world_grid_root or os.path.join(self.root, 'world_grids')
+
+    @property
     def data_harmonization(self) -> paths.HarmonizationPaths:
-        r = (
-            self.harmonization_root
-            if self.harmonization_root
-            else os.path.join(self.root, 'harmonized_data')
-        )
+        r = self.harmonization_root or os.path.join(self.root, 'harmonized_data')
         return paths.HarmonizationPaths(r)
 
     @property
     def data_ingestion(self) -> paths.IngestionPaths:
-        r = (
-            self.ingestion_root
-            if self.ingestion_root
-            else os.path.join(self.root, 'ingested_data')
-        )
+        r = self.ingestion_root or os.path.join(self.root, 'ingested_data')
         return paths.IngestionPaths(r)
 
     @property
     def data_preparation(self) -> paths.PreparationPaths:
-        r = (
-            self.preparation_root
-            if self.preparation_root
-            else os.path.join(self.root, 'prepared_data')
-        )
+        r = self.preparation_root or os.path.join(self.root, 'prepared_data')
         return paths.PreparationPaths(r)
 
     @property
     def session(self) -> paths.SessionPaths:
-        r = (
-            self.session_root
-            if self.session_root
-            else os.path.join(self.root, 'results')
-        )
+        r = self.session_root or os.path.join(self.root, 'results')
         return paths.SessionPaths(root=r)
