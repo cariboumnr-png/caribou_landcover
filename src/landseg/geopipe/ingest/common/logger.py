@@ -65,7 +65,7 @@ class IngestionLogger(utils.Logger):
             'status': 'SUCCESS',
             'world_grid': None,
             'domain_maps': [],
-            'data_blocks': {}
+            'data_blocks': None
         }
 
     def set_world_grid_report(self, report: WorldGridReport) -> None:
@@ -80,13 +80,11 @@ class IngestionLogger(utils.Logger):
 
     def set_data_blocks_report(
         self,
-        phase: str,
         report: DataBlocksReport
     ) -> None:
         '''Record the data blocks report to summary.'''
         if self.summary is not None:
-            self.summary['data_blocks'][phase] = report
-
+            self.summary['data_blocks'] = report
 
     def set_summary_status(
         self,

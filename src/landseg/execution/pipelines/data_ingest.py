@@ -122,7 +122,6 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
             logger.log('INFO', '[START] Canonical data blocks building')
             assert harmonized.features
             data_blocks_config = ingest.BlockBuildingParameters(
-                stage='canonical',
                 image_fpath=harmonized.features,
                 label_fpath=harmonized.labels,
                 dem_pad=config.data.ingestion.datablocks.image_dem_pad,
@@ -136,12 +135,12 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
                 logger=logger,
             )
 
-            if 'canonical' in logger.summary['data_blocks']:
-                d = logger.summary['data_blocks']['canonical']['duration_sec']
-                logger.log(
-                    'INFO',
-                    f'[COMPLETE] Canonical data blocks preparation (D_{d:.2f}s)'
-                )
+            assert logger.summary['data_blocks'] # typing
+            d = logger.summary['data_blocks']['duration_sec']
+            logger.log(
+                'INFO',
+                f'[COMPLETE] Canonical data blocks preparation (D_{d:.2f}s)'
+            )
 
         # persist the config -> JSON
         ConfigController(ingestion_paths.config).persist(config.as_dict)

@@ -107,11 +107,7 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
 
             source = report_harmonize.get('finalized_rasters')
             assert source, 'Invalid harmonized data source'
-            canonical_blocks = (
-                report_ingest.get('data_blocks', {}).get('canonical')
-                or report_ingest.get('data_blocks', {}).get('dev')
-                or next(iter(report_ingest.get('data_blocks', {}).values()), {})
-            )
+            canonical_blocks = report_ingest.get('data_blocks', {})
             image_fp = canonical_blocks.get('image_filepath')
             label_fp = canonical_blocks.get('label_filepath')
             if (

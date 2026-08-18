@@ -118,6 +118,5 @@ def build_grid(
     else:
         raise ValueError(f'Invalid extent mode: {mode}')
 
-    _mode = 'bbox' # now constant
-    output_grid = geo_core.GridLayout(_mode, grid_spec)
+    output_grid = geo_core.GridLayout(grid_spec)
     return output_grid

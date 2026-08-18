@@ -87,11 +87,11 @@ class GridSpec:
     origin: tuple[float, float]                   # x, y in CRS units
     pixel_size: tuple[float, float]               # xsize, ysize in CRS units
     tile_size: tuple[int, int]                    # rows, cols in pixels
-    tile_overlap: tuple[int, int]                 # rows, cols in pixels
+    tile_stride: tuple[int, int]                  # rows, cols in pixels
     grid_extent: tuple[float, float]              # H_y, W_x in in CRS units
 
     def __post_init__(self):
-        ts, to = self.tile_size, self.tile_overlap
+        ts, to = self.tile_size, self.tile_stride
         if not (to[0] < ts[0] and to[1] < ts[1]):
             raise ValueError('Overlap must be smaller than block size.')
 
@@ -224,8 +224,8 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
             W128) will have a gid as `'grid_row_256_128_col_256_128'`.
         '''
         return (
-            f'grid_row_{self._spec.tile_size[0]}_{self._spec.tile_overlap[0]}_'
-            f'col_{self._spec.tile_size[1]}_{self._spec.tile_overlap[0]}'
+            f'grid_row_{self._spec.tile_size[0]}_{self._spec.tile_stride[0]}_'
+            f'col_{self._spec.tile_size[1]}_{self._spec.tile_stride[0]}'
         )
 
     @property
@@ -251,7 +251,7 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
     @property
     def tile_overlap(self) -> tuple[int, int]:
         '''Return the overlap between adjacent tiles in pixels.'''
-        return self._spec.tile_overlap
+        return self._spec.tile_stride
 
     @property
     def extent(self) -> tuple[int, int]:
@@ -386,8 +386,8 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
         row_px = math.floor(spec.grid_extent[0] / spec.pixel_size[1])
         col_px = math.floor(spec.grid_extent[1] / spec.pixel_size[0])
         # iterate through the blocks by row then col
-        ystep = spec.tile_size[0] - spec.tile_overlap[0]
-        xstep = spec.tile_size[1] - spec.tile_overlap[1]
+        ystep = spec.tile_size[0] - spec.tile_stride[0]
+        xstep = spec.tile_size[1] - spec.tile_stride[1]
         for y in range(0, row_px, ystep):
             for x in range(0, col_px, xstep):
                 # dynamically adjust window size to stay within bounds

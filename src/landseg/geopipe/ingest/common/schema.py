@@ -87,4 +87,4 @@ class IngestReportSchema(typing.TypedDict):
     status: typing.Literal['SUCCESS', 'FAILED']
     world_grid: WorldGridReport | None
     domain_maps: list[DomainMapReport]
-    data_blocks: dict[typing.Literal['dev', 'test'], DataBlocksReport]
+    data_blocks: DataBlocksReport | None

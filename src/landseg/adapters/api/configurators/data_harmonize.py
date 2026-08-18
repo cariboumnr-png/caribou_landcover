@@ -76,17 +76,15 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
     def set_grid(
         self,
         tile_size: int = 256,
-        tile_overlap: int = 0,
+        tile_stride: int = 0,
         crs: str = '',
         mode: str = 'ref',
     ) -> typing.Self:
         '''Set study extent and grid specs.'''
-        self._cfg.data.harmonization.grid.mode = mode
-        self._cfg.data.harmonization.grid.crs = crs
-        self._cfg.data.harmonization.grid.tile_specs.size_row = tile_size
-        self._cfg.data.harmonization.grid.tile_specs.size_col = tile_size
-        self._cfg.data.harmonization.grid.tile_specs.overlap_row = tile_overlap
-        self._cfg.data.harmonization.grid.tile_specs.overlap_col = tile_overlap
+        self._cfg.data.world_grid.mode = mode
+        self._cfg.data.world_grid.params.crs_string = crs
+        self._cfg.data.world_grid.params.tile_size = (tile_size, tile_size)
+        self._cfg.data.world_grid.params.tile_stride = (tile_stride, tile_stride)
         return self
 
     def set_output_dpath(self, output_dpath: str) -> typing.Self:
