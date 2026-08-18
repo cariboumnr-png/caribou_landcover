@@ -31,7 +31,12 @@ and analysis.
 
 # standard imports
 import dataclasses
+import os
 import typing
+# third-party imports
+import rasterio
+import rasterio.errors
+import rasterio.transform
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
@@ -48,6 +53,8 @@ class _CatalogViewConfig(typing.Protocol):
     @property
     def focal_target(self) -> str | None: ...
     @property
+    def test_catalog(self) -> str | None: ...
+    @property
     def non_overlapping_test_grid(self) -> bool: ...
 
 
@@ -59,6 +66,10 @@ class DataBlocksView:
     valid_class_counts: dict[tuple[int, int], list[int]]
     blocks: dict[tuple[int, int], str]
     external_test_blocks: list[str] | None = None
+    canvas_crs: str = 'EPSG:3161'
+    canvas_transform: rasterio.transform.Affine = (
+        rasterio.transform.Affine.identity()
+    )
 
     @property
     def dev_base_class_counts(self) -> dict[tuple[int, int], list[int]]:
@@ -107,10 +118,15 @@ def data_blocks_adapter(
     Returns:
         DataBlocksView containing filtered metadata for partitioning.
     '''
+    effective_config = config or kwargs.get('config')
     effective_catalog = catalog or kwargs.get('dev_catalog')
     effective_schema = schema or kwargs.get('dev_schema')
-    effective_test_catalog = test_catalog or kwargs.get('test_catalog')
-    effective_config = config or kwargs.get('config')
+    effective_test_catalog = (
+        test_catalog
+        or (getattr(effective_config, 'test_catalog', None)
+            if effective_config else None)
+        or kwargs.get('test_catalog')
+    )
 
     assert effective_catalog is not None
     assert effective_schema is not None
@@ -119,6 +135,23 @@ def data_blocks_adapter(
     # load schema
     data_schema = SchemaCtrl.load_json_or_fail(effective_schema).fetch()
     assert data_schema
+
+    # resolve canvas crs and transform from image source
+    canvas_crs = 'EPSG:3161'
+    canvas_transform = rasterio.transform.Affine.identity()
+    image_paths = (
+        data_schema.get('dataset', {})
+        .get('data_source', {})
+        .get('image_paths', [])
+    )
+    if image_paths and os.path.exists(image_paths[0]):
+        try:
+            with rasterio.open(image_paths[0]) as src:
+                if src.crs:
+                    canvas_crs = src.crs.to_string()
+                canvas_transform = src.transform
+        except rasterio.errors.RasterioError:
+            pass
 
     # get block size from schema
     image_shape = data_schema['tensor_shapes']['image']
@@ -162,8 +195,11 @@ def data_blocks_adapter(
         base_class_counts=main_parsed.base_class_counts,
         valid_class_counts=main_parsed.valid_class_counts,
         blocks=main_parsed.valid_file_paths,
-        external_test_blocks=test_blocks
+        external_test_blocks=test_blocks,
+        canvas_crs=canvas_crs,
+        canvas_transform=canvas_transform,
     )
+
 
 
 

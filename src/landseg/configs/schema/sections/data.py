@@ -184,7 +184,9 @@ class _IngestionCfg:
 class _CatalogView:
     valid_pxs: dict[str, float] = field(default_factory=lambda: {'image': 0.9})
     focal_target: str | None = None
+    test_catalog: str | None = None
     non_overlapping_test_grid: bool = True
+
 
     def validate(self):
         for k, v in self.valid_pxs.items():
@@ -195,10 +197,16 @@ class _Partition:
     val_ratio: float = 0.1
     test_ratio: float = 0.0
     buffer_step: int = 1
+    train_aoi: str | None = None
+    val_aoi: str | None = None
+    test_aoi: str | None = None
+    aoi_min_overlap: float = 0.5
 
     def validate(self):
         utils.must_within(self.val_ratio, 'validation block ratio', 0, 1)
         utils.must_within(self.test_ratio, 'test holdout block ratio', 0, 1)
+        utils.must_within(self.aoi_min_overlap, 'AOI minimum overlap ratio', 0, 1)
+
 
 @dataclasses.dataclass
 class _Scoring:

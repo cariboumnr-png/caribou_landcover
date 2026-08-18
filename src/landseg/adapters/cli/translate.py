@@ -28,9 +28,9 @@ import typing
 # third-party imports
 import omegaconf
 
+
 def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
     '''Translate user.yaml DictConfig into RootConfig overrides.'''
-
     translated: dict[str, typing.Any] = {
         'execution': {},
         'data':{
@@ -89,7 +89,6 @@ def _translate_data_harmonize(
     translated: dict
 ) -> None:
     '''Map data-harmonize settings to harmonization fields.'''
-
     mapping = {
         'target_crs': ['data.harmonization.canvas.target_crs'],
         'target_resolution': ['data.harmonization.canvas.target_resolution'],
@@ -139,16 +138,25 @@ def _translate_data_prepare(
     translated: dict
 ) -> None:
     '''Map data-prepare settings to preparation fields.'''
-
     mapping = {
         'val_ratio': ['data.preparation.partition.val_ratio'],
         'test_ratio': ['data.preparation.partition.test_ratio'],
+        'buffer_step': ['data.preparation.partition.buffer_step'],
+        'train_aoi': ['data.preparation.partition.train_aoi'],
+        'val_aoi': ['data.preparation.partition.val_aoi'],
+        'test_aoi': ['data.preparation.partition.test_aoi'],
+        'aoi_min_overlap': ['data.preparation.partition.aoi_min_overlap'],
         'target_head': ['data.preparation.catalog.focal_target'],
         'reward_classes': ['data.preparation.scoring.reward'],
+        'test_catalog': ['data.preparation.catalog.test_catalog'],
+        'non_overlapping_test_grid': [
+            'data.preparation.catalog.non_overlapping_test_grid'
+        ],
         'rebuild': ['data.preparation.rebuild'],
         'output_dpath': ['data.preparation.output_dpath'],
     }
     _apply_mapping(preparation, translated, mapping)
+
 
 
 def _translate_model_train(
@@ -156,7 +164,6 @@ def _translate_model_train(
     translated: dict
 ) -> None:
     '''Map model-train settings to models and session fields.'''
-
     mapping = {
         'exp_root': ['execution.exp_root'],
         'model_body': ['models.model_body'],
@@ -194,6 +201,7 @@ def _translate_model_train(
         ['session.orchestration.curriculum.single.phases'],
         [phase]
     )
+
 
 def _apply_mapping(
     src: omegaconf.DictConfig,

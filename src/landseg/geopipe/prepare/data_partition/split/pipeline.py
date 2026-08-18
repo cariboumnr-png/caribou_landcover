@@ -20,19 +20,18 @@
 # =========================================================================== #
 
 '''
-Dataset partitioning pipeline.
-
-Consumes a canonical blocks catalog and produces experiment-specific
-dataset splits (train/val/test) based on stratified sampling, spatial
-buffering, and class-balance heuristics. Outputs split manifests and
-label statistics for downstream normalization and schema generation.
+Core partitioning pipeline for data blocks.
 '''
 
 # standard imports
 import dataclasses
 import os
+# third-party imports
+import rasterio
+import rasterio.transform
 # local imports
 import landseg.geopipe.core as geo_core
+import landseg.geopipe.prepare.common as common
 import landseg.geopipe.prepare.data_partition.split as split
 
 
@@ -48,6 +47,12 @@ class PartitionParameters:
     max_skew_rate: float
     block_spec: tuple[int, int, int, int]
     # row_size, col_size, row_stride, col_stride
+    train_aoi: str | None = None
+    val_aoi: str | None = None
+    test_aoi: str | None = None
+    aoi_min_overlap: float = 0.5
+    canvas_crs: str = 'EPSG:3161'
+    canvas_transform: rasterio.transform.Affine | None = None
 
 
 # ----- `PartitionResults` container
@@ -66,18 +71,29 @@ def create_blocks_partition(
     valid_blocks: dict[tuple[int, int], str],
     config: PartitionParameters,
     *,
-    ext_test_blks: list[str] | None
+    ext_test_blks: list[str] | None = None,
+    logger: common.PreparationLogger | None = None,
 ) -> PartitionResults:
-    '''Split blocks with spatial safety and class balance.'''
-    # ----- initial splitting from ratios
-    raw_splits = split.stratified_splitter(
-        base_class_counts,
-        val_ratio=config.val_test_ratios[0],
-        test_ratio=(0 if ext_test_blks else config.val_test_ratios[1]),
-        weight_mode = 'inverse' # default
-    )
+    '''Split blocks with spatial safety, AOI selection, and class balance.'''
+    has_aoi = bool(config.train_aoi or config.val_aoi or config.test_aoi)
 
-    # ------ hydration process (optional)
+    if has_aoi:
+        raw_splits = _split_by_aoi(
+            base_class_counts,
+            valid_blocks,
+            config,
+            ext_test_blks=ext_test_blks,
+            logger=logger,
+        )
+    else:
+        raw_splits = split.stratified_splitter(
+            base_class_counts,
+            val_ratio=config.val_test_ratios[0],
+            test_ratio=(0.0 if ext_test_blks else config.val_test_ratios[1]),
+            weight_mode='inverse',
+        )
+
+    # hydration process (optional)
     if bool(config.reward_ratios):
         # filter candidate blocks for hydration
         safe_candidates = split.filter_safe_tiles(
@@ -127,6 +143,105 @@ def create_blocks_partition(
 
 
 # ----- internal helpers
+def _split_by_aoi(
+    base_class_counts: dict[tuple[int, int], list[int]],
+    valid_blocks: dict[tuple[int, int], str],
+    config: PartitionParameters,
+    *,
+    ext_test_blks: list[str] | None,
+    logger: common.PreparationLogger | None,
+) -> split.SplitsResult:
+    '''Resolve AOI partitions and automatically split remaining blocks.'''
+    transform = config.canvas_transform or rasterio.transform.Affine.identity()
+    block_size = (config.block_spec[0], config.block_spec[1])
+
+    aoi_res = split.resolve_aoi_partitions(
+        list(valid_blocks.keys()),
+        train_aoi=config.train_aoi,
+        val_aoi=config.val_aoi,
+        test_aoi=config.test_aoi,
+        block_size=block_size,
+        canvas_crs=config.canvas_crs,
+        canvas_transform=transform,
+        min_overlap=config.aoi_min_overlap,
+        logger=logger,
+    )
+
+    test_coords = [c for c in aoi_res.test if c in base_class_counts]
+    val_coords = [c for c in aoi_res.val if c in base_class_counts]
+    train_coords = [c for c in aoi_res.train if c in base_class_counts]
+    unassigned = [c for c in aoi_res.unassigned if c in base_class_counts]
+
+    # auto-split unassigned blocks if ratio requested and not explicitly set
+    if unassigned:
+        unassigned_counts = {c: base_class_counts[c] for c in unassigned}
+        auto_test_ratio = 0.0 if (config.test_aoi or ext_test_blks) else config.val_test_ratios[1]
+        auto_val_ratio = 0.0 if config.val_aoi else config.val_test_ratios[0]
+
+        if auto_val_ratio > 0.0 or auto_test_ratio > 0.0:
+            auto_splits = split.stratified_splitter(
+                unassigned_counts,
+                val_ratio=auto_val_ratio,
+                test_ratio=auto_test_ratio,
+                weight_mode='inverse',
+            )
+            val_coords.extend(auto_splits.val)
+            test_coords.extend(auto_splits.test)
+            if not config.train_aoi:
+                train_coords.extend(auto_splits.train)
+        elif not config.train_aoi:
+            train_coords.extend(unassigned)
+
+    # enforce spatial buffer on training blocks against val and test
+    if config.buffer_step > 0 and (val_coords or test_coords):
+        safe_train = split.filter_safe_tiles(
+            train_coords,
+            val_coords + test_coords,
+            block_size=config.block_spec[0],
+            block_stride=config.block_spec[2],
+            buffer_steps=config.buffer_step,
+        )
+        if len(safe_train) < len(train_coords) and logger is not None:
+            excluded = len(train_coords) - len(safe_train)
+            logger.log(
+                'WARNING',
+                f'Pruned {excluded} training block(s) bordering val/test buffer zone.'
+            )
+        train_coords = safe_train
+
+    # aggregate class counts
+    n_classes = len(next(iter(base_class_counts.values()))) if base_class_counts else 0
+    train_cls = [0] * n_classes
+    val_cls = [0] * n_classes
+    test_cls = [0] * n_classes
+    global_cls = [0] * n_classes
+
+    for c in train_coords:
+        for idx, count in enumerate(base_class_counts[c]):
+            train_cls[idx] += count
+            global_cls[idx] += count
+
+    for c in val_coords:
+        for idx, count in enumerate(base_class_counts[c]):
+            val_cls[idx] += count
+            global_cls[idx] += count
+
+    for c in test_coords:
+        for idx, count in enumerate(base_class_counts[c]):
+            test_cls[idx] += count
+            global_cls[idx] += count
+
+    return split.SplitsResult(
+        train=train_coords,
+        val=val_coords,
+        test=test_coords,
+        train_class_count=tuple(train_cls),
+        val_class_count=tuple(val_cls),
+        test_class_count=tuple(test_cls),
+        global_class_count=tuple(global_cls),
+    )
+
+
 def _finalize_partition(
     valid_blocks: dict[tuple[int, int], str],
     splits: split.SplitsResult,
@@ -145,15 +260,14 @@ def _finalize_partition(
             indexed[name] = fpath # name is the same as core.xy_name()
         return indexed
 
-    # get block fpaths for each split
-    train = [valid_blocks[c] for c in splits.train + additional_train]
-    val = [valid_blocks[c] for c in splits.val]
-    test = [valid_blocks[c] for c in splits.test] + (ext_test_blks or [])
+    train = [valid_blocks[c] for c in splits.train + additional_train if c in valid_blocks]
+    val = [valid_blocks[c] for c in splits.val if c in valid_blocks]
+    test = [valid_blocks[c] for c in splits.test if c in valid_blocks] + (ext_test_blks or [])
 
     # leakage sanity checks
     leak = set(train) & set(val)
     if leak:
-        raise ValueError (f'Data leaked between [train] and [val]! {leak}')
+        raise ValueError(f'Data leaked between [train] and [val]! {leak}')
 
     leak = set(train) & set(test)
     if leak:

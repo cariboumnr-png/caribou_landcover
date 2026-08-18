@@ -53,18 +53,35 @@ data-ingest:
 data-prepare:
   output_dpath: ./experiment/artifacts/prepared_data
   # ---------------------------------------------------------------------------
-  # Dataset Splitting & Class Balancing
+  # Geographic AOI Block Selection (Optional)
   # ---------------------------------------------------------------------------
-  # Ratio of data blocks partitioned for validation (0.0 to 1.0)
+  # Explicit GeoTIFF raster paths for selecting blocks (null to use auto-split):
+  test_aoi: null
+  val_aoi: null
+  train_aoi: null
+  # Minimum block overlap ratio with AOI raster to be selected (0.0 to 1.0)
+  aoi_min_overlap: 0.5
+  # External test dataset catalog (optional alternative to test_aoi)
+  test_catalog: null
+  # Include only non-overlapping base grid blocks from test catalog
+  non_overlapping_test_grid: true
+
+  # ---------------------------------------------------------------------------
+  # Automated Splitting & Class Balancing (For unassigned candidate pool)
+  # ---------------------------------------------------------------------------
+  # Ratio of unassigned blocks partitioned for validation (0.0 to 1.0)
   val_ratio: 0.15
-  # Test partition ratio (ignored if explicit test files provided above)
-  test_ratio: 0.10
+  # Test partition ratio from unassigned pool (0.0 to disable test split)
+  test_ratio: 0.00
+  # Spatial buffer step distance to prevent spatial leakage into training
+  buffer_step: 1
   # Oversampling target head name (null to disable)
   target_head: null
   # Map of class index (0-based) to oversampling reward (e.g., {1: 2.0})
   reward_classes: {}
   # Force rebuild splits & normalization even if they exist
   rebuild: false
+
 
 model-train:
   output_dpath: ./experiment/results

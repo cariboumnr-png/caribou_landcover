@@ -96,7 +96,8 @@ def run_datablocks_partition(
             parsed_catalog.valid_class_counts,
             parsed_catalog.blocks,
             partition_config,
-            ext_test_blks=parsed_catalog.external_test_blocks
+            ext_test_blks=parsed_catalog.external_test_blocks,
+            logger=logger,
         )
 
         partition_fpaths = partition_results.partition_fpaths
