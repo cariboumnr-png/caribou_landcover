@@ -31,7 +31,12 @@ and analysis.
 
 # standard imports
 import dataclasses
+import os
 import typing
+# third-party imports
+import rasterio
+import rasterio.errors
+import rasterio.transform
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
@@ -48,17 +53,38 @@ class _CatalogViewConfig(typing.Protocol):
     @property
     def focal_target(self) -> str | None: ...
     @property
+    def test_catalog(self) -> str | None: ...
+    @property
     def non_overlapping_test_grid(self) -> bool: ...
 
 
 @dataclasses.dataclass(frozen=True)
 class DataBlocksView:
-    '''High-level view of data blocks from dev and optional test data.'''
+    '''High-level view of data blocks for partitioning.'''
     focal_head: str
-    dev_base_class_counts: dict[tuple[int, int], list[int]]
-    dev_valid_class_counts: dict[tuple[int, int], list[int]]
-    dev_blocks: dict[tuple[int, int], str]
-    external_test_blocks: list[str] | None
+    base_class_counts: dict[tuple[int, int], list[int]]
+    valid_class_counts: dict[tuple[int, int], list[int]]
+    blocks: dict[tuple[int, int], str]
+    external_test_blocks: list[str] | None = None
+    canvas_crs: str = 'EPSG:3161'
+    canvas_transform: rasterio.transform.Affine = (
+        rasterio.transform.Affine.identity()
+    )
+
+    @property
+    def dev_base_class_counts(self) -> dict[tuple[int, int], list[int]]:
+        '''Backward compatibility property.'''
+        return self.base_class_counts
+
+    @property
+    def dev_valid_class_counts(self) -> dict[tuple[int, int], list[int]]:
+        '''Backward compatibility property.'''
+        return self.valid_class_counts
+
+    @property
+    def dev_blocks(self) -> dict[tuple[int, int], str]:
+        '''Backward compatibility property.'''
+        return self.blocks
 
 
 @dataclasses.dataclass
@@ -71,85 +97,110 @@ class _Parsed:
 
 
 def data_blocks_adapter(
-    dev_catalog: str,
-    dev_schema: str,
-    test_catalog: str,
-    config: _CatalogViewConfig
+    catalog: str | None = None,
+    schema: str | None = None,
+    config: _CatalogViewConfig | None = None,
+    test_catalog: str | None = None,
+    **kwargs: typing.Any,
 ) -> DataBlocksView:
     '''
-    Load and adapt development and test blocks into a structured view.
+    Load and adapt canonical blocks into a structured view for partitioning.
 
     Filters blocks based on a minimum valid-pixel threshold, derives
-    class counts, and optionally restricts test blocks to the base grid
-    (non-overlapping).
+    class counts, and optionally incorporates external holdout test blocks.
 
     Args:
-        dev_catalog: Path to development blocks catalog JSON.
-        dev_schema: Path to dataset schema JSON.
-        test_catalog: Path to external test blocks catalog JSON.
-        valid_thresholds: Dictionary mapping metric names to minimum
-            fraction of valid pixels required for a block to be included.
-        focal_target: Label head name used to derive class counts for
-            partitioning.
-        non_overlapping_test_grid: If True, restrict test blocks to the
-            base non-overlapping grid aligned with schema block size.
+        catalog: Path to canonical blocks catalog JSON.
+        schema: Path to dataset schema JSON.
+        config: Catalog view configuration.
+        test_catalog: Optional path to external holdout catalog JSON.
 
     Returns:
-        DataBlocksView containing filtered dev metadata and optional
-        test blocks.
-
-    Note:
-        Currently we only support a single focal target.
+        DataBlocksView containing filtered metadata for partitioning.
     '''
-    # try load schema first
-    data_schema = SchemaCtrl.load_json_or_fail(dev_schema).fetch()
-    assert data_schema # typing assertion
+    effective_config = config or kwargs.get('config')
+    effective_catalog = catalog or kwargs.get('dev_catalog')
+    effective_schema = schema or kwargs.get('dev_schema')
+    effective_test_catalog = (
+        test_catalog
+        or (getattr(effective_config, 'test_catalog', None)
+            if effective_config else None)
+        or kwargs.get('test_catalog')
+    )
+
+    assert effective_catalog is not None
+    assert effective_schema is not None
+    assert effective_config is not None
+
+    # load schema
+    data_schema = SchemaCtrl.load_json_or_fail(effective_schema).fetch()
+    assert data_schema
+
+    # resolve canvas crs and transform from image source
+    canvas_crs = 'EPSG:3161'
+    canvas_transform = rasterio.transform.Affine.identity()
+    image_paths = (
+        data_schema.get('dataset', {})
+        .get('data_source', {})
+        .get('image_paths', [])
+    )
+    if image_paths and os.path.exists(image_paths[0]):
+        try:
+            with rasterio.open(image_paths[0]) as src:
+                if src.crs:
+                    canvas_crs = src.crs.to_string()
+                canvas_transform = src.transform
+        except rasterio.errors.RasterioError:
+            pass
 
     # get block size from schema
     image_shape = data_schema['tensor_shapes']['image']
     blk_size = (image_shape['H'], image_shape['W'])
 
-    # parse dev data catalog
-    if config.focal_target:
-        assert config.focal_target in data_schema['labels']['label_ignore_cls']
-    dev = _parse(
-        dev_catalog,
-        blk_size,
-        config.valid_pxs,
-        focal_target=config.focal_target
-     )
-    # try parse test data catalog
-    try:
-        test = _parse(
-            test_catalog,
-            blk_size,
-            config.valid_pxs,
-            focal_target=config.focal_target
+    # parse catalog
+    if effective_config.focal_target:
+        assert (
+            effective_config.focal_target
+            in data_schema['labels']['label_ignore_cls']
         )
-    except artifacts.ArtifactError:
-        test = None
-
-    # get test blocks
-    if not test:
-        test_blocks = None
-    else:
-    # whether to filter test blocks only on a non-overlapping grid (base)
-        if config.non_overlapping_test_grid:
-            test_blocks = list(
-                v for k, v in test.valid_file_paths.items()
-                if k in test.base_class_counts
-            )
-        else:
-            test_blocks = list(test.valid_file_paths.values())
-
-    # return
-    return DataBlocksView(
-        focal_head=dev.focal_head,
-        dev_base_class_counts=dev.base_class_counts,
-        dev_valid_class_counts=dev.valid_class_counts,
-        dev_blocks=dev.valid_file_paths,
-        external_test_blocks=test_blocks
+    main_parsed = _parse(
+        effective_catalog,
+        blk_size,
+        effective_config.valid_pxs,
+        focal_target=effective_config.focal_target
     )
+
+    # optionally parse test data catalog if provided
+    test_blocks = None
+    if effective_test_catalog:
+        try:
+            test_parsed = _parse(
+                effective_test_catalog,
+                blk_size,
+                effective_config.valid_pxs,
+                focal_target=effective_config.focal_target
+            )
+            if effective_config.non_overlapping_test_grid:
+                test_blocks = list(
+                    v for k, v in test_parsed.valid_file_paths.items()
+                    if k in test_parsed.base_class_counts
+                )
+            else:
+                test_blocks = list(test_parsed.valid_file_paths.values())
+        except artifacts.ArtifactError:
+            test_blocks = None
+
+    return DataBlocksView(
+        focal_head=main_parsed.focal_head,
+        base_class_counts=main_parsed.base_class_counts,
+        valid_class_counts=main_parsed.valid_class_counts,
+        blocks=main_parsed.valid_file_paths,
+        external_test_blocks=test_blocks,
+        canvas_crs=canvas_crs,
+        canvas_transform=canvas_transform,
+    )
+
+
 
 
 def _parse(
@@ -159,13 +210,12 @@ def _parse(
     *,
     focal_target: str | None = None
 ) -> _Parsed:
-    '''Parse acatalog JSON into filtered class counts and file paths.'''
-    # read catalog JSON to instantiate a class object
+    '''Parse a catalog JSON into filtered class counts and file paths.'''
     catalog_dict = CatalogDictCtrl.load_json_or_fail(fpath).fetch()
-    assert catalog_dict # typing assertion
+    assert catalog_dict
     catalog = geo_core.DataCatalog.from_dict(catalog_dict)
 
-    # TEMP fallback to the first target if no focus target is specified
+    # fallback to the first target if no focus target is specified
     if not focal_target:
         class_count = next(iter(catalog.values()))['class_count']
         focal_target = next(iter(class_count.keys()))
@@ -183,7 +233,6 @@ def _parse(
     row_size, col_size = block_size
     base_catalog = {
         k: v for k, v in work_catalog.items()
-        # both row and col are divisible
         if v['row_col'][0] % row_size == 0 and v['row_col'][1] % col_size == 0
     }
     base_counts = {
@@ -206,7 +255,6 @@ def _is_valid_block(
     valid_ratios: dict[str, float]
 ) -> bool:
     '''Return `True` if all valid thresholds are met.'''
-    # iterate ratios and check against threshold (might not be present)
     for k, v in valid_ratios.items():
         threshold = valid_thresholds.get(k)
         if threshold and v < threshold:

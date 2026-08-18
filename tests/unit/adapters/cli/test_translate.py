@@ -36,12 +36,14 @@ def test_translate_user_config_data_harmonize():
     '''
     Given: A user configuration `DictConfig` with `data-harmonize` settings.
     When: `translate_user_config` is executed.
-    Then: Map fields to `etl` structure including output_dpath.
+    Then: Map fields to harmonization structure including canvas and grid.
     '''
     user_cfg = omegaconf.OmegaConf.create({
         'data-harmonize': {
             'target_crs': 'EPSG:3161',
             'target_resolution': 20.0,
+            'grid_crs': 'EPSG:32617',
+            'tile_size': 256,
             'output_dpath': '/path/exp/harmonized',
         },
     })
@@ -49,6 +51,9 @@ def test_translate_user_config_data_harmonize():
 
     assert result.data.harmonization.canvas.target_crs == 'EPSG:3161'
     assert result.data.harmonization.canvas.target_resolution == 20.0
+    assert result.data.harmonization.grid.crs == 'EPSG:32617'
+    assert result.data.harmonization.grid.tile_specs.size_row == 256
+    assert result.data.harmonization.grid.tile_specs.size_col == 256
     assert result.data.harmonization.output_dpath == '/path/exp/harmonized'
 
 
@@ -56,24 +61,17 @@ def test_translate_user_config_data_ingest():
     '''
     Given: A user configuration `DictConfig` with `data-ingest` settings.
     When: `translate_user_config` is executed.
-    Then: Map fields to `ingestion` grid, domain, datablocks, and output_dpath structures.
+    Then: Map fields to `ingestion` datablocks and output_dpath structures.
     '''
     user_cfg = omegaconf.OmegaConf.create({
         'data-ingest': {
             'harmonization_run': 1,
-            'grid_crs': 'EPSG:32617',
-            'tile_size': 256,
-            'dataset_name': 'test_ds',
             'output_dpath': '/path/exp/artifacts/foundation',
         },
     })
     result = translate_mod.translate_user_config(user_cfg)
 
     assert result.data.ingestion.harmonization_run == 1
-    assert result.data.ingestion.grid.crs == 'EPSG:32617'
-    assert result.data.ingestion.grid.tile_specs.size_row == 256
-    assert result.data.ingestion.grid.tile_specs.size_col == 256
-    assert result.data.ingestion.datablocks.name == 'test_ds'
     assert result.data.ingestion.output_dpath == '/path/exp/artifacts/foundation'
 
 

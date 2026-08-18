@@ -28,30 +28,24 @@ import typing
 # third-party imports
 import omegaconf
 
+
 def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
     '''Translate user.yaml DictConfig into RootConfig overrides.'''
-
     translated: dict[str, typing.Any] = {
         'execution': {},
         'data':{
             'harmonization': {
                 'canvas': {},
-                'raw_data': {
-                    'domains': {},
-                    'dev_features': {},
-                    'dev_labels': {},
-                    'test_features': {},
-                    'test_labels': {},
-                }
-            },
-            'ingestion': {
                 'grid': {
                     'extent': {},
                     'tile_specs': {},
                 },
+            },
+            'ingestion': {
                 'domains': {},
                 'datablocks': {},
             },
+
             'preparation': {
                 'catalog': {},
                 'partition': {},
@@ -95,25 +89,23 @@ def _translate_data_harmonize(
     translated: dict
 ) -> None:
     '''Map data-harmonize settings to harmonization fields.'''
-
     mapping = {
         'target_crs': ['data.harmonization.canvas.target_crs'],
         'target_resolution': ['data.harmonization.canvas.target_resolution'],
         'reference_raster': ['data.harmonization.canvas.reference_raster'],
+        'grid_mode': ['data.harmonization.grid.mode'],
+        'grid_crs': ['data.harmonization.grid.crs'],
+        'tile_size': [
+            'data.harmonization.grid.tile_specs.size_row',
+            'data.harmonization.grid.tile_specs.size_col'
+        ],
+        'tile_overlap': [
+            'data.harmonization.grid.tile_specs.overlap_row',
+            'data.harmonization.grid.tile_specs.overlap_col'
+        ],
         'resampling_continuous': ['data.harmonization.resampling_continuous'],
         'resampling_categorical': ['data.harmonization.resampling_categorical'],
-        'dev_features': ['data.harmonization.raw_data.dev_features'],
-        'features': ['data.harmonization.raw_data.dev_features'],
-        'domains': ['data.harmonization.raw_data.domains'],
-        'dev_labels': ['data.harmonization.raw_data.dev_labels'],
-        'labels': ['data.harmonization.raw_data.dev_labels'],
-        'test_features': ['data.harmonization.raw_data.test_features'],
-        'test_labels': ['data.harmonization.raw_data.test_labels'],
-        'dataset_config': ['data.harmonization.dataset_config'],
-        'dataset_name': [
-            'data.harmonization.dataset_name',
-            'data.ingestion.datablocks.name'
-        ],
+        'dataset_manifest': ['data.harmonization.dataset_manifest'],
         'output_dpath': ['data.harmonization.output_dpath'],
     }
     _apply_mapping(harmonization, translated, mapping)
@@ -127,18 +119,8 @@ def _translate_data_ingest(
 
     mapping = {
         'harmonization_run': ['data.ingestion.harmonization_run'],
-        'grid_crs': ['data.ingestion.grid.crs'],
-        'tile_size': [
-            'data.ingestion.grid.tile_specs.size_row',
-            'data.ingestion.grid.tile_specs.size_col'
-        ],
-        'tile_overlap': [
-            'data.ingestion.grid.tile_specs.overlap_row',
-            'data.ingestion.grid.tile_specs.overlap_col'
-        ],
         'domain_ids_name': ['dataspecs.domain_ids_name'],
         'domain_vec_name': ['dataspecs.domain_vec_name'],
-        'dataset_name': ['data.ingestion.datablocks.name'],
         'rebuild': ['data.ingestion.rebuild'],
         'output_dpath': ['data.ingestion.output_dpath'],
     }
@@ -150,12 +132,20 @@ def _translate_data_prepare(
     translated: dict
 ) -> None:
     '''Map data-prepare settings to preparation fields.'''
-
     mapping = {
         'val_ratio': ['data.preparation.partition.val_ratio'],
         'test_ratio': ['data.preparation.partition.test_ratio'],
+        'buffer_step': ['data.preparation.partition.buffer_step'],
+        'train_aoi': ['data.preparation.partition.train_aoi'],
+        'val_aoi': ['data.preparation.partition.val_aoi'],
+        'test_aoi': ['data.preparation.partition.test_aoi'],
+        'aoi_min_overlap': ['data.preparation.partition.aoi_min_overlap'],
         'target_head': ['data.preparation.catalog.focal_target'],
         'reward_classes': ['data.preparation.scoring.reward'],
+        'test_catalog': ['data.preparation.catalog.test_catalog'],
+        'non_overlapping_test_grid': [
+            'data.preparation.catalog.non_overlapping_test_grid'
+        ],
         'rebuild': ['data.preparation.rebuild'],
         'output_dpath': ['data.preparation.output_dpath'],
     }
@@ -167,7 +157,6 @@ def _translate_model_train(
     translated: dict
 ) -> None:
     '''Map model-train settings to models and session fields.'''
-
     mapping = {
         'exp_root': ['execution.exp_root'],
         'model_body': ['models.model_body'],
@@ -206,6 +195,7 @@ def _translate_model_train(
         [phase]
     )
 
+
 def _apply_mapping(
     src: omegaconf.DictConfig,
     translated: dict,
@@ -215,6 +205,7 @@ def _apply_mapping(
     for src_key, dest_paths in mapping.items():
         if src_key in src:
             _set_paths(translated, dest_paths, src[src_key])
+
 
 def _set_paths(
     translated: dict,

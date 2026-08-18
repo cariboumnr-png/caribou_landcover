@@ -36,11 +36,15 @@ Public APIs:
 '''
 
 # standard imports
+import ast
 import dataclasses
+import json
 import zipfile
 import zlib
 # third-party imports
 import numpy
+import rasterio
+import rasterio.errors
 # local imports
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.ingest.common.alias as alias
@@ -67,6 +71,107 @@ class RasterReadOutput:
     image_nodata: float
     label_array: numpy.ndarray | None
     label_nodata: int | None
+
+
+def read_band_map(fpath: str) -> dict[str, int]:
+    '''Return lower-case band-description -> zero-based index, or {}.'''
+    try:
+        with rasterio.open(fpath) as src:
+            descriptions = src.descriptions
+    except rasterio.errors.RasterioError:
+        return {}
+
+    if not descriptions:
+        return {}
+
+    names: list[str] = []
+
+    for index, description in enumerate(descriptions):
+        if description and description.strip():
+            name = description.strip().lower()
+        else:
+            name = f'band_{index + 1}'
+
+        names.append(name)
+
+    if len(set(names)) != len(names):
+        return {}
+
+    return {name: index for index, name in enumerate(names)}
+
+
+def read_label_specs(fpath: str | None) -> dict[str, geo_core.LabelSpecs]:
+    '''Return per-band label specifications embedded in a raster, or {}.'''
+    if fpath is None:
+        return {}
+
+    try:
+        with rasterio.open(fpath) as src:
+            descriptions = src.descriptions
+            band_tags = {
+                index: src.tags(index)
+                for index in src.indexes
+            }
+    except rasterio.errors.RasterioError:
+        return {}
+
+    if not descriptions:
+        return {}
+
+    names = [
+        description.strip()
+        if description and description.strip()
+        else f'band_{index}'
+        for index, description in enumerate(descriptions, start=1)
+    ]
+
+    if len(set(names)) != len(names):
+        return {}
+
+    specs: dict[str, geo_core.LabelSpecs] = {}
+
+    for index, name in enumerate(names, start=1):
+        tags = band_tags[index]
+
+        try:
+            num_cls = _parse_vrt_tag(tags['num_cls'])
+            ignore_cls = _parse_vrt_tag(tags['ignore_cls'])
+        except (KeyError, ValueError, SyntaxError, json.JSONDecodeError):
+            return {}
+
+        if (
+            not isinstance(num_cls, int)
+            or num_cls < 1
+            or not isinstance(ignore_cls, list)
+            or not all(isinstance(value, int) for value in ignore_cls)
+        ):
+            return {}
+
+        spec: geo_core.LabelSpecs = {
+            'num_cls': num_cls,
+            'ignore_cls': ignore_cls,
+        }
+        for key in ('class_name', 'reclass', 'reclass_name'):
+            if key not in tags:
+                continue
+            try:
+                value = _parse_vrt_tag(tags[key])
+            except (ValueError, SyntaxError, json.JSONDecodeError):
+                return {}
+            if value:
+                if not isinstance(value, dict):
+                    return {}
+                spec[key] = value
+        specs[name] = spec
+
+    return specs
+
+def _parse_vrt_tag(value: str) -> object:
+    '''Decode GDAL metadata serialized as JSON or a Python literal.'''
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return ast.literal_eval(value)
 
 
 def check_npz_integrity(

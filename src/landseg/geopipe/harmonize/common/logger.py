@@ -20,11 +20,12 @@
 # =========================================================================== #
 
 '''
-Subclass wrapper of Logger to handle structured ETL harmonization execution summaries.
+Subclass wrapper of `Logger` to handle structured ETL harmonization
+execution summaries.
 '''
 
-from __future__ import annotations
 # standard imports
+from __future__ import annotations
 import datetime
 import os
 import typing
@@ -33,17 +34,21 @@ import landseg._constants as c
 import landseg.artifacts as artifacts
 import landseg.utils as utils
 
+if typing.TYPE_CHECKING:
+    from .schema import HarmonizationReportSchema, WorldGridReport
 
+
+# ----- `HarmonizationLogger` definition
 class HarmonizationLogger(utils.Logger):
     '''
-    A specialized Logger wrapper that logs raster harmonization progress and
-    persists a structured JSON report at shutdown.
+    A specialized `Logger` wrapper that logs raster harmonization
+    progress and persists a structured JSON report at shutdown.
     '''
 
     def __init__(self, *args: typing.Any, **kwargs: typing.Any):
         '''Initialize the HarmonizationLogger instance.'''
         super().__init__(*args, **kwargs)
-        self.summary: dict[str, typing.Any] | None = None
+        self.summary: HarmonizationReportSchema | None = None
 
     def init_summary(
         self,
@@ -64,8 +69,9 @@ class HarmonizationLogger(utils.Logger):
             'grid_shape': (0, 0),
             'provenance': {},
             'harmonized_sources': {},
-            'stacked_rasters': {},
-            'valid_mask_raster': ''
+            'finalized_rasters': {},
+            'valid_mask_raster': '',
+            'world_grid': None
         }
 
     def set_grid_shape(self, height: int, width: int) -> None:
@@ -86,17 +92,22 @@ class HarmonizationLogger(utils.Logger):
     def add_harmonized_source(self, name: str, path: str) -> None:
         '''Record a harmonized raster layer output path.'''
         if self.summary is not None:
-            self.summary['harmonized_sources'][name] = path
+            self.summary['harmonized_sources'][name] = os.path.abspath(path)
 
-    def add_stacked_raster(self, name: str, path: str) -> None:
+    def add_finalized_raster(self, name: str, path: str) -> None:
         '''Record multi-channel feature composite raster path.'''
         if self.summary is not None:
-            self.summary['stacked_rasters'][name] = path
+            self.summary['finalized_rasters'][name] = os.path.abspath(path)
 
     def set_valid_mask_raster(self, path: str) -> None:
         '''Record valid pixel mask raster path.'''
         if self.summary is not None:
-            self.summary['valid_mask_raster'] = path
+            self.summary['valid_mask_raster'] = os.path.abspath(path)
+
+    def set_world_grid_report(self, report: WorldGridReport) -> None:
+        '''Record world grid preparation report.'''
+        if self.summary is not None:
+            self.summary['world_grid'] = report
 
     def set_summary_status(
         self,

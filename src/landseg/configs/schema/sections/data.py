@@ -45,44 +45,6 @@ class _Canvas:
 
 
 @dataclasses.dataclass
-class _RawData:
-    dev_features: dict[str, str] = field(default_factory=dict)
-    domains: dict[str, str] = field(default_factory=dict)
-    dev_labels: dict[str, str] = field(default_factory=dict)
-    test_features: dict[str, str] = field(default_factory=dict)
-    test_labels: dict[str, str] = field(default_factory=dict)
-
-
-@dataclasses.dataclass
-class _HarmonizationCfg:
-    canvas: _Canvas = field(default_factory=_Canvas)
-    raw_data: _RawData = field(default_factory=_RawData)
-    dataset_name: str = 'sample_data'
-    dataset_config: str = ''
-    resampling_continuous: str = 'bilinear'
-    resampling_categorical: str = 'nearest'
-    output_dpath: str = 'experiment/artifacts/harmonized_data'
-
-    def validate(self) -> None:
-        utils.must_exist(self.canvas.reference_raster, 'Reference raster')
-        if self.dataset_config:
-            utils.must_exist(self.dataset_config, 'Dataset configuration JSON')
-
-        if (
-            self.canvas.target_crs and
-            not bool(re.fullmatch(r'epsg:\d+', self.canvas.target_crs, re.I))
-        ):
-            raise ValueError('Invalid CRS identifier. Must be "EPSG:...."')
-
-        if (
-            self.canvas.target_resolution and
-            self.canvas.target_resolution <= 0.0
-        ):
-            raise ValueError('target_resolution must be positive.')
-
-
-# ----- data ingestion
-@dataclasses.dataclass
 class _Extent:
     origin: tuple[float, float] = (0.0, 0.0)
     pixel_size: tuple[float, float] = (0.0, 0.0)
@@ -98,7 +60,7 @@ class _TileSpecs:
     overlap_col: int = 0
 
     def validate(self):
-        # current we only accept equal row and col sizes and strides
+        # currently we only accept equal row and col sizes and strides
         if self.size_row != self.size_col:
             raise ValueError('Only square blocks are supported.')
 
@@ -128,8 +90,7 @@ class _Grid:
         if self.mode != 'ref':
             raise ValueError(
                 f'Invalid grid mode: {self.mode}. '
-                'Data ingestion requires "ref" grid mode mandated by '
-                'data harmonization.'
+                'Data harmonization requires "ref" grid mode.'
             )
         # crs string format (optional if derived from ref raster)
         if self.crs and not bool(re.fullmatch(r'epsg:\d+', self.crs, re.I)):
@@ -138,6 +99,36 @@ class _Grid:
         self.tile_specs.validate()
 
 
+@dataclasses.dataclass
+class _HarmonizationCfg:
+    canvas: _Canvas = field(default_factory=_Canvas)
+    grid: _Grid = field(default_factory=_Grid)
+    dataset_manifest: str = ''
+    resampling_continuous: str = 'bilinear'
+    resampling_categorical: str = 'nearest'
+    output_dpath: str = 'experiment/artifacts/harmonized_data'
+
+    def validate(self) -> None:
+        utils.must_exist(self.canvas.reference_raster, 'Reference raster')
+        if self.dataset_manifest:
+            utils.must_exist(self.dataset_manifest, 'Dataset configuration JSON')
+
+        if (
+            self.canvas.target_crs and
+            not bool(re.fullmatch(r'epsg:\d+', self.canvas.target_crs, re.I))
+        ):
+            raise ValueError('Invalid CRS identifier. Must be "EPSG:...."')
+
+        if (
+            self.canvas.target_resolution and
+            self.canvas.target_resolution <= 0.0
+        ):
+            raise ValueError('target_resolution must be positive.')
+
+        self.grid.validate()
+
+
+# ----- data ingestion
 @dataclasses.dataclass
 class _Domains:
     valid_threshold: float = 0.7
@@ -149,7 +140,6 @@ class _Domains:
 
 @dataclasses.dataclass
 class _DataBlocks:
-    name: str = ''
     ignore_index: int = 255
     image_dem_pad: int = 8
 
@@ -159,15 +149,13 @@ class _DataBlocks:
 
 @dataclasses.dataclass
 class _IngestionCfg:
-    grid: _Grid = field(default_factory=_Grid)
     domains: _Domains = field(default_factory=_Domains)
     datablocks: _DataBlocks = field(default_factory=_DataBlocks)
-    harmonization_run: int | str | None = None
     rebuild: bool = False
+    harmonization_run: int | str | None = None
     output_dpath: str = '${execution.exp_root}/artifacts/ingested_data'
 
     def validate(self) -> None:
-        self.grid.validate()
         self.domains.validate()
         self.datablocks.validate()
         if self.harmonization_run is not None:
@@ -188,12 +176,15 @@ class _IngestionCfg:
                 )
 
 
+
 # ----- data preparation
 @dataclasses.dataclass
 class _CatalogView:
     valid_pxs: dict[str, float] = field(default_factory=lambda: {'image': 0.9})
     focal_target: str | None = None
+    test_catalog: str | None = None
     non_overlapping_test_grid: bool = True
+
 
     def validate(self):
         for k, v in self.valid_pxs.items():
@@ -204,10 +195,16 @@ class _Partition:
     val_ratio: float = 0.1
     test_ratio: float = 0.0
     buffer_step: int = 1
+    train_aoi: str | None = None
+    val_aoi: str | None = None
+    test_aoi: str | None = None
+    aoi_min_overlap: float = 0.5
 
     def validate(self):
         utils.must_within(self.val_ratio, 'validation block ratio', 0, 1)
         utils.must_within(self.test_ratio, 'test holdout block ratio', 0, 1)
+        utils.must_within(self.aoi_min_overlap, 'AOI minimum overlap ratio', 0, 1)
+
 
 @dataclasses.dataclass
 class _Scoring:

@@ -61,12 +61,12 @@ class _PipelinePaths(typing.Protocol):
 @dataclasses.dataclass
 class BlockBuildingParameters:
     '''Config container for the canonical block-building pipeline.'''
-    stage: typing.Literal['dev', 'test']
     image_fpath: str
     label_fpath: str | None
-    data_config_fpath: str
     dem_pad: int
     ignore_index: int
+    stage: str = 'canonical'
+
 
 # -------------------------------Public Function-------------------------------
 def run_blocks_building(
@@ -102,18 +102,11 @@ def run_blocks_building(
         policy=policy,
     )
 
-    # load dataset config JSON
-    ctrl = artifacts.Controller[dict].load_json_or_fail(config.data_config_fpath)
-    ctrl.hash(overwrite=False)  # Hash once
-    dataset_config = ctrl.fetch()
-    assert dataset_config
-
     # create a data block builder inputs, context, and config
     building_input = assembler.BlockBuildingInput(
         output_root=artfact_paths.blocks,
         image_fpath=config.image_fpath,
         label_fpath=config.label_fpath,
-        config_fpath=config.data_config_fpath,
     )
     building_context = assembler.BlockBuildingContext(
         image=ras_windows.image,
@@ -123,8 +116,8 @@ def run_blocks_building(
         ignore_index=config.ignore_index,
         dem_pad_px=config.dem_pad,
         block_size=ras_windows.tile_shape,
-        image_band_map=dataset_config['image_band_map'],
-        label_specs=dataset_config.get('label_specs', {}),
+        image_band_map=assembler.read_band_map(config.image_fpath),
+        label_specs=assembler.read_label_specs(config.label_fpath),
     )
     # build data blocks
     result = assembler.build_blocks(

@@ -34,24 +34,8 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
     def __init__(
         self,
         experiment_root: str,
-        dataset_name: str = 'sample_data',
     ):
-        super().__init__(experiment_root, 'data-ingest', dataset_name)
-
-    def set_grid(
-        self,
-        tile_size: int = 256,
-        tile_overlap: int = 0,
-        crs: str = ''
-    ) -> typing.Self:
-        '''Set study extent and grid specs.'''
-        self._cfg.data.ingestion.grid.mode = 'ref'
-        self._cfg.data.ingestion.grid.crs = crs
-        self._cfg.data.ingestion.grid.tile_specs.size_row = tile_size
-        self._cfg.data.ingestion.grid.tile_specs.size_col = tile_size
-        self._cfg.data.ingestion.grid.tile_specs.overlap_row = tile_overlap
-        self._cfg.data.ingestion.grid.tile_specs.overlap_col = tile_overlap
-        return self
+        super().__init__(experiment_root, 'data-ingest')
 
     def set_rebuild(self, rebuild: bool) -> typing.Self:
         '''Set whether to force rebuild ingestion artifacts.'''

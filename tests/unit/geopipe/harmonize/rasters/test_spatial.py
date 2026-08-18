@@ -27,7 +27,8 @@
 import numpy
 import rasterio
 # local imports
-import landseg.geopipe.harmonize.spatial as spatial
+import landseg.geopipe.harmonize.rasters.spatial as spatial
+
 
 
 # ----- test cases
@@ -81,26 +82,6 @@ def test_create_canvas_with_reference_raster(dummy_geotiff_factory):
         target_resolution=20.0,
         reference_raster=str(ref_path)
     )
-    assert spec.crs == 'EPSG:3161'
-    assert spec.resolution == 20.0
-    assert spec.width == 100
-    assert spec.height == 100
-
-
-def test_from_reference_raster(dummy_geotiff_factory):
-    '''
-    Given: A reference GeoTIFF file in EPSG:3161.
-    When: Constructing a `CanvasSpec` via `_from_reference_raster`.
-    Then: Canvas properties match the reference raster.
-    '''
-    ref_path = dummy_geotiff_factory(
-        filename='ref.tif',
-        width=100,
-        height=100,
-        bands=1,
-        dtype=numpy.float32
-    )
-    spec = spatial._from_reference_raster(str(ref_path))
     assert spec.crs == 'EPSG:3161'
     assert spec.resolution == 20.0
     assert spec.width == 100

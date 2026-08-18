@@ -19,40 +19,61 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-'''
-Top-level namespace for `landseg.geopipe.ingest.world_grids`.
+'''Unit tests for programmatic API module.'''
 
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
-'''
+# third-party imports
+import pytest
+# local imports
+import landseg.adapters.api as api
+import landseg.configs as configs
 
-from __future__ import annotations
-import importlib
-import typing
 
-__all__ = [
-    # classes
-    'GridParameters',
-    # functions
-    'build_grid',
-    'prepare_world_grid',
-    # typing
-]
+# ----- `api.run` tests
+def test_api_run_success(mocker):
+    '''
+    Given: A valid `RootConfig` instance.
+    When: Calling `api.run`.
+    Then: Delegate execution to `execution.execute_pipeline`.
+    '''
+    mock_exec = mocker.patch(
+        'landseg.execution.execute_pipeline',
+        return_value={'status': 'SUCCESS'}
+    )
+    cfg = configs.RootConfig()
+    cfg.pipeline.name = 'data-harmonize'
 
-# for static check
-if typing.TYPE_CHECKING:
-    from .builder import GridParameters, build_grid
-    from .lifecycle import prepare_world_grid
+    result = api.run(cfg)
+    mock_exec.assert_called_once_with(cfg)
+    assert result == {'status': 'SUCCESS'}
 
-def __getattr__(name: str):
 
-    if name in {'GridParameters', 'build_grid'}:
-        return getattr(importlib.import_module('.builder', __package__), name)
+def test_api_run_keyboard_interrupt(mocker):
+    '''
+    Given: A pipeline run that is interrupted by user.
+    When: `execution.execute_pipeline` raises KeyboardInterrupt.
+    Then: Propagate KeyboardInterrupt.
+    '''
+    mocker.patch(
+        'landseg.execution.execute_pipeline',
+        side_effect=KeyboardInterrupt
+    )
+    cfg = configs.RootConfig()
 
-    if name in {'load_grid', 'save_grid'}:
-        return getattr(importlib.import_module('.grid_io', __package__), name)
+    with pytest.raises(KeyboardInterrupt):
+        api.run(cfg)
 
-    if name in {'prepare_world_grid'}:
-        return getattr(importlib.import_module('.lifecycle', __package__), name)
 
-    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+def test_api_run_exception(mocker):
+    '''
+    Given: A pipeline run that raises an unhandled exception.
+    When: `execution.execute_pipeline` raises RuntimeError.
+    Then: Log error and re-raise the exception.
+    '''
+    mocker.patch(
+        'landseg.execution.execute_pipeline',
+        side_effect=RuntimeError('Pipeline failed')
+    )
+    cfg = configs.RootConfig()
+
+    with pytest.raises(RuntimeError, match='Pipeline failed'):
+        api.run(cfg)

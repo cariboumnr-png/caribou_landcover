@@ -74,7 +74,8 @@ def test_grid_validation():
     '''
     Given: `_Grid` instances with valid or invalid parameters.
     When: `_Grid.validate()` is called.
-    Then: Pass valid ref grid definitions and raise ValueError for non-ref modes.
+    Then: Pass valid ref grid definitions and raise ValueError for
+        non-ref modes.
     '''
     grid_ref = data._Grid(
         mode='ref',
@@ -114,12 +115,61 @@ def test_datablocks_and_data_validation():
     When: `_DataBlocks.validate()` and `_IngestionCfg.validate()` run.
     Then: Validate data config.
     '''
-    blocks = data._DataBlocks(name='test_blocks')
+    blocks = data._DataBlocks()
     blocks.validate()
 
-    grid = data._Grid(
-        mode='ref',
-        crs='EPSG:32617',
-    )
-    df = data._IngestionCfg(grid=grid, datablocks=blocks)
+    df = data._IngestionCfg(datablocks=blocks)
     df.validate()
+
+
+# ----- `_HarmonizationCfg` tests
+def test_harmonization_cfg_validation(tmp_path):
+    '''
+    Given: `_HarmonizationCfg` instances with parameters.
+    When: `_HarmonizationCfg.validate()` is called.
+    Then: Accept valid settings and raise errors on invalid paths
+        or CRS.
+    '''
+    ref_tif = tmp_path / 'ref.tif'
+    ref_tif.write_text('dummy')
+    cfg_json = tmp_path / 'config.json'
+    cfg_json.write_text('{}')
+
+    # valid configuration
+    h_cfg = data._HarmonizationCfg(
+        canvas=data._Canvas(
+            reference_raster=str(ref_tif),
+            target_crs='EPSG:3161',
+            target_resolution=20.0
+        ),
+        dataset_manifest=str(cfg_json)
+    )
+    h_cfg.validate()
+
+    # missing reference raster
+    invalid_h_cfg = data._HarmonizationCfg(
+        canvas=data._Canvas(reference_raster='/missing/ref.tif')
+    )
+    with pytest.raises(FileNotFoundError):
+        invalid_h_cfg.validate()
+
+    # invalid CRS format
+    invalid_crs_cfg = data._HarmonizationCfg(
+        canvas=data._Canvas(
+            reference_raster=str(ref_tif),
+            target_crs='INVALID_CRS'
+        )
+    )
+    with pytest.raises(ValueError, match='Invalid CRS identifier'):
+        invalid_crs_cfg.validate()
+
+    # non-positive target resolution
+    invalid_res_cfg = data._HarmonizationCfg(
+        canvas=data._Canvas(
+            reference_raster=str(ref_tif),
+            target_crs='EPSG:3161',
+            target_resolution=-5.0
+        )
+    )
+    with pytest.raises(ValueError, match='target_resolution must be positive'):
+        invalid_res_cfg.validate()

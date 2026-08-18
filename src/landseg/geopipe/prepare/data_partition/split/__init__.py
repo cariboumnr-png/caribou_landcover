@@ -29,6 +29,7 @@ import typing
 
 __all__ = [
     # classes
+    'AoiSplitsResult',
     'PartitionParameters',
     'PartitionResults',
     'SplitsResult',
@@ -37,22 +38,39 @@ __all__ = [
     'create_blocks_partition',
     'filter_safe_tiles',
     'hydrate_train_split',
+    'intersect_aoi_raster',
+    'resolve_aoi_partitions',
     'score_blocks',
-    'stratified_splitter'
-    # typing
+    'stratified_splitter',
 ]
 
 
 # for static check
 if typing.TYPE_CHECKING:
+    from .aoi import (
+        AoiSplitsResult,
+        intersect_aoi_raster,
+        resolve_aoi_partitions,
+    )
     from .filter import filter_safe_tiles
     from .hydrate import HydrationResults, hydrate_train_split
-    from .pipeline import PartitionParameters, PartitionResults, create_blocks_partition
+    from .pipeline import (
+        PartitionParameters,
+        PartitionResults,
+        create_blocks_partition,
+    )
     from .score import score_blocks
     from .stratify import SplitsResult, stratified_splitter
 
 
 def __getattr__(name: str):
+
+    if name in {
+        'AoiSplitsResult',
+        'intersect_aoi_raster',
+        'resolve_aoi_partitions',
+    }:
+        return getattr(importlib.import_module('.aoi', __package__), name)
 
     if name in {'filter_safe_tiles'}:
         return getattr(importlib.import_module('.filter', __package__), name)
@@ -60,7 +78,11 @@ def __getattr__(name: str):
     if name in {'HydrationResults', 'hydrate_train_split'}:
         return getattr(importlib.import_module('.hydrate', __package__), name)
 
-    if name in {'PartitionParameters', 'PartitionResults', 'create_blocks_partition'}:
+    if name in {
+        'PartitionParameters',
+        'PartitionResults',
+        'create_blocks_partition',
+    }:
         return getattr(importlib.import_module('.pipeline', __package__), name)
 
     if name in {'score_blocks'}:

@@ -26,23 +26,25 @@ Prepares the world grid, materializes domain knowledge, and builds
 the immutable raw block catalogue for later experiments.
 '''
 
-# standard imports
-import os
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
-import landseg.geopipe.ingest as ingest_data
+import landseg.geopipe.harmonize as harmonize
+import landseg.geopipe.ingest as ingest
+
+# aliases
+ConfigController = artifacts.Controller[dict]
 
 
-def ingest(config: configs.RootConfig):
+def exec_ingest_data(config: configs.RootConfig) -> None:
     '''
     Run the ingestion pipeline.
 
     Steps:
-    1) Build or load the world grid.
+    1) Load the canonical world grid from harmonization.
     2) Prepare domain knowledge aligned to the grid.
-    3) Build raw `.npz` data blocks, and update `catalog.json` and
-    `schema.json`.
+    3) Build raw canonical `.npz` data blocks, and update `catalog.json` and
+       `schema.json`.
 
     Args:
         config: RootConfig with ingestion settings.
@@ -50,16 +52,15 @@ def ingest(config: configs.RootConfig):
     # artifact paths
     artifact_paths = artifacts.ArtifactPaths.from_config(config)
     ingestion_paths = artifact_paths.data_ingestion
-    harmonize_paths = artifact_paths.data_harmonization
 
-    # locate targeted/latest harmonization run folder if present
-    try:
-        harmonize_paths.get_run_folder(config.data.ingestion.harmonization_run)
-    except FileNotFoundError:
-        pass
+    # read harmonization report
+    harmonized = ingest.read_harmonization_report(
+        artifact_paths.data_harmonization,
+        config.data.ingestion.harmonization_run
+    )
 
     # init an IngestionLogger with summary
-    logger = ingest_data.IngestionLogger(
+    logger = ingest.IngestionLogger(
         name='ingest',
         log_file=ingestion_paths.report,
         enable_file_log=False
@@ -77,62 +78,55 @@ def ingest(config: configs.RootConfig):
             else artifacts.LifecyclePolicy.BUILD_IF_MISSING
         )
 
-        # config aliases
-        domain_cfg = config.data.ingestion.domains
-        grid_cfg = config.data.ingestion.grid
-        datablocks_cfg = config.data.ingestion.datablocks
-
-        # world grid
+        # ----- load/prepare canonical world grid
+        grid_cfg = config.data.harmonization.grid
         logger.log('INFO', '[START] World grid preparation')
-        grid_config = ingest_data.GridParameters(
-            mode='ref',
+        grid_config = harmonize.GridParameters(
+            mode=grid_cfg.mode,
             crs=grid_cfg.crs,
-            ref_fpath=harmonize_paths.valid_mask_raster,
+            ref_fpath=harmonized.valid_mask_raster,
             origin=grid_cfg.extent.origin,
             pixel_size=grid_cfg.extent.pixel_size,
             grid_extent=grid_cfg.extent.grid_extent,
             grid_shape=grid_cfg.extent.grid_shape,
             tile_specs=grid_cfg.tile_specs_tuple,
         )
-        world_grid = ingest_data.prepare_world_grid(
-            ingestion_paths.grids.fpath(grid_cfg.tile_specs_tuple),
+        grid_fpath = (
+            harmonized.world_grid_fpath
+            or artifact_paths.data_harmonization.grids.fpath(
+                grid_cfg.tile_specs_tuple
+            )
+        )
+        world_grid = harmonize.prepare_world_grid(
+            grid_fpath,
             grid_config,
             policy=policy,
-            logger=logger,
         )
+        logger.log('INFO', f'[COMPLETE] World grid loaded: {world_grid.gid}')
 
-        # log to console with duration
-        assert logger.summary['world_grid'] # typing: should already populate
-        d = logger.summary['world_grid']['duration_sec']
-        logger.log('INFO', f'[COMPLETE] World grid preparation (D_{d:.2f}s)')
-
-        # domain maps
-        gid = world_grid.gid
-        if os.path.exists(harmonize_paths.domain_raster):
-            logger.log(
-                'INFO',
-                '[START] Domain maps preparation (canonical stacked domains)'
-            )
-            domain_config = [
-                ingest_data.DomainBuildingParameters(
-                    input_fpath=harmonize_paths.domain_raster,
-                    domain_fpath=ingestion_paths.domains.domain_map_fpath(
-                        'stacked_domains'
-                    ),
+        # ----- materialize domain maps
+        domain_cfg = config.data.ingestion.domains
+        if harmonized.domains:
+            logger.log('INFO', '[START] Domain maps preparation')
+            domain_configs = [
+                ingest.DomainBuildingParameters(
+                    input_fpath=path,
+                    domain_fpath=ingestion_paths.domains.domain_map_fpath(name),
                     tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(
-                        'stacked_domains', gid
+                        name, world_grid.gid
                     ),
                     index_base=1,
                     valid_threshold=domain_cfg.valid_threshold,
                     target_variance=domain_cfg.target_variance,
-                )
+                ) for name, path in harmonized.domains.items()
             ]
-            ingest_data.prepare_domain_maps(
+            ingest.prepare_domain_maps(
                 world_grid,
-                domain_config,
+                domain_configs,
                 policy=policy,
                 logger=logger,
             )
+
             d = sum(dm['duration_sec'] for dm in logger.summary['domain_maps'])
             logger.log(
                 'INFO',
@@ -141,66 +135,36 @@ def ingest(config: configs.RootConfig):
         else:
             logger.log('INFO', '[NOTE] No domain knowledge layers provided')
 
-        # dataset config path from harmonization
-        data_config_fpath = harmonize_paths.dataset_config
-
-        # build dev data blocks
-        logger.log('INFO', '[START] Development data blocks building')
-        data_blocks_config = ingest_data.BlockBuildingParameters(
-            stage='dev',
-            image_fpath=harmonize_paths.feature_raster,
-            label_fpath=harmonize_paths.label_raster,
-            data_config_fpath=data_config_fpath,
-            dem_pad=datablocks_cfg.image_dem_pad,
-            ignore_index=datablocks_cfg.ignore_index,
-        )
-        ingest_data.run_blocks_building(
-            world_grid,
-            ingestion_paths.data_blocks.dev,
-            data_blocks_config,
-            policy=policy,
-            logger=logger,
-        )
-
-        # log to console with duration
-        d = logger.summary['data_blocks']['dev']['duration_sec']
-        logger.log(
-            'INFO',
-            f'[COMPLETE] Development data blocks preparation (D_{d:.2f}s)'
-        )
-
-        # build test data blocks - if provided by harmonization stage
-        if not harmonize_paths.has_test_data:
-            logger.log(
-                'INFO',
-                '[NOTE] Test holdout dataset not provided by harmonization'
-            )
+        # ----- build canonical data blocks if provided
+        if not harmonized.has_data:
+            logger.log('INFO', 'Harmonized feature/label rasters not provided')
         else:
-            logger.log('INFO', '[START] Test data blocks building')
-            data_blocks_config = ingest_data.BlockBuildingParameters(
-                stage='test',
-                image_fpath=harmonize_paths.test_feature_raster,
-                label_fpath=harmonize_paths.test_label_raster,
-                data_config_fpath=data_config_fpath,
-                dem_pad=datablocks_cfg.image_dem_pad,
-                ignore_index=datablocks_cfg.ignore_index,
+            logger.log('INFO', '[START] Canonical data blocks building')
+            assert harmonized.features
+            data_blocks_config = ingest.BlockBuildingParameters(
+                stage='canonical',
+                image_fpath=harmonized.features,
+                label_fpath=harmonized.labels,
+                dem_pad=config.data.ingestion.datablocks.image_dem_pad,
+                ignore_index=config.data.ingestion.datablocks.ignore_index,
             )
-            ingest_data.run_blocks_building(
+            ingest.run_blocks_building(
                 world_grid,
-                ingestion_paths.data_blocks.test,
+                ingestion_paths.data_blocks,
                 data_blocks_config,
                 policy=policy,
                 logger=logger,
             )
-            assert logger.summary['data_blocks']['test']
 
-            d = logger.summary['data_blocks']['test']['duration_sec']
-            logger.log(
-                'INFO',
-                f'[COMPLETE] Test data blocks preparation (D_{d:.2f}s)'
-            )
+            if 'canonical' in logger.summary['data_blocks']:
+                d = logger.summary['data_blocks']['canonical']['duration_sec']
+                logger.log(
+                    'INFO',
+                    f'[COMPLETE] Canonical data blocks preparation (D_{d:.2f}s)'
+                )
 
-        artifacts.Controller[dict](ingestion_paths.config).persist(config.as_dict)
+        # persist the config -> JSON
+        ConfigController(ingestion_paths.config).persist(config.as_dict)
 
     # propagate all exceptions here
     except Exception as e:

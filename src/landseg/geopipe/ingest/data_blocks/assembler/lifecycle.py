@@ -37,13 +37,11 @@ Public APIs:
 import dataclasses
 import os
 # local imports
-import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.ingest.common.alias as alias
 import landseg.geopipe.ingest.data_blocks.assembler as assembler
 import landseg.geopipe.utils as geo_utils
 import landseg.utils as utils
-
 
 @dataclasses.dataclass(frozen=True)
 class BlockBuildingInput:
@@ -51,7 +49,6 @@ class BlockBuildingInput:
     output_root: str            # path to output artifacts
     image_fpath: str            # path to input image data (.tiff)
     label_fpath: str | None     # path to input label data (.tiff)
-    config_fpath: str           # path to input metadata (.json)
 
     @property
     def has_label(self) -> bool:
@@ -103,13 +100,6 @@ def build_blocks(
         BlockBuilderResult: Struct holding created coords and
             execution stats.
     '''
-
-    # load dataset configuration JSON
-    ctrl = artifacts.Controller[dict].load_json_or_fail(inputs.config_fpath)
-    ctrl.hash(overwrite=False)  # Hash once
-    dataset_config = ctrl.fetch()
-    assert dataset_config # typing only
-
     blks_dir = inputs.output_root
     os.makedirs(blks_dir, exist_ok=True)
 
@@ -139,7 +129,7 @@ def build_blocks(
     return BlockBuildingOutput(
         coords_created=coords_todo,
         stats=stats,
-        label_color_map=dataset_config.get('label_color_map') # pass-through
+        label_color_map=None # TODO
     )
 
 

@@ -305,9 +305,15 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
         # populate attributes from payload
         meta = payload['artifact_meta']
         obj._mode = meta['mode']
-        obj._spec = GridSpec(**meta['spec'])
         obj._extent = meta['extent']
         obj._data = parsed
+
+        spec = dict(meta['spec'])
+        for key in ('origin', 'pixel_size', 'tile_size', 'tile_overlap'):
+            if spec.get(key) is not None:
+                spec[key] = tuple(spec[key])
+        obj._spec = GridSpec(**spec)
+
         # init offset (runtime attribute)
         obj._offset_px = (0, 0)
         # return class object

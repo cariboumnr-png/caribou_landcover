@@ -32,7 +32,7 @@ import landseg.configs.schema.sections.data as data
 
 
 # ----- `_PreparationCfg` tests
-def test_data_data_defaults_and_validation():
+def test_preparation_defaults_and_validation():
     '''
     Given: A default `_PreparationCfg` instance.
     When: Calling `_PreparationCfg.validate()`.

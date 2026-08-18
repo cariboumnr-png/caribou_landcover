@@ -24,25 +24,42 @@ Utility script to generate dummy/mock geospatial datasets (GeoTIFFs)
 and corresponding configurations for local pipeline runs and testing.
 '''
 
-# standard imports
 import os
 import sys
-# local imports
+import argparse
 import landseg.testing as testing
 
-# -------------------------------Main Executable-------------------------------
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--output_dir',
+        nargs='?',
+        default='./experiment/input',
+        help='Directory where dummy data will be generated.'
+    )
+    parser.add_argument(
+        '-y',
+        '--yes',
+        action='store_true',
+        help='Automatically confirm overwriting existing files.'
+    )
+    args = parser.parse_args()
 
-    # check if the directory already exists and is not empty
-    DEFAULT_DIR = './experiment/input'
-    M = 'Generating dummy data will overwrite existing files. Proceed? [y/N]: '
-    if os.path.exists(DEFAULT_DIR) and os.listdir(DEFAULT_DIR):
+    if os.path.exists(args.output_dir) and os.listdir(args.output_dir):
         print(
-            f'WARNING: Target directory "{DEFAULT_DIR}" '
+            f'WARNING: Target directory "{args.output_dir}" '
             f'already exists and is not empty.'
         )
-        response = input(M)
-        if response.strip().lower() not in ('y', 'yes'):
-            print('Aborted.')
-            sys.exit(0)
-    testing.generate_dummy_data(DEFAULT_DIR)
+        if args.yes:
+            print(' -> Overwrite existing files as configured')
+        else:
+            response = input(
+                ' -> Generating dummy data will overwrite existing files. '
+                'Proceed? [y/N]: '
+            )
+            if response.strip().lower() not in ('y', 'yes'):
+                print('Aborted.')
+                sys.exit(0)
+
+    print('-' * 10)
+    testing.generate_dummy_data(args.output_dir)

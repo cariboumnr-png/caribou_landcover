@@ -19,12 +19,15 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=duplicate-code
+
 '''Unit tests for world grid builder (builder.py).'''
+
 
 # third-party imports
 import pytest
 # local imports
-import landseg.geopipe.ingest.world_grids.builder as grid_builder
+import landseg.geopipe.harmonize.world_grids.builder as grid_builder
 
 
 # ----- `build_grid` tests
@@ -35,7 +38,7 @@ def test_build_grid_ref(dummy_geotiff_factory):
     Then: Correctly parse reference bounds and resolutions, and
         construct the GridLayout.
     '''
-    ref_path =dummy_geotiff_factory(
+    ref_path = dummy_geotiff_factory(
         filename='ref_raster.tif',
         width=16,
         height=16,

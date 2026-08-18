@@ -70,9 +70,8 @@ def prepare(config: configs.RootConfig):
 
         # parse catalog from data ingestion stage
         parsed_catalog = prepare_data.data_blocks_adapter(
-            artifact_paths.data_ingestion.data_blocks.dev.catalog,
-            artifact_paths.data_ingestion.data_blocks.dev.schema,
-            artifact_paths.data_ingestion.data_blocks.test.catalog,
+            artifact_paths.data_ingestion.data_blocks.catalog,
+            artifact_paths.data_ingestion.data_blocks.schema,
             config=config.data.preparation.catalog
         )
 
@@ -90,8 +89,16 @@ def prepare(config: configs.RootConfig):
             scoring_alpha=scoring.alpha,
             scoring_beta=scoring.beta,
             max_skew_rate=hydration.max_skew_rate,
-            block_spec=config.data.ingestion.grid.tile_specs_tuple
+            block_spec=config.data.harmonization.grid.tile_specs_tuple,
+            train_aoi=partition.train_aoi,
+            val_aoi=partition.val_aoi,
+            test_aoi=partition.test_aoi,
+            aoi_min_overlap=partition.aoi_min_overlap,
+            canvas_crs=parsed_catalog.canvas_crs,
+            canvas_transform=parsed_catalog.canvas_transform,
         )
+
+
         prepare_data.run_datablocks_partition(
             parsed_catalog,
             paths,

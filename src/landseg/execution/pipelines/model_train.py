@@ -266,7 +266,6 @@ def _log_inputs(
             'heads': list(dataspecs.heads.class_counts.keys())
         },
         'data': {
-            'dataset_name': config.data.ingestion.datablocks.name,
             'patch_size': config.session.data_loader.patch_size
         },
         'dataspecs': dataspecs.to_dict()

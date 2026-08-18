@@ -25,7 +25,6 @@ Pipeline execution
 
 # standard imports
 import dataclasses
-import os
 import sys
 import typing
 # local imports
@@ -33,94 +32,163 @@ import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.execution.pipelines as piplines
 
+# aliases
 DictControl = artifacts.Controller[dict[str, typing.Any]]
+
 
 # -------------------------------Public Function------------------------------
 def execute_pipeline(root_config: configs.RootConfig) -> typing.Any:
     '''Run the selected CLI pipeline with resolved configuration.'''
-
-    # get running pipeline
-    pipeline_name = root_config.pipeline.name
-
     # upstream detection checks
-    _validate_upstream_pipelines(root_config, pipeline_name)
-
-    # config staleness checks (if in CLI mode)
-    _check_config_staleness(root_config, pipeline_name)
-
+    _validate_upstream_pipelines(root_config)
     # get command from pipeline
-    command = piplines.get(pipeline_name)
+    command = piplines.get(root_config.pipeline.name)
     # run command and return result
     return command(root_config)
 
+
 # -------------------------------private functions------------------------------
-def _validate_upstream_pipelines(
-    config: configs.RootConfig,
-    pipeline_name: str
-) -> None:
+def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
     '''Verify if upstream pipelines have completed successfully.'''
+    # get running pipeline
+    pipeline = config.pipeline.name
 
     # no checks if at the start of the pipeline chain
-    if pipeline_name in ('default', 'data-harmonize'):
+    if pipeline in ('default', 'data-harmonize'):
         return
 
     # fetch data pipeline artifacts paths
     art_paths = artifacts.ArtifactPaths.from_config(config)
-    harmonize_paths = art_paths.data_harmonization
-    ingest_paths = art_paths.data_ingestion
-    prepare_paths = art_paths.data_preparation
+    paths_harmonize = art_paths.data_harmonization
+    paths_ingest = art_paths.data_ingestion
+    paths_prepare = art_paths.data_preparation
 
+    # locate targeted/latest harmonization run folder if present
     try:
-        harmonize_paths.get_run_folder(config.data.ingestion.harmonization_run)
+        paths_harmonize.get_run_folder(config.data.ingestion.harmonization_run)
     except FileNotFoundError:
-        pass
+        pass # fallback to default folder
 
-    # pipelines downstream of data-harmonize
-    ctrl_harmonize = DictControl.load_json_or_fail(harmonize_paths.report)
-    try:
-        report = ctrl_harmonize.fetch()
-        assert report # typing guard
-    except artifacts.ArtifactError as e:
-        raise artifacts.ArtifactError(
-            'Upstream pipeline "data-harmonize" has not been executed yet. '
-            f'Missing or invalid harmonization report at canonical path: '
-            f'{harmonize_paths.report}'
-        ) from e
+    # artifacts controllers (after harmonization run folder location)
+    ctrl_harmonize = DictControl.load_json_or_fail(paths_harmonize.report)
+    ctrl_ingest = DictControl.load_json_or_fail(paths_ingest.report)
+    ctrl_prep = DictControl.load_json_or_fail(paths_prepare.report)
 
-    if report.get('status') != 'SUCCESS':
-        status_val = report.get('status')
-        raise artifacts.ArtifactError(
-            'Upstream pipeline "data-harmonize" status is '
-            f'"{status_val}", not "SUCCESS". '
-            'Please re-run "data-harmonize" successfully first.'
-        )
+    # check data-harmonize status if running data-ingest
+    if pipeline == 'data-ingest':
 
-    if pipeline_name == 'data-ingest':
-        return
+        # fetch data harmonization report
+        try:
+            report_harmonize = ctrl_harmonize.fetch()
+            assert report_harmonize # typing guard
+        except artifacts.ArtifactError as e:
+            raise artifacts.ArtifactError(
+                'Upstream pipeline "data-harmonize" has not been executed yet.'
+                f' Missing or invalid harmonization report at canonical path: '
+                f'{paths_harmonize.report}'
+            ) from e
 
-    # pipelines downstream of data-ingest
-    ctrl_ingest = DictControl.load_json_or_fail(ingest_paths.report)
-    try:
-        report = ctrl_ingest.fetch()
-        assert report # typing guard
-    except artifacts.ArtifactError as e:
-        raise artifacts.ArtifactError(
-            'Upstream pipeline "data-ingest" has not been executed yet. '
-            f'Missing or invalid ingestion report at canonical path: '
-            f'{ingest_paths.report}'
-        ) from e
+        # check data-harmonize report status
+        if report_harmonize.get('status') != 'SUCCESS':
+            status_val = report_harmonize.get('status')
+            raise artifacts.ArtifactError(
+                'Upstream pipeline "data-harmonize" status is '
+                f'"{status_val}", not "SUCCESS". '
+                'Please re-run "data-harmonize" successfully first.'
+            )
 
-    if report.get('status') != 'SUCCESS':
-        status_val = report.get('status')
-        raise artifacts.ArtifactError(
-            'Upstream pipeline "data-ingest" status is '
-            f'"{status_val}", not "SUCCESS". '
-            'Please re-run "data-ingest" successfully first.'
-        )
+        # check existing vs configured source of harmonized data
+        try:
+            report_ingest = ctrl_ingest.fetch()
+            assert report_ingest # typing guard
 
-    # pipelines downstream of data-prepare
-    if pipeline_name != 'data-prepare':
-        ctrl_prep = DictControl.load_json_or_fail(prepare_paths.report)
+            if report_ingest.get('status') != 'SUCCESS':
+                return # existing ingestion not successful, proceed
+
+            source = report_harmonize.get('finalized_rasters')
+            assert source, 'Invalid harmonized data source'
+            canonical_blocks = (
+                report_ingest.get('data_blocks', {}).get('canonical')
+                or report_ingest.get('data_blocks', {}).get('dev')
+                or next(iter(report_ingest.get('data_blocks', {}).values()), {})
+            )
+            image_fp = canonical_blocks.get('image_filepath')
+            label_fp = canonical_blocks.get('label_filepath')
+            if (
+                source.get('features') == image_fp
+                and source.get('labels') == label_fp
+                and not config.data.ingestion.rebuild
+            ):
+                print('\n' + '=' * 80)
+                print(
+                    f'[WARNING] Ingesting the same harmonized data source '
+                    f'as recorded in: {paths_harmonize.report}\n'
+                    f'[NOTE] Current ingestion "rebuild" flag is set to '
+                    f'[{config.data.ingestion.rebuild}]\n'
+                )
+                _user_y_n_popup()
+
+        except artifacts.ArtifactError:
+            return # no ingestion has been run yet, proceed
+
+    # check data-ingest status if running data-prepare
+    elif pipeline == 'data-prepare':
+
+        # fetch data-ingest report
+        try:
+            report = ctrl_ingest.fetch()
+            assert report # typing guard
+        except artifacts.ArtifactError as e:
+            raise artifacts.ArtifactError(
+                'Upstream pipeline "data-ingest" has not been executed yet. '
+                f'Missing or invalid ingestion report at canonical path: '
+                f'{paths_ingest.report}'
+            ) from e
+
+        # check data-ingest report status
+        if report.get('status') != 'SUCCESS':
+            status_val = report.get('status')
+            raise artifacts.ArtifactError(
+                'Upstream pipeline "data-ingest" status is '
+                f'"{status_val}", not "SUCCESS". '
+                'Please re-run "data-ingest" successfully first.'
+            )
+
+        # check existing data-prepare report
+        try:
+            report_prep = ctrl_prep.fetch()
+            assert report_prep # typing guard
+
+            if report_prep.get('status') != 'SUCCESS':
+                return # existing preparation not successful, proceed
+
+            # evaluate differences between running and recorad prep config
+            ctrl = DictControl.load_json_or_fail(paths_prepare.config)
+            try:
+                saved_config = ctrl.fetch()
+                assert saved_config # typing
+            except artifacts.ArtifactError:
+                print(f'Error reading config at: {paths_prepare.config}')
+                raise
+
+            current_config = dataclasses.asdict(config.data.preparation)
+            if saved_config['data']['preparation'] == current_config:
+
+                print('\n' + '=' * 80)
+                print(
+                    f'[WARNING] Preparing data using the same configuration'
+                    f'as recorded in: {paths_prepare.config}\n'
+                    f'[NOTE] Current preparation "rebuild" flag is set to '
+                    f'[{config.data.preparation.rebuild}]\n'
+                )
+                _user_y_n_popup()
+
+        except artifacts.ArtifactError:
+            return # no preparation has been run yet, proceed
+
+    # pipelines downstream of data-prepare, e.g., session running
+    else:
+
         try:
             report = ctrl_prep.fetch()
             assert report # typing guard
@@ -128,7 +196,7 @@ def _validate_upstream_pipelines(
             raise artifacts.ArtifactError(
                 'Upstream pipeline "data-prepare" has not been executed yet. '
                 f'Missing or invalid preparation report at canonical path: '
-                f'{prepare_paths.report}'
+                f'{paths_prepare.report}'
             ) from e
 
         if report.get('status') != 'SUCCESS':
@@ -140,159 +208,16 @@ def _validate_upstream_pipelines(
             )
 
 
-def _check_config_staleness(
-    config: configs.RootConfig,
-    pipeline: str
-) -> None:
-    '''Check if active configs match those from previous runs.'''
-
-    # staleness checks apply only in CLI mode and for dependent pipelines
-    if not config.execution.cli_mode or pipeline in ('default', 'data-harmonize'):
-        return
-
-    # fetch data pipeline artifacts paths
-    art_paths = artifacts.ArtifactPaths.from_config(config)
-    harmonization_paths = art_paths.data_harmonization
-    ingestion_paths = art_paths.data_ingestion
-    preparation_paths = art_paths.data_preparation
-
-    # initialize difference tracker
-    diffs = {}
-
-    # compare etl configuration
-    diffs.update(
-        _compare_config_section(
-            harmonization_paths.config,
-            'data.harmonization',
-            config.data.harmonization,
-        )
-    )
-
-    # compare ingestion configuration
-    if pipeline != 'data-ingest':
-        diffs.update(
-            _compare_config_section(
-                ingestion_paths.config,
-                'data.ingestion',
-                config.data.ingestion,
-            )
-        )
-
-    # compare transform configuration
-    if pipeline != 'data-prepare':
-        diffs.update(
-            _compare_config_section(
-                preparation_paths.config,
-                'data.preparation',
-                config.data.preparation,
-            )
-        )
-
-    if not diffs:
-        return
-    # display warning message
-    print('\n' + '=' * 80)
-    print(
-        '[WARNING] Active configuration does not match settings '
-        'used to build data artifacts:'
-    )
-    for path, (active, saved) in diffs.items():
-        print(f'  - {path}: active={active} vs recorded={saved}')
-    print('=' * 80)
-
+def _user_y_n_popup():
+    '''Console whether to proceed pop-up from user input.'''
     # check if stdin is a TTY for interactive confirmation
     if sys.stdin.isatty():
-        sys.stdout.write(
-            '\nStale artifacts detected. Do you want to proceed '
-            'with execution anyway? [y/N]: '
-        )
+        sys.stdout.write('Proceed anyways [y/N]:')
         sys.stdout.flush()
         response = sys.stdin.readline().strip().lower()
         if response not in ('y', 'yes'):
-            print('Execution aborted by user due to config mismatch.')
+            print('Execution aborted by user.')
             sys.exit(1)
     else:
-        print(
-            '\nNon-interactive environment detected. '
-            'Proceeding execution with warning.'
-        )
+        print('\nNon-interactive env. detected. Proceed with warning.')
         print('=' * 80 + '\n')
-
-def _compare_config_section(
-    artifact_path: str,
-    section_name: str,
-    current: typing.Any,
-) -> dict[str, tuple[typing.Any, typing.Any]]:
-    '''Helper to compare a config section'''
-
-    ctrl = DictControl.load_json_or_fail(artifact_path)
-
-    try:
-        saved = ctrl.fetch()          # or fetch()+check
-        assert saved # typing
-    except artifacts.ArtifactError:
-        return {}
-
-    try:
-        saved_section = _normalize_val(saved.get(section_name, {}))
-        current_section = _normalize_val(dataclasses.asdict(current))
-    except (TypeError, AttributeError):
-        return {f'{section_name}.config_file_read': (True, False)}
-
-    return _diff_configs(
-        current_section,
-        saved_section,
-        section_name,
-    )
-
-def _normalize_val(val: typing.Any) -> typing.Any:
-    '''Normalize values for robust config comparison'''
-
-    if isinstance(val, dict):
-        return {k: _normalize_val(v) for k, v in val.items()}
-    if isinstance(val, list):
-        return [_normalize_val(v) for v in val]
-    if isinstance(val, str):
-        # normalize slashes and paths
-        if '/' in val or '\\' in val or val.startswith('.'):
-            return os.path.abspath(val).replace('\\', '/')
-        return val
-    return val
-
-def _diff_configs(
-    dict1: dict,
-    dict2: dict,
-    prefix: str = ''
-) -> dict[str, tuple[typing.Any, typing.Any]]:
-    '''Recursively compare two normalized configuration dictionaries.'''
-
-    diffs = {}
-    for k, v in dict1.items():
-        path = f'{prefix}.{k}' if prefix else k
-        if k not in dict2:
-            diffs[path] = (v, None)
-            continue
-
-        v2 = dict2[k]
-        if isinstance(v, dict) and isinstance(v2, dict):
-            diffs.update(_diff_configs(v, v2, path))
-        elif isinstance(v, list) and isinstance(v2, list):
-            if len(v) != len(v2):
-                diffs[path] = (v, v2)
-            else:
-                for i, (item1, item2) in enumerate(zip(v, v2)):
-                    list_path = f'{path}[{i}]'
-                    if isinstance(item1, dict) and isinstance(item2, dict):
-                        diffs.update(_diff_configs(item1, item2, list_path))
-                    elif item1 != item2:
-                        diffs[list_path] = (item1, item2)
-        else:
-            if v != v2:
-                diffs[path] = (v, v2)
-
-    for k, v2 in dict2.items():
-        path = f'{prefix}.{k}' if prefix else k
-        if k not in dict1:
-            diffs[path] = (None, v2)
-
-    return diffs

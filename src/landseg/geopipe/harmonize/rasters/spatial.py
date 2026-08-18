@@ -113,18 +113,13 @@ def create_canvas(
     return CanvasSpec(crs=crs, resolution=float(res_val), bounds=bounds_tuple)
 
 
-def _from_reference_raster(reference_raster: str) -> CanvasSpec:
-    '''Create CanvasSpec from a reference raster file.'''
-    return create_canvas(reference_raster=reference_raster)
-
-
 def warp_to_canvas(
     *,
     input_path: str,
     output_path: str,
     canvas: CanvasSpec,
     is_categorical: bool = False,
-    resampling_method: str | None = None
+    resampling_method: str | None = None,
 ) -> str:
     '''
     Reproject and snap an input raster to target `CanvasSpec` grid as a VRT.
@@ -154,11 +149,13 @@ def warp_to_canvas(
         resample_alg = rasterio.enums.Resampling.bilinear
 
     with rasterio.open(input_path) as src:
+
         nodata_val = (
             src.nodata
             if src.nodata is not None
             else (255 if is_categorical else -9999)
         )
+
         with rasterio.vrt.WarpedVRT(
             src,
             crs=canvas.crs,

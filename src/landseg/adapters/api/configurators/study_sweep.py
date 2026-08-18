@@ -35,12 +35,12 @@ class StudySweepConfigurator(configurators.BaseConfigurator):
     def __init__(
         self,
         experiment_root: str,
-        dataset_name: str = 'sample_data',
         *,
         optuna_storage: str,
         seed: int = 42
     ):
-        super().__init__(experiment_root, 'study-sweep', dataset_name)
+        super().__init__(experiment_root, 'study-sweep')
+
         #
         self.study = self._cfg.study
         self._cfg.pipeline.study_sweep.storage = optuna_storage

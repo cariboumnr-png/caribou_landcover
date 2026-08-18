@@ -19,12 +19,15 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=duplicate-code
+
 '''Unit tests for world grid lifecycle management (lifecycle.py).'''
+
 
 # local imports
 import landseg.artifacts as artifacts
-import landseg.geopipe.ingest.world_grids.builder as grid_builder
-import landseg.geopipe.ingest.world_grids.lifecycle as grid_lifecycle
+import landseg.geopipe.harmonize.world_grids.builder as grid_builder
+import landseg.geopipe.harmonize.world_grids.lifecycle as grid_lifecycle
 
 
 # ----- `prepare_world_grid` tests

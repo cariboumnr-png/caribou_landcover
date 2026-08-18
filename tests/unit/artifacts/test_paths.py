@@ -91,7 +91,8 @@ def test_harmonization_paths(tmp_path):
     '''
     Given: A harmonization root directory path.
     When: Initializing `HarmonizationPaths` across runs.
-    Then: Return expected run-isolated harmonized raster VRTs and etl_report.json file paths.
+    Then: Return expected run-isolated valid mask raster, config, and
+        harmonize_report.json file paths.
     '''
     e = str(tmp_path)
     paths = paths_mod.HarmonizationPaths(root=e)
@@ -99,10 +100,14 @@ def test_harmonization_paths(tmp_path):
 
     assert paths.run_id == 'run_0001'
     r = paths.effective_root
-    assert paths.harmonized_raster('dem') == os.path.join(r, 'harmonized_dem.vrt')
-    assert paths.feature_raster == os.path.join(r, 'stacked_images.vrt')
     assert paths.valid_mask_raster == os.path.join(r, 'valid_pixel_mask.vrt')
-    assert paths.report == os.path.join(r, 'etl_report.json')
+    assert paths.config == os.path.join(r, 'config.json')
+    assert paths.report == os.path.join(r, 'harmonize_report.json')
+    expected_grid = os.path.join(
+        r, 'world_grids', 'grid_row_256_0_col_256_0.json'
+    )
+    assert paths.grids.fpath((256, 256, 0, 0)) == expected_grid
+
 
     # second init auto-increments run_id
     etl_paths_2 = paths_mod.HarmonizationPaths(root=e)
@@ -170,19 +175,19 @@ def test_ingestion_paths():
 def test_data_blocks_paths():
     '''
     Given: A data blocks root directory string.
-    When: Accessing `_DataBlocks` dev/test paths and window map methods.
-    Then: Return expected model dev and test holdout artifact paths.
+    When: Accessing `_DataBlocks` paths and window map methods.
+    Then: Return expected canonical data block artifact paths.
     '''
     b = os.path.join('/tmp', 'exp', 'ingested_data', 'data_blocks')
     db = f_mod._DataBlocks(root=b)
 
-    d = os.path.join(b, 'model_dev')
-    assert db.dev.blocks == os.path.join(d, 'blocks')
-    assert db.dev.catalog == os.path.join(d, 'catalog.json')
-    assert db.dev.schema == os.path.join(d, 'schema.json')
+    assert db.blocks == os.path.join(b, 'blocks')
+    assert db.catalog == os.path.join(b, 'catalog.json')
+    assert db.schema == os.path.join(b, 'schema.json')
 
-    win_path = db.test.mapped_window('g1')
-    assert win_path == os.path.join(db.test.windows, 'windows_g1.json')
+    win_path = db.mapped_window('g1')
+    assert win_path == os.path.join(db.windows, 'windows_g1.json')
+
 
 
 # ----- `PreparationPaths` tests
