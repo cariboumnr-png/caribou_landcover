@@ -103,7 +103,6 @@ class _Grid:
 class _HarmonizationCfg:
     canvas: _Canvas = field(default_factory=_Canvas)
     grid: _Grid = field(default_factory=_Grid)
-    dataset_name: str = 'sample_data'
     dataset_manifest: str = ''
     resampling_continuous: str = 'bilinear'
     resampling_categorical: str = 'nearest'
@@ -141,7 +140,6 @@ class _Domains:
 
 @dataclasses.dataclass
 class _DataBlocks:
-    name: str = ''
     ignore_index: int = 255
     image_dem_pad: int = 8
 

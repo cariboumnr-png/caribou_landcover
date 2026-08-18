@@ -35,9 +35,8 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
     def __init__(
         self,
         experiment_root: str,
-        dataset_name: str = 'sample_data',
     ):
-        super().__init__(experiment_root, 'data-harmonize', dataset_name)
+        super().__init__(experiment_root, 'data-harmonize')
 
     def set_canvas(
         self,
@@ -59,12 +58,9 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
     def set_dataset_manifest(
         self,
         dataset_manifest: str,
-        dataset_name: str = 'sample_data',
     ) -> typing.Self:
-        '''Set dataset metadata manifest path and dataset name.'''
+        '''Set dataset metadata manifest path.'''
         self._cfg.data.harmonization.dataset_manifest = dataset_manifest
-        self._cfg.data.harmonization.dataset_name = dataset_name
-        self._cfg.data.ingestion.datablocks.name = dataset_name
         return self
 
     def set_resampling(

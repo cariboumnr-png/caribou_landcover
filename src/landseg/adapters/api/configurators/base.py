@@ -35,14 +35,11 @@ class BaseConfigurator:
         self,
         experiment_root: str,
         pipeline_name: str,
-        dataset_name: str = 'sample_data'
     ):
         '''Initialize the configurator'''
 
         # init a default RootConfig instance
         self._cfg = configs.RootConfig()
-        # set dataset name
-        self._cfg.data.ingestion.datablocks.name = dataset_name
         # set artifact output dirpaths
         self._cfg.execution.exp_root = experiment_root
         self._cfg.data.harmonization.output_dpath = f'{experiment_root}/artifacts/harmonized_data'

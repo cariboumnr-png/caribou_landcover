@@ -65,7 +65,6 @@ def test_end_to_end_data_pipeline_lifecycle(tmp_path, dummy_data_paths):
     # 2. Ingestion configuration
     ingest_cfg = cfg_schema.data.ingestion
     ingest_cfg.output_dpath = str(tmp_path / 'ingested_data')
-    ingest_cfg.datablocks.name = 'e2e_dataset'
     ingest_cfg.rebuild = True
 
     # 3. Preparation configuration

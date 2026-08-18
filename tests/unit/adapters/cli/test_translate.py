@@ -66,16 +66,13 @@ def test_translate_user_config_data_ingest():
     user_cfg = omegaconf.OmegaConf.create({
         'data-ingest': {
             'harmonization_run': 1,
-            'dataset_name': 'test_ds',
             'output_dpath': '/path/exp/artifacts/foundation',
         },
     })
     result = translate_mod.translate_user_config(user_cfg)
 
     assert result.data.ingestion.harmonization_run == 1
-    assert result.data.ingestion.datablocks.name == 'test_ds'
     assert result.data.ingestion.output_dpath == '/path/exp/artifacts/foundation'
-
 
 
 def test_translate_user_config_data_prepare():

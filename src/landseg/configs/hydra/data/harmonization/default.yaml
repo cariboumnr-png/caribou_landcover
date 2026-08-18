@@ -8,7 +8,6 @@ canvas:
   target_resolution: 20.0
 
 dataset_manifest: ''
-dataset_name: sample_data
 resampling_continuous: bilinear
 resampling_categorical: nearest
 output_dpath: ${execution.exp_root}/artifacts/harmonized_data

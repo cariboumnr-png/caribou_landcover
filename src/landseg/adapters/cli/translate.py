@@ -106,10 +106,6 @@ def _translate_data_harmonize(
         'resampling_continuous': ['data.harmonization.resampling_continuous'],
         'resampling_categorical': ['data.harmonization.resampling_categorical'],
         'dataset_manifest': ['data.harmonization.dataset_manifest'],
-        'dataset_name': [
-            'data.harmonization.dataset_name',
-            'data.ingestion.datablocks.name'
-        ],
         'output_dpath': ['data.harmonization.output_dpath'],
     }
     _apply_mapping(harmonization, translated, mapping)
@@ -125,12 +121,10 @@ def _translate_data_ingest(
         'harmonization_run': ['data.ingestion.harmonization_run'],
         'domain_ids_name': ['dataspecs.domain_ids_name'],
         'domain_vec_name': ['dataspecs.domain_vec_name'],
-        'dataset_name': ['data.ingestion.datablocks.name'],
         'rebuild': ['data.ingestion.rebuild'],
         'output_dpath': ['data.ingestion.output_dpath'],
     }
     _apply_mapping(ingestion, translated, mapping)
-
 
 
 def _translate_data_prepare(
@@ -156,7 +150,6 @@ def _translate_data_prepare(
         'output_dpath': ['data.preparation.output_dpath'],
     }
     _apply_mapping(preparation, translated, mapping)
-
 
 
 def _translate_model_train(
@@ -212,6 +205,7 @@ def _apply_mapping(
     for src_key, dest_paths in mapping.items():
         if src_key in src:
             _set_paths(translated, dest_paths, src[src_key])
+
 
 def _set_paths(
     translated: dict,

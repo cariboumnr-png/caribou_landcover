@@ -26,15 +26,15 @@ data-harmonize:
   # ---------------------------------------------------------------------------
   # Input Source Rasters (Features & Ground-Truth Labels)
   # ---------------------------------------------------------------------------
-  # Path to the dataset metadata JSON file and dataset name
+  # Path to the dataset metadata JSON manifest
   dataset_manifest: ./experiment/input/raw_data/manifest.json
-  dataset_name: sample_data
 
   # ---------------------------------------------------------------------------
   # Resampling Rules
   # ---------------------------------------------------------------------------
   resampling_continuous: bilinear
   resampling_categorical: nearest
+
 
 data-ingest:
   output_dpath: ./experiment/artifacts/ingested_data
@@ -47,8 +47,8 @@ data-ingest:
   domain_ids_name: null
   domain_vec_name: null
 
-  dataset_name: sample_data
   rebuild: true
+
 
 data-prepare:
   output_dpath: ./experiment/artifacts/prepared_data
@@ -81,7 +81,6 @@ data-prepare:
   reward_classes: {}
   # Force rebuild splits & normalization even if they exist
   rebuild: true
-
 
 
 model-train:

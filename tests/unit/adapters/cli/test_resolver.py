@@ -57,11 +57,6 @@ def test_resolve_configs_base(tmp_path):
                     'crs': 'EPSG:32617',
                 },
             },
-            'ingestion': {
-                'datablocks': {
-                    'name': 'test_ds',
-                },
-            },
         },
 
         'session': {
@@ -81,7 +76,6 @@ def test_resolve_configs_base(tmp_path):
     )
 
     assert root.execution.cli_mode is True
-    assert root.data.ingestion.datablocks.name == 'test_ds'
     assert root.session.orchestration.single_phase.num_epochs == 5
 
 

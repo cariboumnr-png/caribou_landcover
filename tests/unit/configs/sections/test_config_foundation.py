@@ -115,12 +115,11 @@ def test_datablocks_and_data_validation():
     When: `_DataBlocks.validate()` and `_IngestionCfg.validate()` run.
     Then: Validate data config.
     '''
-    blocks = data._DataBlocks(name='test_blocks')
+    blocks = data._DataBlocks()
     blocks.validate()
 
     df = data._IngestionCfg(datablocks=blocks)
     df.validate()
-
 
 
 # ----- `_HarmonizationCfg` tests

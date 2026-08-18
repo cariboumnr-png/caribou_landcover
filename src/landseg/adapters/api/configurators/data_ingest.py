@@ -34,9 +34,8 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
     def __init__(
         self,
         experiment_root: str,
-        dataset_name: str = 'sample_data',
     ):
-        super().__init__(experiment_root, 'data-ingest', dataset_name)
+        super().__init__(experiment_root, 'data-ingest')
 
     def set_rebuild(self, rebuild: bool) -> typing.Self:
         '''Set whether to force rebuild ingestion artifacts.'''

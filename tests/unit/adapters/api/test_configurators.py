@@ -39,7 +39,6 @@ def test_data_harmonization_configurator(tmp_path):
 
     cfg_builder = configurators.DataHarmonizationConfigurator(
         experiment_root=str(tmp_path),
-        dataset_name='test_ds'
     )
     cfg_builder.set_canvas(
         target_crs='EPSG:3161',
@@ -51,7 +50,6 @@ def test_data_harmonization_configurator(tmp_path):
         crs='EPSG:3161'
     ).set_dataset_manifest(
         dataset_manifest=str(manifest_json),
-        dataset_name='test_ds'
     ).set_resampling(
         continuous='bilinear',
         categorical='nearest'
@@ -70,7 +68,6 @@ def test_data_harmonization_configurator(tmp_path):
     assert root.data.harmonization.grid.tile_specs.overlap_col == 64
     assert root.data.harmonization.grid.crs == 'EPSG:3161'
     assert root.data.harmonization.dataset_manifest == str(manifest_json)
-    assert root.data.harmonization.dataset_name == 'test_ds'
     assert root.data.harmonization.resampling_continuous == 'bilinear'
     assert root.data.harmonization.resampling_categorical == 'nearest'
     assert root.data.harmonization.output_dpath == str(tmp_path / 'harmonized')
@@ -85,7 +82,6 @@ def test_data_ingestion_configurator(tmp_path):
     '''
     cfg_builder = configurators.DataIngestionConfigurator(
         experiment_root=str(tmp_path),
-        dataset_name='test_ds'
     )
     cfg_builder.set_rebuild(
         rebuild=True
@@ -109,7 +105,6 @@ def test_data_preparation_configurator(tmp_path):
     '''
     cfg_builder = configurators.DataPreparationConfigurator(
         experiment_root=str(tmp_path),
-        dataset_name='test_ds'
     )
     cfg_builder.set_partition(
         validation_blocks_ratio=0.15,
@@ -139,8 +134,8 @@ def test_training_session_configurator(tmp_path):
     '''
     cfg_builder = configurators.TrainingSessionConfigurator(
         experiment_root=str(tmp_path),
-        dataset_name='test_ds'
     )
+
     cfg_builder.set_model(
         body='unet',
         bottleneck='conv',

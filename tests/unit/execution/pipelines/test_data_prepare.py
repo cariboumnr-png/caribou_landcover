@@ -52,11 +52,6 @@ def test_data_prepare_pipeline_success(tmp_path, dummy_data_paths):
     grid_cfg.tile_specs.overlap_row = 128
     grid_cfg.tile_specs.overlap_col = 128
 
-
-    # override ingestion datablocks fields
-    blocks_cfg = cfg_schema.data.ingestion.datablocks
-    blocks_cfg.name = 'test_prepare_run'
-
     cfg_schema.data.harmonization.canvas.reference_raster = (
         dummy_data_paths.extent
     )
