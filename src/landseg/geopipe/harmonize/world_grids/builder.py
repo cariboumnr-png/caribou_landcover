@@ -43,9 +43,9 @@ import landseg.geopipe.utils as geo_utils
 
 # ------------------------------Public Dataclass------------------------------
 @dataclasses.dataclass
-class GridParameters:
+class GridParameters:  # pylint: disable=too-many-instance-attributes
     '''Container for grid generation configuration.'''
-    mode: typing.Literal['ref', 'aoi', 'tiles']
+    mode: typing.Literal['ref', 'aoi', 'tiles'] | str
     crs: str
     ref_fpath: str
     origin: tuple[float, float]

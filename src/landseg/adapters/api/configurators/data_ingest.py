@@ -50,4 +50,3 @@ class DataIngestionConfigurator(configurators.BaseConfigurator):
         '''Set targeted harmonization run index, folder name, or path.'''
         self._cfg.data.ingestion.harmonization_run = target_run
         return self
-

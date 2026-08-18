@@ -64,7 +64,7 @@ class _AlignedRasters:
                 raise ValueError(f'Unknown raster category: {category}')
 
 
-# TODO enforce input label rasters to be single banded
+# note: input label rasters must be single banded
 def process_source(
     compiled_sources: dict[str, harmonize.DatasetConfigItem],
     output_dir: str,

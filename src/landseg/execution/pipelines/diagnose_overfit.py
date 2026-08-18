@@ -189,17 +189,17 @@ def _create_block(
         artifact_paths.data_harmonization,
         config.data.ingestion.harmonization_run,
     )
-    if not harmonized.has_dev_data:
+    if not harmonized.has_data:
         raise ValueError(
-            'Development rasters not found in harmonization report'
+            'Harmonized feature/label rasters not found in report'
         )
 
     # construct world grid layout
     logger.log('INFO', 'Preparing world grid')
-    grid_cfg = config.data.ingestion.grid
+    grid_cfg = config.data.harmonization.grid
     world_grid = world_grids.build_grid(
         world_grids.GridParameters(
-            mode='ref',
+            mode=grid_cfg.mode,
             crs=grid_cfg.crs,
             ref_fpath=harmonized.valid_mask_raster,
             origin=grid_cfg.extent.origin,
@@ -213,32 +213,33 @@ def _create_block(
     # map raster windows onto world grid
     logger.log('INFO', 'Mapping image unto the world grid')
     datablocks_cfg = config.data.ingestion.datablocks
-    assert harmonized.dev_features
-    assert harmonized.dev_labels
+    assert harmonized.features
+    assert harmonized.labels
     mapped = mapper.map_rasters(
         world_grid,
-        harmonized.dev_features,
-        harmonized.dev_labels,
+        harmonized.features,
+        harmonized.labels,
     )
 
     # retrieve band map and label specs from VRT
     logger.log('INFO', 'Building a single data block')
-    image_band_map = assembler.read_band_map(harmonized.dev_features)
-    label_specs = assembler.read_label_specs(harmonized.dev_labels)
+    image_band_map = assembler.read_band_map(harmonized.features)
+    label_specs = assembler.read_label_specs(harmonized.labels)
 
     # construct `RasterReadInput` mapping for mapped windows
     inputs_map = {
         geo_utils.xy_name(coord): assembler.RasterReadInput(
-            image_fpath=harmonized.dev_features,
+            image_fpath=harmonized.features,
             image_window=mapped.image[coord],
             image_band_map=image_band_map,
             image_dem_pad_px=datablocks_cfg.image_dem_pad,
-            label_fpath=harmonized.dev_labels,
+            label_fpath=harmonized.labels,
             label_window=mapped.label[coord] if mapped.label else None,
             label_specs=label_specs,
         )
         for coord in mapped.image
     }
+
 
     # resolve target head for filtering
     target_head = _resolve_target_head(config, label_specs)

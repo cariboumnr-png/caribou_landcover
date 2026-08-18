@@ -97,4 +97,3 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
         '''Set output directory path for harmonized artifacts.'''
         self._cfg.data.harmonization.output_dpath = output_dpath
         return self
-
