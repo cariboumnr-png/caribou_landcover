@@ -24,10 +24,9 @@
 # standard imports
 import time
 # local imports
-
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.harmonize.logger as h_logger
+import landseg.geopipe.harmonize.common as common
 import landseg.geopipe.harmonize.world_grids as world_grids
 
 # typing aliases
@@ -42,7 +41,8 @@ def prepare_world_grid(
     config: world_grids.GridParameters,
     *,
     policy: artifacts.LifecyclePolicy,
-    logger: h_logger.HarmonizationLogger | None = None,
+    logger: common.HarmonizationLogger | None = None,
+
 ) -> geo_core.GridLayout:
     '''
     Build or load a persisted world grid.
@@ -75,7 +75,7 @@ def prepare_world_grid(
 
     # update structured log if logger provided
     if logger is not None:
-        report: h_logger.WorldGridReport = {
+        report: common.WorldGridReport = {
             'grid_id': _grid.gid,
             'status': 'loaded' if loaded_from_disk else 'created_and_loaded',
             'grid_filepath': grid_fpath,

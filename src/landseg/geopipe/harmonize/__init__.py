@@ -55,7 +55,7 @@ __all__ = [
 
 # for static check
 if typing.TYPE_CHECKING:
-    from .logger import (
+    from .common import (
         HarmonizationLogger,
         HarmonizationReportSchema,
         ProvenanceRecord,
@@ -96,7 +96,8 @@ def __getattr__(name: str):
         'ProvenanceRecord',
         'WorldGridReport',
     }:
-        return getattr(importlib.import_module('.logger', __package__), name)
+        return getattr(importlib.import_module('.common', __package__), name)
+
 
     if name in {
         'CanvasSpec',

@@ -28,7 +28,7 @@ persistence.
 import json
 import os
 # local imports
-import landseg.geopipe.harmonize.logger as harmonization_logger
+import landseg.geopipe.harmonize.common as common
 
 
 # ----- test cases
@@ -44,7 +44,7 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
     os.makedirs(out_dpath, exist_ok=True)
     report_file = os.path.join(out_dpath, 'harmonize_report.json')
 
-    logger = harmonization_logger.HarmonizationLogger(
+    logger = common.HarmonizationLogger(
         name='test_harmonize',
         log_file=report_file,
         enable_file_log=False
@@ -93,7 +93,7 @@ def test_harmonization_logger_add_provenance(tmp_path):
     sample_file.write_bytes(b'dummy_content_bytes')
 
     report_file = os.path.join(out_dpath, 'harmonize_report.json')
-    logger = harmonization_logger.HarmonizationLogger(
+    logger = common.HarmonizationLogger(
         name='test_provenance',
         log_file=report_file,
         enable_file_log=False
@@ -122,12 +122,12 @@ def test_harmonization_logger_schema_types():
     When: Populating valid fields according to report schema.
     Then: Successfully create structured schema instances.
     '''
-    prov: harmonization_logger.ProvenanceRecord = {
+    prov: common.ProvenanceRecord = {
         'path': '/path/to/raster.tif',
         'size_bytes': 1024,
         'mtime': 123456.78,
     }
-    summary: harmonization_logger.HarmonizationReportSchema = {
+    summary: common.HarmonizationReportSchema = {
         'run_id': 'run_0001',
         'timestamp': '2026-01-01T00:00:00Z',
         'status': 'SUCCESS',
@@ -138,6 +138,7 @@ def test_harmonization_logger_schema_types():
         'harmonized_sources': {'sentinel2': '/path/to/s2.tif'},
         'finalized_rasters': {'stacked': '/path/to/stacked.tif'},
         'valid_mask_raster': '/path/to/mask.tif',
+        'world_grid': None,
     }
     assert summary['status'] == 'SUCCESS'
     assert summary['provenance']['sentinel2']['size_bytes'] == 1024

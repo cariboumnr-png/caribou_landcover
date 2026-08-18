@@ -25,6 +25,7 @@ execution summaries.
 '''
 
 # standard imports
+from __future__ import annotations
 import datetime
 import os
 import typing
@@ -33,40 +34,8 @@ import landseg._constants as c
 import landseg.artifacts as artifacts
 import landseg.utils as utils
 
-
-# ----- report schema definitions
-class ProvenanceRecord(typing.TypedDict):
-    '''Provenance record for a raw source raster file.'''
-    path: str
-    size_bytes: int
-    mtime: float
-
-
-class WorldGridReport(typing.TypedDict):
-    '''Summary report for a generated world grid layout.'''
-    grid_id: str
-    status: typing.Literal['loaded', 'created_and_loaded']
-    grid_filepath: str
-    crs: str
-    pixel_size: tuple[float, float]
-    tile_size: tuple[int, int]
-    tile_overlap: tuple[int, int]
-    duration_sec: float
-
-
-class HarmonizationReportSchema(typing.TypedDict):
-    '''Root report mapping the entire data harmonization pipeline run.'''
-    run_id: str
-    timestamp: str
-    status: typing.Literal['SUCCESS', 'FAILED', 'SKIPPED']
-    target_crs: str
-    target_resolution: float
-    grid_shape: tuple[int, int]
-    provenance: dict[str, ProvenanceRecord]
-    harmonized_sources: dict[str, str]
-    finalized_rasters: dict[str, str]
-    valid_mask_raster: str
-    world_grid: WorldGridReport | None
+if typing.TYPE_CHECKING:
+    from .schema import HarmonizationReportSchema, WorldGridReport
 
 
 # ----- `HarmonizationLogger` definition
