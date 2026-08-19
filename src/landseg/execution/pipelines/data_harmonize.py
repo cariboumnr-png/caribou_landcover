@@ -55,47 +55,33 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
 
     try:
         logger.log_sep()
-        # build/load canonical world grid - TEMP hosting here
-        logger.log('INFO', 'Building/loading canonical world grid')
-        is_loaded, _grid = grid.prepare_world_grid(
-            root_paths.world_grid,
-            config.data.world_grid.mode,
-            config.data.world_grid.params,
-            policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING,
-        )
+
+        # load world grid - will raise if grid not present (run prior pipeline)
+        logger.log('INFO', '[START] Loading world grid from configuration')
+        grid_fpath, world_grid = grid.load_grid_from_config(config.data.world_grid)
+        gid = world_grid.gid
         grid_report: harmonize.WorldGridReport = {
-            'grid_id': _grid.gid,
-            'status': 'loaded' if is_loaded else 'created_and_loaded',
-            'crs': str(_grid.crs),
-            'pixel_size': _grid.pixel_size,
-            'tile_size': _grid.tile_size,
-            'tile_overlap': _grid.tile_overlap,
+            'grid_fpath': grid_fpath,
+            'grid_id': gid,
+            'crs': world_grid.crs,
+            'pixel_size': world_grid.pixel_size,
+            'tile_size': world_grid.tile_size,
+            'tile_overlap': world_grid.tile_overlap,
         }
         logger.set_world_grid_report(grid_report)
+        logger.log('INFO', f'[COMPLETE] World grid loaded: {gid}')
 
-        # form canvas specs
-        canvas_spec = harmonize.create_canvas(
-            reference_raster=config.data.world_grid.params.ref_fpath,
-            target_crs=config.data.world_grid.params.crs_string,
-            target_resolution=config.data.world_grid.spatial_resolution
-        )
-        logger.log(
-            'INFO',
-            f'Starting data harmonization pipeline... '
-            f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
-        )
-
+        logger.log('INFO', f'[START] Harmonizing data onto grid: {gid}')
         cfg = config.data.harmonization
         compiled = harmonize.compile_dataset_manifest(cfg.dataset_manifest)
         gen = harmonize.process_source(
             compiled,
             paths.effective_root,
-            canvas_spec,
+            world_grid,
             categorical_resampling=cfg.resampling_categorical,
             continuous_resampling=cfg.resampling_continuous,
         )
 
-        # process sources
         processed: harmonize.ProcessedRasters
         while True:
             try:
@@ -126,6 +112,8 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
 
         # persist the whole config dict
         artifacts.Controller[dict](paths.config).persist(config.as_dict)
+
+        logger.log('INFO', '[COMPLETE] Harmonization finished')
 
     except Exception as err:
         logger.set_summary_status('FAILED')

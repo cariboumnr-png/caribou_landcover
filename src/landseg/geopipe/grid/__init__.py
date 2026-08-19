@@ -37,12 +37,18 @@ __all__ = [
     # functions
     'build_grid',
     'prepare_world_grid',
+    'load_grid_from_config',
+    'load_grid_from_fpath'
 ]
 
 # for static check
 if typing.TYPE_CHECKING:
     from .builder import GridParameters, build_grid
-    from .lifecycle import prepare_world_grid
+    from .lifecycle import (
+        prepare_world_grid,
+        load_grid_from_config,
+        load_grid_from_fpath,
+    )
 
 
 def __getattr__(name: str):
@@ -50,7 +56,11 @@ def __getattr__(name: str):
     if name in {'GridParameters', 'build_grid'}:
         return getattr(importlib.import_module('.builder', __package__), name)
 
-    if name in {'prepare_world_grid'}:
+    if name in {
+        'prepare_world_grid',
+        'load_grid_from_config',
+        'load_grid_from_fpath'
+    }:
         return getattr(importlib.import_module('.lifecycle', __package__), name)
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

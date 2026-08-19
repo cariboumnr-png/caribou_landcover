@@ -79,10 +79,10 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
         )
 
         # ----- load canonical world grid
-        grid_cfg = config.data.world_grid
-        logger.log('INFO', '[START] World grid preparation')
-        world_grid = grid.build_grid(grid_cfg.mode, grid_cfg.params)
-        logger.log('INFO', f'[COMPLETE] World grid loaded: {world_grid.gid}')
+        logger.log('INFO', '[START] Loading world grid from configuration')
+        world_grid = grid.load_grid_from_fpath(harmonized.grid_fpath)
+        gid = world_grid.gid
+        logger.log('INFO', f'[COMPLETE] World grid loaded: {gid}')
 
         # ----- materialize domain maps
         domain_cfg = config.data.ingestion.domains
@@ -92,9 +92,7 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
                 ingest.DomainBuildingParameters(
                     input_fpath=path,
                     domain_fpath=ingestion_paths.domains.domain_map_fpath(name),
-                    tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(
-                        name, world_grid.gid
-                    ),
+                    tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(name, gid),
                     index_base=1,
                     valid_threshold=domain_cfg.valid_threshold,
                     target_variance=domain_cfg.target_variance,

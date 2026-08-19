@@ -30,12 +30,10 @@ import typing
 
 __all__ = [
     # classes
-    'CanvasSpec',
     'ProcessedRasters',
     'DatasetConfigItem',
     # functions
-    'create_canvas',
-    'warp_to_canvas',
+    'warp_to_grid',
     'stack_canonical_raster',
     'unify_nodata_mask',
     'validate_domain_raster_index',
@@ -48,9 +46,7 @@ __all__ = [
 # for static check
 if typing.TYPE_CHECKING:
     from .spatial import (
-        CanvasSpec,
-        create_canvas,
-        warp_to_canvas,
+        warp_to_grid,
     )
     from .raster_ops import (
         stack_canonical_raster,
@@ -72,9 +68,7 @@ if typing.TYPE_CHECKING:
 def __getattr__(name: str):
 
     if name in {
-        'CanvasSpec',
-        'create_canvas',
-        'warp_to_canvas',
+        'warp_to_grid',
     }:
         return getattr(importlib.import_module('.spatial', __package__), name)
 

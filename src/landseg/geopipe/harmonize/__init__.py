@@ -35,7 +35,7 @@ __all__ = [
     'ProcessedRasters',
     # functions
     'create_canvas',
-    'warp_to_canvas',
+    'warp_to_grid',
     'stack_canonical_raster',
     'unify_nodata_mask',
     'validate_domain_raster_index',
@@ -61,7 +61,7 @@ if typing.TYPE_CHECKING:
     from .rasters import (
         CanvasSpec,
         create_canvas,
-        warp_to_canvas,
+        warp_to_grid,
         stack_canonical_raster,
         unify_nodata_mask,
         validate_domain_raster_index,

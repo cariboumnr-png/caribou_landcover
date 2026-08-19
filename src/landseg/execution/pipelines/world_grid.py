@@ -24,7 +24,6 @@ World grid pipeline command implementation.
 '''
 
 # local imports
-import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.geopipe.grid as grid
 import landseg.utils as utils
@@ -38,19 +37,19 @@ def exec_world_grid(config: configs.RootConfig) -> None:
     Args:
         config: Resolved root configuration object.
     '''
-    root_paths = artifacts.ArtifactPaths.from_config(config)
     grid_cfg = config.data.world_grid
 
     logger = utils.Logger(name='world-grid', enable_file_log=False)
+
     logger.log_sep()
     logger.log('INFO', 'Building/loading canonical world grid')
-    is_loaded, _grid = grid.prepare_world_grid(
-        root_paths.world_grid,
-        grid_cfg.mode,
-        grid_cfg.params,
-        policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING,
-    )
+
+    is_loaded, grid_fp, world_grid = grid.prepare_world_grid(grid_cfg)
     status_str = 'loaded' if is_loaded else 'created and persisted'
-    logger.log('INFO', f'[COMPLETE] World grid {status_str}: {_grid.gid}')
-    logger.log('INFO', f'CRS: {_grid.crs}, Total Tiles: {len(_grid)}')
+
+    logger.log('INFO', f'[COMPLETE] World grid {status_str}')
+    logger.log('INFO', f'Grid ID: {world_grid.gid}')
+    logger.log('INFO', f'Grid artifact file path: {grid_fp}')
+    logger.log('INFO', f'CRS: {world_grid.crs}')
+    logger.log('INFO', f'Total Tiles: {len(world_grid)}')
     logger.log_sep()

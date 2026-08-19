@@ -38,8 +38,8 @@ class ProvenanceRecord(typing.TypedDict):
 
 class WorldGridReport(typing.TypedDict):
     '''Summary report for a generated world grid layout.'''
+    grid_fpath: str
     grid_id: str
-    status: typing.Literal['loaded', 'created_and_loaded']
     crs: str
     pixel_size: tuple[float, float]
     tile_size: tuple[int, int]

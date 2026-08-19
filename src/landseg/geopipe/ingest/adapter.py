@@ -36,6 +36,7 @@ ReportController = artifacts.Controller[harmonize.HarmonizationReportSchema]
 @dataclasses.dataclass
 class HarmonizedRasters:
     '''Container for harmonized rasters read from the report.'''
+    grid_fpath: str
     domains: dict[str, str] | None
     features: str | None
     labels: str | None
@@ -63,6 +64,9 @@ def read_harmonization_report(
     finals = report['finalized_rasters']
     assert finals
 
+    world_grid = report.get('world_grid')
+    assert world_grid
+
     # see if domains are present
     domains: dict[str, str] = {}
     for key, value in finals.items():
@@ -73,6 +77,7 @@ def read_harmonization_report(
     labels = finals.get('labels')
 
     return HarmonizedRasters(
+        grid_fpath=world_grid['grid_fpath'],
         domains=domains,
         features=features,
         labels=labels,

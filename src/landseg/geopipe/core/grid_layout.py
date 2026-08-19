@@ -218,15 +218,8 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
     def gid(self) -> str:
         '''
         Return a canonical identifier for the grid configuration.
-
-        Example:
-            A grid with tile size of (H256, W256) and overlap of (H128,
-            W128) will have a gid as `'grid_row_256_128_col_256_128'`.
         '''
-        return (
-            f'grid_row_{self._spec.tile_size[0]}_{self._spec.tile_stride[0]}_'
-            f'col_{self._spec.tile_size[1]}_{self._spec.tile_stride[0]}'
-        )
+        return self.generate_gid(self._spec.tile_size, self._spec.tile_stride)
 
     @property
     def crs(self) -> str:
@@ -267,6 +260,18 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
     def w(self) -> int:
         '''Return the grid width in pixels.'''
         return self._extent[1]
+
+    @property
+    def transform(self) -> rasterio.Affine:
+        '''Return the affine transform for the grid.'''
+        return rasterio.Affine(
+            self._spec.pixel_size[0],
+            0.0,
+            self._spec.origin[0],
+            0.0,
+            -self._spec.pixel_size[1],
+            self._spec.origin[1],
+        )
 
     # ----- alternative constructor
     @classmethod
@@ -378,6 +383,22 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
             },
             'data': canon
         }
+
+    @staticmethod
+    def generate_gid(
+        tile_size: tuple[int, int],
+        tile_stride: tuple[int, int]
+    ) -> str:
+        '''
+        Return a canonical identifier for the grid configuration.
+
+        Example:
+            A grid with tile size of (H256, W256) and stride of (H128,
+            W128) will have a gid as `'grid_row_256_128_col_256_128'`.
+        '''
+        row_size, col_size = tile_size
+        row_stride, col_stride = tile_stride
+        return f'grid_row_{row_size}_{row_stride}_col_{col_size}_{col_stride}'
 
     # ----- private method
     def _generate(self) -> None:

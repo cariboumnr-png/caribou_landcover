@@ -23,110 +23,33 @@
 Spatial grid specification and raster warping operations.
 '''
 
-# standard imports
-import dataclasses
 import os
 # third-party imports
 import rasterio
 import rasterio.enums
 import rasterio.shutil
-import rasterio.transform
 import rasterio.vrt
+# local imports
+import landseg.geopipe.core as geo_core
 
-# Public Dataclasses
-@dataclasses.dataclass(frozen=True)
-class CanvasSpec:
-    '''Target spatial grid specification defining CRS, resolution, and extent.'''
-    crs: str
-    resolution: float
-    bounds: tuple[float, float, float, float] # (xmin, ymin, xmax, ymax)
-
-    @property
-    def width(self) -> int:
-        '''Calculated canvas width in pixels.'''
-        return int(round((self.bounds[2] - self.bounds[0]) / self.resolution))
-
-    @property
-    def height(self) -> int:
-        '''Calculated canvas height in pixels.'''
-        return int(round((self.bounds[3] - self.bounds[1]) / self.resolution))
-
-    @property
-    def transform(self) -> rasterio.transform.Affine:
-        '''Calculated affine transform for top-left origin grid.'''
-        return rasterio.transform.from_origin(
-            self.bounds[0], self.bounds[3], self.resolution, self.resolution
-        )
-
-
-# ----- public functions
-def create_canvas(
-    *,
-    reference_raster: str | None = None,
-    target_crs: str | None = None,
-    target_resolution: float | None = None,
-) -> CanvasSpec:
-    '''
-    Create `CanvasSpec` from a reference raster file or fallback bounds.
-
-    Args:
-        reference_raster:
-            Optional file path to reference raster dataset.
-        target_crs:
-            Coordinate Reference System string (e.g. 'EPSG:3161').
-        target_resolution:
-            Target pixel resolution in meters.
-
-    Returns:
-        Configured `CanvasSpec` instance.
-    '''
-    if reference_raster:
-        if not os.path.exists(reference_raster):
-            raise FileNotFoundError(
-                f'Reference raster file not found: {reference_raster}'
-            )
-
-        with rasterio.open(reference_raster) as src:
-            crs = target_crs or src.crs.to_string()
-            res_val = target_resolution or src.res[0]
-            bounds_tuple = (
-                src.bounds.left,
-                src.bounds.bottom,
-                src.bounds.right,
-                src.bounds.top
-            )
-
-        return CanvasSpec(
-            crs=crs,
-            resolution=float(res_val),
-            bounds=bounds_tuple
-        )
-
-    crs = target_crs or 'EPSG:3161'
-    res_val = target_resolution if target_resolution is not None else 20.0
-    w_m = 512 * res_val
-    bounds_tuple = (500000.0, 600000.0, 500000.0 + w_m, 600000.0 + w_m)
-    return CanvasSpec(crs=crs, resolution=float(res_val), bounds=bounds_tuple)
-
-
-def warp_to_canvas(
+def warp_to_grid(
     *,
     input_path: str,
     output_path: str,
-    canvas: CanvasSpec,
+    world_grid: geo_core.GridLayout,
     is_categorical: bool = False,
     resampling_method: str | None = None,
 ) -> str:
     '''
-    Reproject and snap an input raster to target `CanvasSpec` grid as a VRT.
+    Reproject and snap an input raster to target grid as a VRT.
 
     Args:
         input_path:
             Path to the raw source GeoTIFF.
         output_path:
             Destination path for the harmonized Virtual Raster (.vrt).
-        canvas:
-            Configured `CanvasSpec` target.
+        world_grid:
+            A `GridLayout` instance.
         is_categorical:
             If True, strictly uses nearest-neighbor resampling.
         resampling_method:
@@ -152,15 +75,16 @@ def warp_to_canvas(
             else (255 if is_categorical else -9999)
         )
 
-        with rasterio.vrt.WarpedVRT(
-            src,
-            crs=canvas.crs,
-            transform=canvas.transform,
-            width=canvas.width,
-            height=canvas.height,
-            resampling=resample_alg,
-            nodata=nodata_val
-        ) as vrt:
-            rasterio.shutil.copy(vrt, output_path, driver='VRT')
+        with rasterio.open(input_path) as src:
+            with rasterio.vrt.WarpedVRT(
+                src,
+                crs=world_grid.crs,
+                transform=world_grid.transform,
+                width=world_grid.w,
+                height=world_grid.h,
+                resampling=resample_alg,
+                nodata=nodata_val,
+            ) as vrt:
+                rasterio.shutil.copy(vrt, output_path, driver='VRT')
 
     return os.path.abspath(output_path)
