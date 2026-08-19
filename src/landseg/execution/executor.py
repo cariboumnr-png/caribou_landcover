@@ -54,7 +54,7 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
     pipeline = config.pipeline.name
 
     # no checks if at the start of the pipeline chain
-    if pipeline in ('default', 'data-harmonize'):
+    if pipeline in ('default', 'world-grid', 'data-harmonize'):
         return
 
     # fetch data pipeline artifacts paths

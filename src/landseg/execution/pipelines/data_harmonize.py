@@ -116,10 +116,7 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
             logger.add_finalized_raster(name, path)
 
         # generate valid feature pixel mask if feature raster is provided
-        feature_raster = (
-            processed.finalized.get('features')
-            or processed.finalized.get('dev_features')
-        )
+        feature_raster = processed.finalized.get('features')
         if feature_raster:
             mask_path = paths.valid_mask_raster
             logger.log('INFO', f'Generating valid mask raster: {mask_path}')

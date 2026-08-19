@@ -25,6 +25,37 @@
 import landseg.adapters.api.configurators as configurators
 
 
+# ----- `WorldGridConfigurator` tests
+def test_world_grid_configurator(tmp_path):
+    '''
+    Given: Parameters for world grid canonical lifecycle.
+    When: Chaining methods on `WorldGridConfigurator`.
+    Then: Correctly populate underlying `RootConfig` and validate.
+    '''
+    ref_tif = tmp_path / 'ref.tif'
+    ref_tif.write_text('ref')
+
+    cfg_builder = configurators.WorldGridConfigurator(
+        experiment_root=str(tmp_path),
+    )
+    cfg_builder.set_grid(
+        tile_size=256,
+        tile_stride=128,
+        crs='EPSG:3161',
+        reference_raster=str(ref_tif)
+    ).set_output_dpath(
+        output_dpath=str(tmp_path / 'world_grids')
+    )
+
+    root = cfg_builder.running_root_config
+    assert root.pipeline.name == 'world-grid'
+    assert root.data.world_grid.params.crs_string == 'EPSG:3161'
+    assert root.data.world_grid.params.ref_fpath == str(ref_tif)
+    assert root.data.world_grid.params.tile_size == (256, 256)
+    assert root.data.world_grid.params.tile_stride == (128, 128)
+    assert root.data.world_grid.output_dpath == str(tmp_path / 'world_grids')
+
+
 # ----- `DataHarmonizationConfigurator` tests
 def test_data_harmonization_configurator(tmp_path):
     '''

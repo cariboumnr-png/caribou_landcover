@@ -84,8 +84,8 @@ def test_data_blocks_adapter(mocker):
     mock_config.non_overlapping_test_grid = False
 
     result = adapter.data_blocks_adapter(
-        dev_catalog='dev_cat.json',
-        dev_schema='dev_schema.json',
+        catalog='dev_cat.json',
+        schema='dev_schema.json',
         test_catalog='test_cat.json',
         config=mock_config
     )
@@ -95,9 +95,9 @@ def test_data_blocks_adapter(mocker):
 
     # block_0 is valid (valid_px_ratios.image = 1.0 >= 0.5)
     # block_1 is invalid (valid_px_ratios.image = 0.1 < 0.5)
-    # dev_blocks has coordinate (0, 0) for block_0
-    assert (0, 0) in result.dev_blocks
-    assert (10, 10) not in result.dev_blocks
+    # blocks has coordinate (0, 0) for block_0
+    assert (0, 0) in result.blocks
+    assert (10, 10) not in result.blocks
 
 
 def test_is_valid_block():

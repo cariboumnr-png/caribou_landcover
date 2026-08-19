@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -20,43 +20,45 @@
 # =========================================================================== #
 
 '''
-Unit tests for pipeline registry (_registry.py).
+World grid canonical lifecycle configurator.
 '''
 
-# third-party imports
-import pytest
+# standard imports
+import typing
 # local imports
-import landseg.execution.pipelines._registry as registry
+import landseg.adapters.api.configurators as configurators
 
 
-# ----- `get` helper
-@pytest.mark.parametrize('name', [
-    'default',
-    'world-grid',
-    'data-harmonize',
-    'data-ingest',
-    'data-prepare',
-    'diagnose-overfit',
-    'model-evaluate',
-    'model-train',
-    'study-sweep',
-    'study-analysis',
-])
-def test_get_valid_pipeline(name: registry.PipelineName):
-    '''
-    Given: A valid pipeline name.
-    When: `get` is called.
-    Then: Return the registered pipeline callable.
-    '''
-    pipeline_fn = registry.get(name)
-    assert callable(pipeline_fn)
+class WorldGridConfigurator(configurators.BaseConfigurator):
+    '''Configure canonical world grid generation and persistence.'''
 
+    def __init__(
+        self,
+        experiment_root: str,
+    ):
+        super().__init__(experiment_root, 'world-grid')
 
-def test_get_invalid_pipeline_raises_key_error():
-    '''
-    Given: An unknown pipeline name.
-    When: `get` is called.
-    Then: Raise a KeyError.
-    '''
-    with pytest.raises(KeyError, match='Unknown pipeline name'):
-        registry.get('non-existent-pipeline')
+    def set_grid(
+        self,
+        tile_size: int = 256,
+        tile_stride: int = 0,
+        crs: str = '',
+        mode: str = 'ref',
+        reference_raster: str | None = None,
+    ) -> typing.Self:
+        '''Set study extent and grid specs.'''
+        self._cfg.data.world_grid.mode = mode
+        self._cfg.data.world_grid.params.crs_string = crs
+        self._cfg.data.world_grid.params.tile_size = (tile_size, tile_size)
+        self._cfg.data.world_grid.params.tile_stride = (
+            tile_stride,
+            tile_stride,
+        )
+        if reference_raster:
+            self._cfg.data.world_grid.params.ref_fpath = reference_raster
+        return self
+
+    def set_output_dpath(self, output_dpath: str) -> typing.Self:
+        '''Set output directory path for world grid artifacts.'''
+        self._cfg.data.world_grid.output_dpath = output_dpath
+        return self

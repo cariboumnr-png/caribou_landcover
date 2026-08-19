@@ -39,6 +39,7 @@ import landseg.execution.pipelines as pipelines
 # allowed pipeline names
 PipelineName = typing.Literal[
     'default',
+    'world-grid',
     'data-harmonize',
     'data-ingest',
     'data-prepare',
@@ -56,6 +57,7 @@ class PipelineFn(typing.Protocol):
 
 PIPELINES: dict[PipelineName, PipelineFn] = {
     'default': pipelines.default_action,
+    'world-grid': pipelines.exec_world_grid,
     'data-harmonize': pipelines.exec_harmonize_data,
     'data-ingest': pipelines.exec_ingest_data,
     'data-prepare': pipelines.prepare,

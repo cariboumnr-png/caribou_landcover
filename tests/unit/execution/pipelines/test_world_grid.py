@@ -19,44 +19,50 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-'''
-Unit tests for pipeline registry (_registry.py).
-'''
+'''Unit tests for the world grid execution pipeline.'''
 
+# standard imports
+import json
+import os
+import typing
 # third-party imports
-import pytest
+import omegaconf
 # local imports
-import landseg.execution.pipelines._registry as registry
+import landseg.configs as configs
+import landseg.execution.pipelines as pipelines
 
 
-# ----- `get` helper
-@pytest.mark.parametrize('name', [
-    'default',
-    'world-grid',
-    'data-harmonize',
-    'data-ingest',
-    'data-prepare',
-    'diagnose-overfit',
-    'model-evaluate',
-    'model-train',
-    'study-sweep',
-    'study-analysis',
-])
-def test_get_valid_pipeline(name: registry.PipelineName):
+# ----- `exec_world_grid` tests
+def test_world_grid_pipeline_success(tmp_path, dummy_data_paths):
     '''
-    Given: A valid pipeline name.
-    When: `get` is called.
-    Then: Return the registered pipeline callable.
+    Given: Valid extent reference raster and grid configuration.
+    When: `exec_world_grid` is executed.
+    Then: Produce canonical world grid JSON artifact on disk.
     '''
-    pipeline_fn = registry.get(name)
-    assert callable(pipeline_fn)
+    cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
 
+    grid_cfg = cfg_schema.data.world_grid
+    grid_cfg.mode = 'ref'
+    grid_cfg.output_dpath = str(tmp_path / 'world_grids')
+    grid_cfg.params.ref_fpath = dummy_data_paths.extent
+    grid_cfg.params.crs_string = 'EPSG:3161'
+    grid_cfg.params.tile_size = (256, 256)
+    grid_cfg.params.tile_stride = (128, 128)
 
-def test_get_invalid_pipeline_raises_key_error():
-    '''
-    Given: An unknown pipeline name.
-    When: `get` is called.
-    Then: Raise a KeyError.
-    '''
-    with pytest.raises(KeyError, match='Unknown pipeline name'):
-        registry.get('non-existent-pipeline')
+    config = typing.cast(
+        configs.RootConfig,
+        omegaconf.OmegaConf.to_object(cfg_schema)
+    )
+
+    pipelines.exec_world_grid(config)
+
+    # verify canonical world grid artifact was generated
+    grid_fpath = os.path.join(
+        str(tmp_path / 'world_grids'),
+        'grid_row_256_128_col_256_128.json'
+    )
+    assert os.path.exists(grid_fpath)
+    with open(grid_fpath, 'r', encoding='utf-8') as f:
+        grid_data = json.load(f)
+    assert isinstance(grid_data, list)
+    assert len(grid_data) > 0

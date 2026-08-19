@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -20,43 +20,37 @@
 # =========================================================================== #
 
 '''
-Unit tests for pipeline registry (_registry.py).
+World grid pipeline command implementation.
 '''
 
-# third-party imports
-import pytest
 # local imports
-import landseg.execution.pipelines._registry as registry
+import landseg.artifacts as artifacts
+import landseg.configs as configs
+import landseg.geopipe.grid as grid
+import landseg.utils as utils
 
 
-# ----- `get` helper
-@pytest.mark.parametrize('name', [
-    'default',
-    'world-grid',
-    'data-harmonize',
-    'data-ingest',
-    'data-prepare',
-    'diagnose-overfit',
-    'model-evaluate',
-    'model-train',
-    'study-sweep',
-    'study-analysis',
-])
-def test_get_valid_pipeline(name: registry.PipelineName):
+# ----- public functions
+def exec_world_grid(config: configs.RootConfig) -> None:
     '''
-    Given: A valid pipeline name.
-    When: `get` is called.
-    Then: Return the registered pipeline callable.
-    '''
-    pipeline_fn = registry.get(name)
-    assert callable(pipeline_fn)
+    Execute the world-grid pipeline.
 
+    Args:
+        config: Resolved root configuration object.
+    '''
+    root_paths = artifacts.ArtifactPaths.from_config(config)
+    grid_cfg = config.data.world_grid
 
-def test_get_invalid_pipeline_raises_key_error():
-    '''
-    Given: An unknown pipeline name.
-    When: `get` is called.
-    Then: Raise a KeyError.
-    '''
-    with pytest.raises(KeyError, match='Unknown pipeline name'):
-        registry.get('non-existent-pipeline')
+    logger = utils.Logger(name='world-grid', enable_file_log=False)
+    logger.log_sep()
+    logger.log('INFO', 'Building/loading canonical world grid')
+    is_loaded, _grid = grid.prepare_world_grid(
+        root_paths.world_grid,
+        grid_cfg.mode,
+        grid_cfg.params,
+        policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING,
+    )
+    status_str = 'loaded' if is_loaded else 'created and persisted'
+    logger.log('INFO', f'[COMPLETE] World grid {status_str}: {_grid.gid}')
+    logger.log('INFO', f'CRS: {_grid.crs}, Total Tiles: {len(_grid)}')
+    logger.log_sep()

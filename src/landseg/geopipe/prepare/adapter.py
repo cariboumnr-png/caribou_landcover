@@ -71,21 +71,6 @@ class DataBlocksView:
         rasterio.transform.Affine.identity()
     )
 
-    @property
-    def dev_base_class_counts(self) -> dict[tuple[int, int], list[int]]:
-        '''Backward compatibility property.'''
-        return self.base_class_counts
-
-    @property
-    def dev_valid_class_counts(self) -> dict[tuple[int, int], list[int]]:
-        '''Backward compatibility property.'''
-        return self.valid_class_counts
-
-    @property
-    def dev_blocks(self) -> dict[tuple[int, int], str]:
-        '''Backward compatibility property.'''
-        return self.blocks
-
 
 @dataclasses.dataclass
 class _Parsed:
@@ -97,11 +82,10 @@ class _Parsed:
 
 
 def data_blocks_adapter(
-    catalog: str | None = None,
-    schema: str | None = None,
-    config: _CatalogViewConfig | None = None,
+    catalog: str,
+    schema: str,
+    config: _CatalogViewConfig,
     test_catalog: str | None = None,
-    **kwargs: typing.Any,
 ) -> DataBlocksView:
     '''
     Load and adapt canonical blocks into a structured view for partitioning.
@@ -118,22 +102,13 @@ def data_blocks_adapter(
     Returns:
         DataBlocksView containing filtered metadata for partitioning.
     '''
-    effective_config = config or kwargs.get('config')
-    effective_catalog = catalog or kwargs.get('dev_catalog')
-    effective_schema = schema or kwargs.get('dev_schema')
     effective_test_catalog = (
         test_catalog
-        or (getattr(effective_config, 'test_catalog', None)
-            if effective_config else None)
-        or kwargs.get('test_catalog')
+        or (getattr(config, 'test_catalog', None) if config else None)
     )
 
-    assert effective_catalog is not None
-    assert effective_schema is not None
-    assert effective_config is not None
-
     # load schema
-    data_schema = SchemaCtrl.load_json_or_fail(effective_schema).fetch()
+    data_schema = SchemaCtrl.load_json_or_fail(schema).fetch()
     assert data_schema
 
     # resolve canvas crs and transform from image source
@@ -158,16 +133,16 @@ def data_blocks_adapter(
     blk_size = (image_shape['H'], image_shape['W'])
 
     # parse catalog
-    if effective_config.focal_target:
+    if config.focal_target:
         assert (
-            effective_config.focal_target
+            config.focal_target
             in data_schema['labels']['label_ignore_cls']
         )
     main_parsed = _parse(
-        effective_catalog,
+        catalog,
         blk_size,
-        effective_config.valid_pxs,
-        focal_target=effective_config.focal_target
+        config.valid_pxs,
+        focal_target=config.focal_target
     )
 
     # optionally parse test data catalog if provided
@@ -177,10 +152,10 @@ def data_blocks_adapter(
             test_parsed = _parse(
                 effective_test_catalog,
                 blk_size,
-                effective_config.valid_pxs,
-                focal_target=effective_config.focal_target
+                config.valid_pxs,
+                focal_target=config.focal_target
             )
-            if effective_config.non_overlapping_test_grid:
+            if config.non_overlapping_test_grid:
                 test_blocks = list(
                     v for k, v in test_parsed.valid_file_paths.items()
                     if k in test_parsed.base_class_counts
@@ -199,8 +174,6 @@ def data_blocks_adapter(
         canvas_crs=canvas_crs,
         canvas_transform=canvas_transform,
     )
-
-
 
 
 def _parse(
