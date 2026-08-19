@@ -46,35 +46,15 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
     paths = root_paths.data_harmonization
     paths.init()
 
-    cfg = config.data.harmonization
-
-    canvas_spec = harmonize.create_canvas(
-        reference_raster=cfg.canvas.reference_raster,
-        target_crs=cfg.canvas.target_crs,
-        target_resolution=cfg.canvas.target_resolution
-    )
-
     logger = harmonize.HarmonizationLogger(
         name='data-harmonize',
         log_file=paths.report,
         enable_file_log=False
     )
-
-    logger.init_summary(
-        run_id=paths.run_id,
-        target_crs=canvas_spec.crs,
-        target_resolution=canvas_spec.resolution
-    )
-    logger.set_grid_shape(canvas_spec.height, canvas_spec.width)
+    logger.init_summary(run_id=paths.run_id)
 
     try:
         logger.log_sep()
-        logger.log(
-            'INFO',
-            f'Starting data harmonization pipeline... '
-            f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
-        )
-
         # build/load canonical world grid - TEMP hosting here
         logger.log('INFO', 'Building/loading canonical world grid')
         is_loaded, _grid = grid.prepare_world_grid(
@@ -93,7 +73,19 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
         }
         logger.set_world_grid_report(grid_report)
 
-        # read dataset JSON config
+        # form canvas specs
+        canvas_spec = harmonize.create_canvas(
+            reference_raster=config.data.world_grid.params.ref_fpath,
+            target_crs=config.data.world_grid.params.crs_string,
+            target_resolution=config.data.world_grid.spatial_resolution
+        )
+        logger.log(
+            'INFO',
+            f'Starting data harmonization pipeline... '
+            f'Target CRS={canvas_spec.crs}, Res={canvas_spec.resolution}m'
+        )
+
+        cfg = config.data.harmonization
         compiled = harmonize.compile_dataset_manifest(cfg.dataset_manifest)
         gen = harmonize.process_source(
             compiled,

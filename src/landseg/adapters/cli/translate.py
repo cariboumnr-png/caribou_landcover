@@ -37,9 +37,7 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
             'world_grid': {
                 'params': {}
             },
-            'harmonization': {
-                'canvas': {},
-            },
+            'harmonization': {},
             'ingestion': {
                 'domains': {},
                 'datablocks': {},
@@ -108,9 +106,6 @@ def _translate_data_harmonize(
 ) -> None:
     '''Map data-harmonize settings to harmonization fields.'''
     mapping = {
-        'target_crs': ['data.harmonization.canvas.target_crs'],
-        'target_resolution': ['data.harmonization.canvas.target_resolution'],
-        'reference_raster': ['data.harmonization.canvas.reference_raster'],
         'resampling_continuous': ['data.harmonization.resampling_continuous'],
         'resampling_categorical': ['data.harmonization.resampling_categorical'],
         'dataset_manifest': ['data.harmonization.dataset_manifest'],

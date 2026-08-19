@@ -51,9 +51,6 @@ class HarmonizationReportSchema(typing.TypedDict):
     run_id: str
     timestamp: str
     status: typing.Literal['SUCCESS', 'FAILED', 'SKIPPED']
-    target_crs: str
-    target_resolution: float
-    grid_shape: tuple[int, int]
     provenance: dict[str, ProvenanceRecord]
     harmonized_sources: dict[str, str]
     finalized_rasters: dict[str, str]

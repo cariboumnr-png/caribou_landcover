@@ -76,6 +76,13 @@ class _GridCfg:
             self.params.tile_stride[1]
         )
 
+    @property
+    def spatial_resolution(self) -> float | None:
+        '''Return resolution (CRS units per pixel). Assume square px.'''
+        if self.params.pixel_size:
+            return self.params.pixel_size[0]
+        return None
+
     def validate(self) -> None:
         self.params.validate() # validates tile size and stride values
 
@@ -100,37 +107,14 @@ class _GridCfg:
 
 # ----- data harmonization
 @dataclasses.dataclass
-class _Canvas:
-    reference_raster: str = ''
-    target_crs: str | None = None
-    target_resolution: float | None = None
-
-
-@dataclasses.dataclass
 class _HarmonizationCfg:
-    canvas: _Canvas = field(default_factory=_Canvas)
     dataset_manifest: str = ''
     resampling_continuous: str = 'bilinear'
     resampling_categorical: str = 'nearest'
     output_dpath: str = 'experiment/artifacts/harmonized_data'
 
     def validate(self) -> None:
-        utils.must_exist(self.canvas.reference_raster, 'Reference raster')
-        if self.dataset_manifest:
-            utils.must_exist(self.dataset_manifest, 'Dataset configuration JSON')
-
-        if (
-            self.canvas.target_crs and
-            not bool(re.fullmatch(r'epsg:\d+', self.canvas.target_crs, re.I))
-        ):
-            raise ValueError('Invalid CRS identifier. Must be "EPSG:...."')
-
-        if (
-            self.canvas.target_resolution and
-            self.canvas.target_resolution <= 0.0
-        ):
-            raise ValueError('target_resolution must be positive.')
-
+        pass
 
 # ----- data ingestion
 @dataclasses.dataclass

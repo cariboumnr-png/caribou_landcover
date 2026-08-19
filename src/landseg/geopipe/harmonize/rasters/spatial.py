@@ -88,11 +88,7 @@ def create_canvas(
 
         with rasterio.open(reference_raster) as src:
             crs = target_crs or src.crs.to_string()
-            res_val = (
-                target_resolution
-                if target_resolution is not None
-                else src.res[0]
-            )
+            res_val = target_resolution or src.res[0]
             bounds_tuple = (
                 src.bounds.left,
                 src.bounds.bottom,
