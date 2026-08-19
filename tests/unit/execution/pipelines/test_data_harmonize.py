@@ -41,17 +41,16 @@ def test_data_harmonize_pipeline_success(tmp_path, dummy_data_paths):
     '''
     cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
 
-    # configure harmonization canvas and grid
+    # configure world grid and harmonization
+    grid_cfg = cfg_schema.data.world_grid
+    grid_cfg.mode = 'ref'
+    grid_cfg.output_dpath = str(tmp_path / 'world_grids')
+    grid_cfg.params.ref_fpath = dummy_data_paths.extent
+    grid_cfg.params.crs_string = 'EPSG:3161'
+    grid_cfg.params.tile_size = (256, 256)
+    grid_cfg.params.tile_stride = (128, 128)
+
     harm_cfg = cfg_schema.data.harmonization
-    harm_cfg.canvas.reference_raster = dummy_data_paths.extent
-    harm_cfg.canvas.target_crs = 'EPSG:3161'
-    harm_cfg.canvas.target_resolution = 20.0
-    harm_cfg.grid.mode = 'ref'
-    harm_cfg.grid.crs = 'EPSG:3161'
-    harm_cfg.grid.tile_specs.size_row = 256
-    harm_cfg.grid.tile_specs.size_col = 256
-    harm_cfg.grid.tile_specs.overlap_row = 128
-    harm_cfg.grid.tile_specs.overlap_col = 128
     harm_cfg.dataset_manifest = dummy_data_paths.manifest
     harm_cfg.output_dpath = str(tmp_path / 'harmonized')
 
@@ -70,7 +69,8 @@ def test_data_harmonize_pipeline_success(tmp_path, dummy_data_paths):
 
     # verify canonical world grid artifact was generated
     grid_fpath = os.path.join(
-        run_dir, 'world_grids', 'grid_row_256_128_col_256_128.json'
+        str(tmp_path / 'world_grids'),
+        'grid_row_256_128_col_256_128.json'
     )
     assert os.path.exists(grid_fpath)
     with open(grid_fpath, 'r', encoding='utf-8') as f:

@@ -50,11 +50,13 @@ def test_resolve_configs_base(tmp_path):
     cfg_dict = omegaconf.OmegaConf.create({
         'data': {
             'harmonization': {
-                'canvas': {'reference_raster': str(dev_img)},
                 'dataset_manifest': str(cfg_json),
-                'grid': {
-                    'mode': 'ref',
-                    'crs': 'EPSG:32617',
+            },
+            'world_grid': {
+                'mode': 'ref',
+                'params': {
+                    'ref_fpath': str(dev_img),
+                    'crs_string': 'EPSG:32617',
                 },
             },
         },

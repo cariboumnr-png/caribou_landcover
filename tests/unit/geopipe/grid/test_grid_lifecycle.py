@@ -23,92 +23,87 @@
 
 '''Unit tests for world grid lifecycle management (lifecycle.py).'''
 
-
+# standard imports
+import dataclasses
 # local imports
 import landseg.artifacts as artifacts
-import landseg.geopipe.harmonize.world_grids.builder as grid_builder
-import landseg.geopipe.harmonize.world_grids.lifecycle as grid_lifecycle
+import landseg.geopipe.grid.lifecycle as grid_lifecycle
+
+
+@dataclasses.dataclass
+class _Params:
+    tile_size: tuple[int, int] = (8, 8)
+    tile_stride: tuple[int, int] = (4, 4)
+    ref_fpath: str | None = None
+    crs_string: str | None = None
+    origin: tuple[float, float] | None = None
+    pixel_size: tuple[float, float] | None = None
+    extent_in_crs_units: tuple[float, float] | None = None
 
 
 # ----- `prepare_world_grid` tests
-def test_prepare_world_grid_build(tmp_path, mocker):
+def test_prepare_world_grid_build(tmp_path):
     '''
     Given: A clean temporary folder (no saved grid JSON exists).
     When: `prepare_world_grid` is executed.
-    Then: Build a new GridLayout, save it, and log status as
-        'created_and_loaded'.
+    Then: Build a new GridLayout, save it, and return loaded=False.
     '''
-    grid_fpath = str(tmp_path / 'world_grid.json')
-    config = grid_builder.GridParameters(
-        mode='tiles',
-        crs='EPSG:32617',
-        ref_fpath='',
+    grid_dpath = str(tmp_path)
+    config = _Params(
+        crs_string='EPSG:32617',
         origin=(0.0, 0.0),
         pixel_size=(10.0, 10.0),
-        grid_extent=None,
-        grid_shape=(2, 2),
-        tile_specs=(8, 8, 4, 4)
+        extent_in_crs_units=(160.0, 160.0),
+        tile_size=(8, 8),
+        tile_stride=(4, 4)
     )
 
-    mock_logger = mocker.Mock()
-
-    grid = grid_lifecycle.prepare_world_grid(
-        grid_fpath=grid_fpath,
+    is_loaded, grid = grid_lifecycle.prepare_world_grid(
+        grid_dpath=grid_dpath,
+        mode='manual',
         config=config,
-        policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING,
-        logger=mock_logger
+        policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING
     )
 
-    assert len(grid) == 4
+    assert is_loaded is False
+    assert len(grid) == 16
     # verify that output JSON was saved to disk
-    assert (tmp_path / 'world_grid.json').exists()
-
-    # verify report call on mock logger
-    mock_logger.set_world_grid_report.assert_called_once()
-    report = mock_logger.set_world_grid_report.call_args[0][0]
-    assert report['status'] == 'created_and_loaded'
-    assert report['grid_id'] == grid.gid
+    assert (tmp_path / f'{grid.gid}.json').exists()
 
 
-def test_prepare_world_grid_load(tmp_path, mocker):
+def test_prepare_world_grid_load(tmp_path):
     '''
     Given: An already persisted grid JSON file on disk.
     When: `prepare_world_grid` is executed.
-    Then: Load the grid from disk directly without rebuilding, and
-        log status as 'loaded'.
+    Then: Load the grid from disk directly and return loaded=True.
     '''
-    grid_fpath = str(tmp_path / 'world_grid.json')
-    config = grid_builder.GridParameters(
-        mode='tiles',
-        crs='EPSG:32617',
-        ref_fpath='',
+    grid_dpath = str(tmp_path)
+    config = _Params(
+        crs_string='EPSG:32617',
         origin=(0.0, 0.0),
         pixel_size=(10.0, 10.0),
-        grid_extent=None,
-        grid_shape=(2, 2),
-        tile_specs=(8, 8, 4, 4)
+        extent_in_crs_units=(160.0, 160.0),
+        tile_size=(8, 8),
+        tile_stride=(4, 4)
     )
-
-    mock_logger = mocker.Mock()
 
     # build once to save to disk
-    grid_lifecycle.prepare_world_grid(
-        grid_fpath=grid_fpath,
+    is_loaded_1, grid_1 = grid_lifecycle.prepare_world_grid(
+        grid_dpath=grid_dpath,
+        mode='manual',
         config=config,
-        policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING,
-        logger=mock_logger
+        policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING
     )
-    mock_logger.reset_mock()
+    assert is_loaded_1 is False
 
     # execution 2: load from disk
-    grid = grid_lifecycle.prepare_world_grid(
-        grid_fpath=grid_fpath,
+    is_loaded_2, grid_2 = grid_lifecycle.prepare_world_grid(
+        grid_dpath=grid_dpath,
+        mode='manual',
         config=config,
-        policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING,
-        logger=mock_logger
+        policy=artifacts.LifecyclePolicy.BUILD_IF_MISSING
     )
 
-    assert len(grid) == 4
-    mock_logger.set_world_grid_report.assert_called_once()
-    report = mock_logger.set_world_grid_report.call_args[0][0]
-    assert report['status'] == 'loaded'
+    assert is_loaded_2 is True
+    assert len(grid_2) == 16
+    assert grid_2.gid == grid_1.gid

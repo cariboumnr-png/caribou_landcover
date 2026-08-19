@@ -32,28 +32,51 @@ import landseg.adapters.cli.translate as translate_mod
 
 
 # ----- `translate_user_config` tests
+def test_translate_user_config_world_grid():
+    '''
+    Given: A user configuration `DictConfig` with `world-grid` settings.
+    When: `translate_user_config` is executed.
+    Then: Map fields to world_grid structure.
+    '''
+    user_cfg = omegaconf.OmegaConf.create({
+        'world-grid': {
+            'mode': 'ref',
+            'crs': 'EPSG:3161',
+            'tile_size': 256,
+            'tile_stride': 128,
+            'extent_reference_raster': '/path/to/ref.tif',
+            'output_dpath': '/path/exp/world_grids',
+        },
+    })
+    result = translate_mod.translate_user_config(user_cfg)
+
+    assert result.data.world_grid.mode == 'ref'
+    assert result.data.world_grid.params.crs_string == 'EPSG:3161'
+    assert result.data.world_grid.params.tile_size == 256
+    assert result.data.world_grid.params.tile_stride == 128
+    assert result.data.world_grid.params.ref_fpath == '/path/to/ref.tif'
+    assert result.data.world_grid.output_dpath == '/path/exp/world_grids'
+
+
 def test_translate_user_config_data_harmonize():
     '''
     Given: A user configuration `DictConfig` with `data-harmonize` settings.
     When: `translate_user_config` is executed.
-    Then: Map fields to harmonization structure including canvas and grid.
+    Then: Map fields to harmonization structure.
     '''
     user_cfg = omegaconf.OmegaConf.create({
         'data-harmonize': {
-            'target_crs': 'EPSG:3161',
-            'target_resolution': 20.0,
-            'grid_crs': 'EPSG:32617',
-            'tile_size': 256,
+            'resampling_continuous': 'bilinear',
+            'resampling_categorical': 'nearest',
+            'dataset_manifest': '/path/manifest.json',
             'output_dpath': '/path/exp/harmonized',
         },
     })
     result = translate_mod.translate_user_config(user_cfg)
 
-    assert result.data.harmonization.canvas.target_crs == 'EPSG:3161'
-    assert result.data.harmonization.canvas.target_resolution == 20.0
-    assert result.data.harmonization.grid.crs == 'EPSG:32617'
-    assert result.data.harmonization.grid.tile_specs.size_row == 256
-    assert result.data.harmonization.grid.tile_specs.size_col == 256
+    assert result.data.harmonization.resampling_continuous == 'bilinear'
+    assert result.data.harmonization.resampling_categorical == 'nearest'
+    assert result.data.harmonization.dataset_manifest == '/path/manifest.json'
     assert result.data.harmonization.output_dpath == '/path/exp/harmonized'
 
 

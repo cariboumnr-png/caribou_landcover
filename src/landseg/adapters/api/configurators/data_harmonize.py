@@ -38,23 +38,6 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
     ):
         super().__init__(experiment_root, 'data-harmonize')
 
-    def set_canvas(
-        self,
-        target_crs: str,
-        target_resolution: float,
-        reference_raster: str | None = None,
-    ) -> typing.Self:
-        '''Set canvas spatial reference specs.'''
-        self._cfg.data.harmonization.canvas.target_crs = target_crs
-        self._cfg.data.harmonization.canvas.target_resolution = (
-            target_resolution
-        )
-        if reference_raster:
-            self._cfg.data.harmonization.canvas.reference_raster = (
-                reference_raster
-            )
-        return self
-
     def set_dataset_manifest(
         self,
         dataset_manifest: str,
@@ -79,12 +62,18 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
         tile_stride: int = 0,
         crs: str = '',
         mode: str = 'ref',
+        reference_raster: str | None = None,
     ) -> typing.Self:
         '''Set study extent and grid specs.'''
         self._cfg.data.world_grid.mode = mode
         self._cfg.data.world_grid.params.crs_string = crs
         self._cfg.data.world_grid.params.tile_size = (tile_size, tile_size)
-        self._cfg.data.world_grid.params.tile_stride = (tile_stride, tile_stride)
+        self._cfg.data.world_grid.params.tile_stride = (
+            tile_stride,
+            tile_stride,
+        )
+        if reference_raster:
+            self._cfg.data.world_grid.params.ref_fpath = reference_raster
         return self
 
     def set_output_dpath(self, output_dpath: str) -> typing.Self:

@@ -42,10 +42,10 @@ def test_prepare_domain_maps_build_and_load(tmp_path, mocker):
         origin=(0.0, 0.0),
         pixel_size=(10.0, 10.0),
         tile_size=(8, 8),
-        tile_overlap=(0, 0),
-        grid_shape=(1, 1)
+        tile_stride=(0, 0),
+        grid_extent=(80.0, 80.0)
     )
-    grid = geo_core.GridLayout(mode='tiles', spec=grid_spec)
+    grid = geo_core.GridLayout(grid_spec)
 
     config = domain_lifecycle.DomainBuildingParameters(
         input_fpath='dummy_input.tif',

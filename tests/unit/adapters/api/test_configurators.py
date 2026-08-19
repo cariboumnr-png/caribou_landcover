@@ -40,14 +40,11 @@ def test_data_harmonization_configurator(tmp_path):
     cfg_builder = configurators.DataHarmonizationConfigurator(
         experiment_root=str(tmp_path),
     )
-    cfg_builder.set_canvas(
-        target_crs='EPSG:3161',
-        target_resolution=20.0,
-        reference_raster=str(ref_tif)
-    ).set_grid(
+    cfg_builder.set_grid(
         tile_size=512,
-        tile_overlap=64,
-        crs='EPSG:3161'
+        tile_stride=64,
+        crs='EPSG:3161',
+        reference_raster=str(ref_tif)
     ).set_dataset_manifest(
         dataset_manifest=str(manifest_json),
     ).set_resampling(
@@ -59,14 +56,10 @@ def test_data_harmonization_configurator(tmp_path):
 
     root = cfg_builder.running_root_config
     assert root.pipeline.name == 'data-harmonize'
-    assert root.data.harmonization.canvas.target_crs == 'EPSG:3161'
-    assert root.data.harmonization.canvas.target_resolution == 20.0
-    assert root.data.harmonization.canvas.reference_raster == str(ref_tif)
-    assert root.data.harmonization.grid.tile_specs.size_row == 512
-    assert root.data.harmonization.grid.tile_specs.size_col == 512
-    assert root.data.harmonization.grid.tile_specs.overlap_row == 64
-    assert root.data.harmonization.grid.tile_specs.overlap_col == 64
-    assert root.data.harmonization.grid.crs == 'EPSG:3161'
+    assert root.data.world_grid.params.crs_string == 'EPSG:3161'
+    assert root.data.world_grid.params.ref_fpath == str(ref_tif)
+    assert root.data.world_grid.params.tile_size == (512, 512)
+    assert root.data.world_grid.params.tile_stride == (64, 64)
     assert root.data.harmonization.dataset_manifest == str(manifest_json)
     assert root.data.harmonization.resampling_continuous == 'bilinear'
     assert root.data.harmonization.resampling_categorical == 'nearest'

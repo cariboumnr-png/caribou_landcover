@@ -66,10 +66,10 @@ def test_map_domain_to_grid_success(dummy_geotiff_factory):
         origin=(0.5, 0.5), # top-left origin matching dummy raster
         pixel_size=(1.0, 1.0),
         tile_size=(8, 8),
-        tile_overlap=(0, 0),
-        grid_shape=(2, 2)
+        tile_stride=(0, 0),
+        grid_extent=(16.0, 16.0)
     )
-    grid = geo_core.GridLayout(mode='tiles', spec=spec)
+    grid = geo_core.GridLayout(spec)
 
     result = domain_mapper.map_domain_to_grid(grid, raster_path, index_base=10)
 
@@ -112,10 +112,10 @@ def test_map_domain_to_grid_wrong_base(dummy_geotiff_factory):
         origin=(0.5, 0.5),
         pixel_size=(1.0, 1.0),
         tile_size=(8, 8),
-        tile_overlap=(0, 0),
-        grid_shape=(2, 2)
+        tile_stride=(0, 0),
+        grid_extent=(16.0, 16.0)
     )
-    grid = geo_core.GridLayout(mode='tiles', spec=spec)
+    grid = geo_core.GridLayout(spec)
 
     with pytest.raises(ValueError, match='Min value 10 != base 11'):
         domain_mapper.map_domain_to_grid(grid, raster_path, index_base=11)
@@ -149,10 +149,10 @@ def test_map_domain_to_grid_empty(dummy_geotiff_factory):
         origin=(0.5, 0.5),
         pixel_size=(1.0, 1.0),
         tile_size=(8, 8),
-        tile_overlap=(0, 0),
-        grid_shape=(2, 2)
+        tile_stride=(0, 0),
+        grid_extent=(16.0, 16.0)
     )
-    grid = geo_core.GridLayout(mode='tiles', spec=spec)
+    grid = geo_core.GridLayout(spec)
 
-    with pytest.raises(ValueError, match='No valid data values found'):
+    with pytest.raises(ValueError, match='No valid domain values found'):
         domain_mapper.map_domain_to_grid(grid, raster_path, index_base=10)

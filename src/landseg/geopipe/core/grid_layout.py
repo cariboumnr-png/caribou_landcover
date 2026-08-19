@@ -299,7 +299,13 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
         obj._data = parsed
 
         spec = dict(meta['spec'])
-        for key in ('origin', 'pixel_size', 'tile_size', 'tile_overlap'):
+        for key in (
+            'origin',
+            'pixel_size',
+            'tile_size',
+            'tile_stride',
+            'grid_extent'
+        ):
             if spec.get(key) is not None:
                 spec[key] = tuple(spec[key])
         obj._spec = GridSpec(**spec)
