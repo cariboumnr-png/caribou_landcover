@@ -195,15 +195,42 @@ pour entraîner des réseaux multi-tâches.
   "category": "labels",
   "band_mapping": null,
   "label_specs": {
-    "num_cls": 8,
-    "ignore_cls": [0, 255]
+    "num_cls": 2,
+    "ignore_cls": [255],
+    "class_name": {
+      "1": "coniferous",
+      "2": "deciduous"
+    },
+    "color_map": {
+      "1": [34, 139, 34],
+      "2": [218, 165, 32]
+    },
+    "reclass": {
+      "1": [1],
+      "2": [2]
+    },
+    "reclass_name": {
+      "1": "Forest"
+    }
   }
 }
 ```
 
-- `num_cls` : Nombre total de classes de prédiction actives.
-- `ignore_cls` : Liste des valeurs de pixels brutes traitées comme arrière-plan
-  ignoré lors du calcul des pertes et de l'évaluation des métriques.
+#### Champs du schéma `label_specs`
+- **`num_cls`** (*requis, `int`*) : Nombre total de classes de prédiction actives
+  (excluant les indices ignorés).
+- **`ignore_cls`** (*requis, `list[int]`*) : Liste des valeurs de pixels brutes
+  traitées comme arrière-plan ignoré lors du calcul des pertes et métriques.
+- **`class_name`** (*optionnel, `dict[str, str]`*) : Mappage des identifiants de
+  classe vers des noms lisibles (par ex. `{"1": "coniferous"}`).
+- **`color_map`** (*optionnel, `dict[str, list[int]]`*) : Mappage des identifiants
+  de classe vers des triplets de couleur RVB `[R, V, B]` (0–255). Cette palette
+  est transmise à travers l'ingestion jusqu'au schéma du dataset et utilisée
+  par les callbacks de session pour le rendu visuel des prédictions.
+- **`reclass`** (*optionnel, `dict[str, list[int]]`*) : Regroupement hiérarchique
+  parent-enfant associant des classes parentes aux classes brutes filles.
+- **`reclass_name`** (*optionnel, `dict[str, str]`*) : Noms lisibles pour les
+  groupes reclassifiés parents.
 
 ---
 

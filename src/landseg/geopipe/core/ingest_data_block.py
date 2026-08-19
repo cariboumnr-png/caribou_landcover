@@ -101,6 +101,7 @@ class LabelSpecs(typing.TypedDict):
     class_name: typing.NotRequired[dict[str, str]]
     reclass: typing.NotRequired[dict[str, list[int]]]
     reclass_name: typing.NotRequired[dict[str, str]]
+    color_map: typing.NotRequired[dict[str, list[int]]]
 
 
 # ------------------------------Public  Dataclass------------------------------

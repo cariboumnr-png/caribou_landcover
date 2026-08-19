@@ -192,15 +192,42 @@ leading tree species).
   "category": "labels",
   "band_mapping": null,
   "label_specs": {
-    "num_cls": 8,
-    "ignore_cls": [0, 255]
+    "num_cls": 2,
+    "ignore_cls": [255],
+    "class_name": {
+      "1": "coniferous",
+      "2": "deciduous"
+    },
+    "color_map": {
+      "1": [34, 139, 34],
+      "2": [218, 165, 32]
+    },
+    "reclass": {
+      "1": [1],
+      "2": [2]
+    },
+    "reclass_name": {
+      "1": "Forest"
+    }
   }
 }
 ```
 
-- `num_cls`: Total number of active prediction classes (excluding ignore).
-- `ignore_cls`: List of raw pixel values treated as background/ignore during
-  loss computation and metric evaluation.
+#### `label_specs` Schema Fields
+- **`num_cls`** (*required, `int`*): Total number of active prediction classes
+  (excluding ignore indices).
+- **`ignore_cls`** (*required, `list[int]`*): List of raw pixel values treated
+  as background/ignore during loss computation and metric evaluation.
+- **`class_name`** (*optional, `dict[str, str]`*): Mapping from stringified
+  class ID to human-readable class name (e.g. `{"1": "coniferous"}`).
+- **`color_map`** (*optional, `dict[str, list[int]]`*): Mapping from
+  stringified class ID to RGB color triples `[R, G, B]` (values 0–255). This
+  color map is carried through ingestion into the dataset schema and used by
+  session tracking callbacks for rendering visual prediction overlays.
+- **`reclass`** (*optional, `dict[str, list[int]]`*): Optional parent-child
+  hierarchical class grouping mapping parent class IDs to child raw class IDs.
+- **`reclass_name`** (*optional, `dict[str, str]`*): Human-readable names for
+  parent reclassified groups.
 
 ---
 

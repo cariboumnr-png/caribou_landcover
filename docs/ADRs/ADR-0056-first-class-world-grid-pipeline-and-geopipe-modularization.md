@@ -90,7 +90,25 @@ Updated `_validate_upstream_pipelines` in `landseg.execution.executor`:
   artifact (`<output_dpath>/<gid>.json`) exists on disk, raising an
   `artifacts.ArtifactError` if it has not been executed yet.
 
-### 2.5. Interactive Notebook and Test Suite Alignment
+### 2.5. End-to-End Label Metadata and Color Map Propagation
+- **`LabelSpecs` Schema Completeness**:
+  Extended `LabelSpecs` in `landseg.geopipe.core.ingest_data_block` to include
+  optional `color_map: dict[str, list[int]]` alongside `class_name`, `reclass`,
+  and `reclass_name`.
+- **Harmonized VRT Tagging & Parsing**:
+  Updated `landseg.geopipe.harmonize` to write `color_map` into VRT band
+  metadata and `landseg.geopipe.ingest.data_blocks.assembler` to parse embedded
+  color palettes.
+- **Runtime Tracking & Visualization Handshake**:
+  Forwarded `label_color_map` through block assembly into the dataset-level
+  `schema.json`, seamlessly propagating it to `DataSpecs.meta.label_color_map`
+  and session tracking callbacks (`InferTrackingCallback`) for deterministic
+  color preview rendering.
+- **Reference Synthetic Data Generator**:
+  Updated `scripts/generate_dummy_data.py` (`landseg.testing.dummy_data`) to
+  generate sample `class_name` and `color_map` definitions.
+
+### 2.6. Interactive Notebook and Test Suite Alignment
 - **Notebook 01 Update**:
   Updated `notebooks/01_data_preparation.ipynb` to execute `WorldGridConfigurator`
   in a dedicated step prior to `DataHarmonizationConfigurator`.
@@ -111,6 +129,9 @@ Updated `_validate_upstream_pipelines` in `landseg.execution.executor`:
   completely decoupled from raster harmonization and data block assembly.
 - **Single Spatial Source of Truth**: `GridLayout` is the sole spatial
   geometry contract across the entire framework.
+- **End-to-End Label & Palette Traceability**: Label names, hierarchical
+  groupings, and color maps flow seamlessly from raw input configs into VRTs,
+  block catalogs, schemas, and session visualization dashboards.
 - **Fail-Fast Safety**: Upstream pipeline validation prevents invalid or
   unaligned harmonization runs when the world grid has not been built.
 - **Reusable Artifacts**: Grid JSON artifacts can be shared across multiple

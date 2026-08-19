@@ -127,9 +127,10 @@ def process_source(
                 warped,
                 num_cls=cfg['label_specs']['num_cls'],
                 ignore_cls=cfg['label_specs']['ignore_cls'],
-                class_name=cfg['label_specs'].get('class_name', []),
+                class_name=cfg['label_specs'].get('class_name', {}),
                 reclass=cfg['label_specs'].get('reclass', {}),
-                reclass_name=cfg['label_specs'].get('reclass_name', {})
+                reclass_name=cfg['label_specs'].get('reclass_name', {}),
+                color_map=cfg['label_specs'].get('color_map', {})
             )
 
         aligned.add_raster(category, tagged_name, out_path)

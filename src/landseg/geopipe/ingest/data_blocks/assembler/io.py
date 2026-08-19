@@ -151,7 +151,7 @@ def read_label_specs(fpath: str | None) -> dict[str, geo_core.LabelSpecs]:
             'num_cls': num_cls,
             'ignore_cls': ignore_cls,
         }
-        for key in ('class_name', 'reclass', 'reclass_name'):
+        for key in ('class_name', 'reclass', 'reclass_name', 'color_map'):
             if key not in tags:
                 continue
             try:

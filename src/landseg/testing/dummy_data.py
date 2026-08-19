@@ -459,6 +459,14 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'label_specs': {
                 'num_cls': 2,
                 'ignore_cls': [255],
+                'class_name': {
+                    '1': 'coniferous',
+                    '2': 'deciduous',
+                },
+                'color_map': {
+                    '1': [34, 139, 34],
+                    '2': [218, 165, 32],
+                },
             },
         },
         {
@@ -469,6 +477,14 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'label_specs': {
                 'num_cls': 2,
                 'ignore_cls': [255],
+                'class_name': {
+                    '1': 'spruce',
+                    '2': 'pine',
+                },
+                'color_map': {
+                    '1': [0, 100, 0],
+                    '2': [107, 142, 35],
+                },
             },
         },
     ]
