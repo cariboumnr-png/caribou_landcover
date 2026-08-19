@@ -25,12 +25,14 @@ Pipeline execution
 
 # standard imports
 import dataclasses
+import os
 import sys
 import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.execution.pipelines as piplines
+import landseg.geopipe.core as geo_core
 
 # aliases
 DictControl = artifacts.Controller[dict[str, typing.Any]]
@@ -54,7 +56,22 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
     pipeline = config.pipeline.name
 
     # no checks if at the start of the pipeline chain
-    if pipeline in ('default', 'world-grid', 'data-harmonize'):
+    if pipeline in ('default', 'world-grid'):
+        return
+
+    # check world-grid status if running data-harmonize
+    if pipeline == 'data-harmonize':
+        p = config.data.world_grid.params
+        gid = geo_core.GridLayout.generate_gid(p.tile_size, p.tile_stride)
+        grid_fpath = os.path.join(
+            config.data.world_grid.output_dpath, f'{gid}.json'
+        )
+        if not os.path.exists(grid_fpath):
+            raise artifacts.ArtifactError(
+                'Upstream pipeline "world-grid" has not been executed yet. '
+                f'Missing world grid artifact at canonical path: '
+                f'{grid_fpath}'
+            )
         return
 
     # fetch data pipeline artifacts paths
