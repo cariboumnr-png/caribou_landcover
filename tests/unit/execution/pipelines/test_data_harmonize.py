@@ -59,6 +59,7 @@ def test_data_harmonize_pipeline_success(tmp_path, dummy_data_paths):
         omegaconf.OmegaConf.to_object(cfg_schema)
     )
 
+    pipelines.exec_world_grid(config)
     pipelines.exec_harmonize_data(config)
 
     # verify run folder output

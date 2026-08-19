@@ -30,11 +30,9 @@ import typing
 
 __all__ = [
     # classes
-    'CanvasSpec',
     'HarmonizationLogger',
     'ProcessedRasters',
     # functions
-    'create_canvas',
     'warp_to_grid',
     'stack_canonical_raster',
     'unify_nodata_mask',
@@ -59,8 +57,6 @@ if typing.TYPE_CHECKING:
         WorldGridReport,
     )
     from .rasters import (
-        CanvasSpec,
-        create_canvas,
         warp_to_grid,
         stack_canonical_raster,
         unify_nodata_mask,
@@ -85,9 +81,7 @@ def __getattr__(name: str):
         return getattr(importlib.import_module('.common', __package__), name)
 
     if name in {
-        'CanvasSpec',
-        'create_canvas',
-        'warp_to_canvas',
+        'warp_to_grid',
         'stack_canonical_raster',
         'unify_nodata_mask',
         'validate_domain_raster_index',

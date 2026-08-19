@@ -58,7 +58,8 @@ def test_data_ingest_pipeline_success(tmp_path, dummy_data_paths):
         omegaconf.OmegaConf.to_object(cfg_schema)
     )
 
-    # run harmonize first to generate matching CRS rasters
+    # run world-grid and harmonize first to generate matching CRS rasters
+    pipelines.exec_world_grid(config)
     pipelines.exec_harmonize_data(config)
 
     # run the ingestion pipeline
@@ -108,7 +109,8 @@ def test_data_ingest_pipeline_targeted_harmonization_run(
         omegaconf.OmegaConf.to_object(cfg_schema)
     )
 
-    # run harmonization twice to create run_0001 and run_0002
+    # run world-grid first, then harmonization twice to create run_0001 and run_0002
+    pipelines.exec_world_grid(config)
     pipelines.exec_harmonize_data(config)
     pipelines.exec_harmonize_data(config)
 

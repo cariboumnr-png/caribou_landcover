@@ -63,8 +63,6 @@ def test_data_harmonization_configurator(tmp_path):
     When: Chaining methods on `DataHarmonizationConfigurator`.
     Then: Correctly populate underlying `RootConfig` and validate.
     '''
-    ref_tif = tmp_path / 'ref.tif'
-    ref_tif.write_text('ref')
     manifest_json = tmp_path / 'manifest.json'
     manifest_json.write_text('[]')
 
@@ -74,8 +72,6 @@ def test_data_harmonization_configurator(tmp_path):
     cfg_builder.set_grid(
         tile_size=512,
         tile_stride=64,
-        crs='EPSG:3161',
-        reference_raster=str(ref_tif)
     ).set_dataset_manifest(
         dataset_manifest=str(manifest_json),
     ).set_resampling(
@@ -87,8 +83,6 @@ def test_data_harmonization_configurator(tmp_path):
 
     root = cfg_builder.running_root_config
     assert root.pipeline.name == 'data-harmonize'
-    assert root.data.world_grid.params.crs_string == 'EPSG:3161'
-    assert root.data.world_grid.params.ref_fpath == str(ref_tif)
     assert root.data.world_grid.params.tile_size == (512, 512)
     assert root.data.world_grid.params.tile_stride == (64, 64)
     assert root.data.harmonization.dataset_manifest == str(manifest_json)

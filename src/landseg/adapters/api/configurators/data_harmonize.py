@@ -60,20 +60,16 @@ class DataHarmonizationConfigurator(configurators.BaseConfigurator):
         self,
         tile_size: int = 256,
         tile_stride: int = 0,
-        crs: str = '',
-        mode: str = 'ref',
-        reference_raster: str | None = None,
+        output_dpath: str | None = None,
     ) -> typing.Self:
-        '''Set study extent and grid specs.'''
-        self._cfg.data.world_grid.mode = mode
-        self._cfg.data.world_grid.params.crs_string = crs
+        '''Set target world grid tile dimensions.'''
         self._cfg.data.world_grid.params.tile_size = (tile_size, tile_size)
         self._cfg.data.world_grid.params.tile_stride = (
             tile_stride,
             tile_stride,
         )
-        if reference_raster:
-            self._cfg.data.world_grid.params.ref_fpath = reference_raster
+        if output_dpath:
+            self._cfg.data.world_grid.output_dpath = output_dpath
         return self
 
     def set_output_dpath(self, output_dpath: str) -> typing.Self:

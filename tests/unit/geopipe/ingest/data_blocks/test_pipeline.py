@@ -92,12 +92,7 @@ def test_pipeline_run_canonical_blocks(tmp_path, dummy_geotiff_factory):
         tile_size=(256, 256),
         tile_stride=(128, 128)
     )
-    _, world_grid = grid.prepare_world_grid(
-        str(tmp_path),
-        'ref',
-        grid_config,
-        policy=artifacts.LifecyclePolicy.REBUILD,
-    )
+    world_grid = grid.build_grid('ref', grid_config)
 
     # initialize pipeline path containers in temp output directory
     paths = artifacts.IngestionPaths(str(tmp_path))

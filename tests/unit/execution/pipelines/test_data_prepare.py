@@ -82,7 +82,8 @@ def test_data_prepare_pipeline_success(tmp_path, dummy_data_paths):
         omegaconf.OmegaConf.to_object(cfg_schema)
     )
 
-    # 1) run harmonize to populate ETL outputs in EPSG:3161
+    # 1) run world-grid and harmonize to populate ETL outputs in EPSG:3161
+    pipelines.exec_world_grid(config)
     pipelines.exec_harmonize_data(config)
 
     # 2) run the ingestion pipeline to build ingestion inputs

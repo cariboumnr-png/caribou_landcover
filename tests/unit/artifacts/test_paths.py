@@ -42,7 +42,6 @@ def test_artifact_paths_hierarchy():
     '''
     r = os.path.join('/tmp', 'exp')
     art = paths_mod.ArtifactPaths(root=r)
-    assert art.world_grid == os.path.join(r, 'world_grids')
     assert art.data_harmonization.root == os.path.join(r, 'harmonized_data')
     assert art.data_ingestion.root == os.path.join(r, 'ingested_data')
     assert art.data_preparation.root == os.path.join(r, 'prepared_data')
@@ -57,13 +56,11 @@ def test_artifact_paths_custom_overrides():
     '''
     art = paths_mod.ArtifactPaths(
         root='/tmp/exp',
-        world_grid_root='/custom/world_grids',
         harmonization_root='/custom/harmonized',
         ingestion_root='/custom/ingested',
         preparation_root='/custom/prepared',
         session_root='/custom/session'
     )
-    assert art.world_grid == '/custom/world_grids'
     assert art.data_harmonization.root == '/custom/harmonized'
     assert art.data_ingestion.root == '/custom/ingested'
     assert art.data_preparation.root == '/custom/prepared'
@@ -78,14 +75,12 @@ def test_artifact_paths_from_config():
     '''
     cfg = configs_mod.RootConfig()
     cfg.execution.exp_root = '/tmp/exp'
-    cfg.data.world_grid.output_dpath = '/tmp/exp/artifacts/world_grids'
     cfg.data.harmonization.output_dpath = '/tmp/exp/artifacts/harmonized_data'
     cfg.data.ingestion.output_dpath = '/tmp/exp/artifacts/ingested_data'
     cfg.data.preparation.output_dpath = '/tmp/exp/artifacts/prepared_data'
     cfg.session.output_dpath = '/tmp/exp/results'
     art = paths_mod.ArtifactPaths.from_config(cfg)
     assert art.root == '/tmp/exp'
-    assert art.world_grid == '/tmp/exp/artifacts/world_grids'
     assert art.data_harmonization.root == '/tmp/exp/artifacts/harmonized_data'
     assert art.data_ingestion.root == '/tmp/exp/artifacts/ingested_data'
     assert art.data_preparation.root == '/tmp/exp/artifacts/prepared_data'
