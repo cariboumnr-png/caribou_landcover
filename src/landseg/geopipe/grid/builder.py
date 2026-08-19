@@ -43,7 +43,7 @@ import landseg.geopipe.core as geo_core
 import landseg.geopipe.utils as geo_utils
 
 
-# ------------------------------Public Dataclass------------------------------
+# ------------------------------Public Protocol-------------------------------
 class GridParameters(typing.Protocol):
     '''Container for grid generation configuration.'''
     @property

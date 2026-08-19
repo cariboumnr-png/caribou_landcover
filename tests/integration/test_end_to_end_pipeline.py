@@ -83,7 +83,16 @@ def test_end_to_end_data_pipeline_lifecycle(tmp_path, dummy_data_paths):
         omegaconf.OmegaConf.to_object(cfg_schema)
     )
 
-    # ----- stage 1: harmonize
+    # ----- stage 1: world grid
+    pipelines.exec_world_grid(config)
+    assert os.path.exists(
+        os.path.join(
+            str(tmp_path / 'world_grids'),
+            'grid_row_256_128_col_256_128.json'
+        )
+    )
+
+    # ----- stage 2: harmonize
     pipelines.exec_harmonize_data(config)
 
     h_run = os.path.join(config.data.harmonization.output_dpath, 'run_0001')
@@ -95,14 +104,8 @@ def test_end_to_end_data_pipeline_lifecycle(tmp_path, dummy_data_paths):
         os.path.join(h_run, 'harmonized_labels_STACKED.vrt')
     )
     assert os.path.exists(os.path.join(h_run, 'valid_pixel_mask.vrt'))
-    assert os.path.exists(
-        os.path.join(
-            str(tmp_path / 'world_grids'),
-            'grid_row_256_128_col_256_128.json'
-        )
-    )
 
-    # ----- stage 2: ingest
+    # ----- stage 3: ingest
     pipelines.exec_ingest_data(config)
 
     i_root = config.data.ingestion.output_dpath
@@ -126,7 +129,7 @@ def test_end_to_end_data_pipeline_lifecycle(tmp_path, dummy_data_paths):
         catalog = json.load(f)
     assert len(catalog) > 0
 
-    # ----- stage 3: prepare
+    # ----- stage 4: prepare
     pipelines.prepare(config)
 
     p_root = config.data.preparation.output_dpath

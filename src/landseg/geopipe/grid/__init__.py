@@ -20,7 +20,7 @@
 # =========================================================================== #
 
 '''
-Top-level namespace for `landseg.geopipe.harmonize.world_grids`.
+Top-level namespace for `landseg.geopipe.grid`.
 
 Exposes selected public functions via lazy resolution to keep import
 order simple and circular-free.

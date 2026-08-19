@@ -3,10 +3,11 @@
 # -----------------------------------------------------------------------------
 # This file provides inputs for the sequential experiment pipelines:
 #
-#   0. data-harmonize: Harmonizes raw inputs (S2, DEM, Labels) into canonical VRTs.
-#   1. data-ingest: Ingests datasets, grid references, & domains.
-#   2. data-prepare: Handles block splits & class balancing.
-#   3. model-train: Configures model structure & session params.
+#   0. world-grid: Builds and persists the canonical spatial world grid.
+#   1. data-harmonize: Harmonizes raw inputs (S2, DEM, Labels) into canonical VRTs.
+#   2. data-ingest: Ingests datasets, grid references, & domains.
+#   3. data-prepare: Handles block splits & class balancing.
+#   4. model-train: Configures model structure & session params.
 # =============================================================================
 
 # Root directory for experiment outputs, logs, and checkpoints
