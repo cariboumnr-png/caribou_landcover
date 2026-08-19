@@ -97,6 +97,7 @@ src/landseg/
 |   |-- executor.py               Unified execution entry point
 |   `-- pipelines/
 |       |-- _registry.py          Pipeline lookup and registration
+|       |-- world_grid.py         World grid generation pipeline
 |       |-- data_harmonize.py     Data harmonization pipeline
 |       |-- data_ingest.py        Data ingestion pipeline
 |       |-- data_prepare.py       Data preparation pipeline
@@ -108,12 +109,12 @@ src/landseg/
 |
 |-- geopipe/
 |   |-- core/                     Harmonization, ingestion, and preparation data contracts
+|   |-- grid/                     World grid construction and lifecycle
 |   |-- harmonize/                Warping, stacking, and valid mask operations
-|   |-- ingest/                   World grid, domain maps, and data blocks construction
+|   |-- ingest/                   Domain maps and data blocks construction
 |   |   |-- common/               Ingestion loggers and aliases
 |   |   |-- data_blocks/          Data block manifests, mapping, and pipeline
-|   |   |-- domain_maps/          Domain map construction and lifecycle
-|   |   `-- world_grids/          World grid construction and lifecycle
+|   |   `-- domain_maps/          Domain map construction and lifecycle
 |   |-- prepare/                  Splitting, normalization, and schema compilation
 |   |   |-- common/               Preparation loggers and aliases
 |   |   |-- data_partition/       Split, filter, hydrate, and scoring pipeline

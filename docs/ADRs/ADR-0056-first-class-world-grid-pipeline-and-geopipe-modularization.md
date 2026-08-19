@@ -72,14 +72,25 @@ upstream pipeline validation before `data-harmonize`.
   `GridLayout` now serves as the single canonical spatial specification
   defining study extent, CRS, origin, tile size, and tile stride.
 
-### 2.3. Upstream Pipeline Verification in `executor.py`
+### 2.3. Sectional Configuration Independence and Artifact Handshakes
+Each pipeline stage is architected to execute using exclusively its local
+configuration section:
+- **Handshake via Canonical Reports**: Upstream specifications (e.g. grid
+  filepath, CRS, raster VRT paths) are persisted into canonical reports
+  (`harmonize_report.json`, `ingest_report.json`, `prep_report.json`).
+- **Decoupled Downstream Consumption**: Downstream pipelines (such as
+  `data-ingest` and `data-prepare`) resolve upstream artifacts directly from
+  persisted reports, eliminating the need to redundantly supply or parse
+  upstream configuration parameters.
+
+### 2.4. Upstream Pipeline Verification in `executor.py`
 Updated `_validate_upstream_pipelines` in `landseg.execution.executor`:
 - Recognized `'default'` and `'world-grid'` as standalone entrypoints.
 - Enforced that running `'data-harmonize'` verifies the canonical world grid
   artifact (`<output_dpath>/<gid>.json`) exists on disk, raising an
   `artifacts.ArtifactError` if it has not been executed yet.
 
-### 2.4. Interactive Notebook and Test Suite Alignment
+### 2.5. Interactive Notebook and Test Suite Alignment
 - **Notebook 01 Update**:
   Updated `notebooks/01_data_preparation.ipynb` to execute `WorldGridConfigurator`
   in a dedicated step prior to `DataHarmonizationConfigurator`.

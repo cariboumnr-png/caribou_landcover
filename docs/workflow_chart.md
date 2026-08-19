@@ -3,12 +3,12 @@
 Last updated : 2026-05-12
 
 ```
-[ingest/world_grids/builder]            (1 World Grid – pure construction)
+[grid/builder]                           (1 World Grid – pure construction)
 |
 +--> [artifacts/controller]
 |        (resolve/build/reuse grid artifact under policy)
 |
-+--> [ingest/world_grids/lifecycle]
++--> [grid/lifecycle]
 |        (grid artifact persistence & validation)
 |
 +--> [ingest/domain_maps/mapper]        (2 Domain → Grid alignment, optional)

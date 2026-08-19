@@ -142,27 +142,44 @@ les entrees locales sous la racine d'experience configuree.
 
 Les noms de pipelines sont enregistres dans `landseg.execution.pipelines`.
 
-### 1. Ingestion Des Donnees
+### 0. Génération De La Grille Monde
 
-Construit les artefacts de fondation a partir des rasters bruts. Cette etape
-s'execute generalement une fois par jeu de donnees source, ou chaque fois que
-les rasters source ou les parametres de grille changent.
+Construit et persiste l'artefact de grille monde canonique pour le tuilage
+spatial à partir d'un raster de référence ou de paramètres d'étendue explicites.
+
+```bash
+landseg pipeline=world-grid
+```
+
+### 1. Harmonisation Des Données
+
+Harmonise, reprojette et rééchantillonne les rasters bruts (features, labels
+et masques de domaine) sur le canevas de la grille monde.
+
+```bash
+landseg pipeline=data-harmonize
+```
+
+### 2. Ingestion Des Donnees
+
+Construit les blocs de données canoniques non partitionnés à partir des
+rasters harmonisés et de la grille monde.
 
 ```bash
 landseg pipeline=data-ingest
 ```
 
-### 2. Preparation Des Donnees
+### 3. Preparation Des Donnees
 
 Construit les artefacts propres a l'experience a partir des blocs de donnees
-ingeres, y compris les partitions, la normalisation/statistiques et les schemas
-de dataset.
+ingeres, y compris le partitionnement géographique par AOI, les splits, la
+normalisation et les schemas.
 
 ```bash
 landseg pipeline=data-prepare
 ```
 
-### 3. Entrainement Du Modele
+### 4. Entrainement Du Modele
 
 Construit et execute une session complete d'entrainement a partir des artefacts
 prepares.
@@ -171,7 +188,7 @@ prepares.
 landseg pipeline=model-train
 ```
 
-### 4. Evaluation Du Modele
+### 5. Evaluation Du Modele
 
 Execute l'evaluation a partir des artefacts prepares et d'un checkpoint entraine.
 
@@ -179,7 +196,7 @@ Execute l'evaluation a partir des artefacts prepares et d'un checkpoint entraine
 landseg pipeline=model-evaluate pipeline.model_evaluate.checkpoint=path/to/checkpoint
 ```
 
-### 5. Diagnostic De Surapprentissage
+### 6. Diagnostic De Surapprentissage
 
 Execute un diagnostic contraint de bout en bout sur un petit perimetre pour
 valider le cablage du modele, du dataset, des pertes, de l'optimiseur, des
@@ -189,7 +206,7 @@ metriques et de l'execution.
 landseg pipeline=diagnose-overfit
 ```
 
-### 6. Sweep D'Etude
+### 7. Sweep D'Etude
 
 Execute le point d'entree de sweep oriente Optuna.
 
@@ -197,7 +214,7 @@ Execute le point d'entree de sweep oriente Optuna.
 landseg pipeline=study-sweep
 ```
 
-### 7. Analyse D'Etude
+### 8. Analyse D'Etude
 
 Analyse les resultats d'etude via le point d'entree d'analyse.
 
