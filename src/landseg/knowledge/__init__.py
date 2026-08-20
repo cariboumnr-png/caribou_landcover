@@ -20,54 +20,40 @@
 # =========================================================================== #
 
 '''
-Utility script to generate dummy/mock geospatial datasets (GeoTIFFs)
-and corresponding configurations for local pipeline runs and testing.
+Top-level namespace for `landseg.testing`.
+
+Exposes selected public functions via lazy resolution to keep import
+order simple and circular-free.
 '''
 
-# standard imports
-import argparse
-import os
-import sys
-# local imports
-import landseg.testing as testing
+from __future__ import annotations
+import importlib
+import typing
 
+__all__ = [
+    # classes
+    # functions
+    'generate_embeddings_and_matrix',
+    # types
+    'SpeciesEntry',
+    'SpeciesEmbeddingsMetadata'
+]
 
-def main() -> None:
-    '''CLI entry point to generate dummy data.'''
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--output_dir',
-        nargs='?',
-        default='./experiment/input',
-        help='Directory where dummy data will be generated.'
+# for static check
+if typing.TYPE_CHECKING:
+    from .embeddings import (
+        SpeciesEntry,
+        SpeciesEmbeddingsMetadata,
+        generate_embeddings_and_matrix,
     )
-    parser.add_argument(
-        '-y',
-        '--yes',
-        action='store_true',
-        help='Automatically confirm overwriting existing files.'
-    )
-    args = parser.parse_args()
 
-    if os.path.exists(args.output_dir) and os.listdir(args.output_dir):
-        print(
-            f'WARNING: Target directory "{args.output_dir}" '
-            f'already exists and is not empty.'
-        )
-        if args.yes:
-            print(' -> Overwrite existing files as configured')
-        else:
-            response = input(
-                ' -> Generating dummy data will overwrite existing files. '
-                'Proceed? [y/N]: '
-            )
-            if response.strip().lower() not in ('y', 'yes'):
-                print('Aborted.')
-                sys.exit(0)
+def __getattr__(name: str):
 
-    print('-' * 10)
-    testing.generate_dummy_data(args.output_dir)
+    if name in {
+        'generate_embeddings_and_matrix',
+        'SpeciesEntry',
+        'SpeciesEmbeddingsMetadata'
+    }:
+        return getattr(importlib.import_module('.embeddings', __package__), name)
 
-
-if __name__ == '__main__':
-    main()
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
