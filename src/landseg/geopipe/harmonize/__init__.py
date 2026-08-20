@@ -33,12 +33,7 @@ __all__ = [
     'HarmonizationLogger',
     'ProcessedRasters',
     # functions
-    'warp_to_grid',
-    'stack_canonical_raster',
     'unify_nodata_mask',
-    'validate_domain_raster_index',
-    'add_band_description_to_vrt',
-    'add_tag_to_vrt',
     'compile_dataset_manifest',
     'process_source',
     'get_available_profiles',
@@ -48,7 +43,6 @@ __all__ = [
     'HarmonizationReportSchema',
     'ProvenanceRecord',
     'WorldGridReport',
-    'DatasetConfigItem',
 ]
 
 # for static check
@@ -59,17 +53,21 @@ if typing.TYPE_CHECKING:
         ProvenanceRecord,
         WorldGridReport,
     )
-    from .rasters import (
-        warp_to_grid,
-        stack_canonical_raster,
-        unify_nodata_mask,
-        validate_domain_raster_index,
-        add_band_description_to_vrt,
-        add_tag_to_vrt,
+
+    from .manifest import(
+        compile_dataset_manifest,
+    )
+
+    from .pipeline import (
         ProcessedRasters,
         process_source,
-        DatasetConfigItem,
-        compile_dataset_manifest,
+    )
+
+    from .rasters import (
+        unify_nodata_mask,
+    )
+
+    from .taxomony import(
         get_available_profiles,
         resolve_taxonomy_metadata,
         validate_taxonomy_specs,
@@ -84,23 +82,39 @@ def __getattr__(name: str):
         'ProvenanceRecord',
         'WorldGridReport',
     }:
-        return getattr(importlib.import_module('.common', __package__), name)
+        return getattr(
+            importlib.import_module('.common', __package__), name
+        )
 
     if name in {
-        'warp_to_grid',
-        'stack_canonical_raster',
+        'compile_dataset_manifest',
+    }:
+        return getattr(
+            importlib.import_module('.manifest', __package__), name
+        )
+
+    if name in {
         'unify_nodata_mask',
-        'validate_domain_raster_index',
-        'add_band_description_to_vrt',
-        'add_tag_to_vrt',
+    }:
+        return getattr(
+            importlib.import_module('.rasters', __package__), name
+        )
+
+    if name in {
         'ProcessedRasters',
         'process_source',
-        'DatasetConfigItem',
-        'compile_dataset_manifest',
+    }:
+        return getattr(
+            importlib.import_module('.pipeline', __package__), name
+        )
+
+    if name in {
         'get_available_profiles',
         'resolve_taxonomy_metadata',
         'validate_taxonomy_specs',
     }:
-        return getattr(importlib.import_module('.rasters', __package__), name)
+        return getattr(
+            importlib.import_module('.taxonomy', __package__), name
+        )
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

@@ -29,7 +29,7 @@ import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-from .taxonomy import validate_taxonomy_specs
+import landseg.geopipe.harmonize.taxomony as taxonomy
 
 
 class DatasetConfigItem(typing.TypedDict):
@@ -125,7 +125,7 @@ def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
                 )
             if 'taxonomy' in label_specs and label_specs['taxonomy']:
                 try:
-                    resolved_tax, inferred_names, _ = validate_taxonomy_specs(
+                    resolved_tax, inferred_names, _ = taxonomy.validate_taxonomy_specs(
                         label_specs['taxonomy'],
                         num_cls=num_cls,
                     )

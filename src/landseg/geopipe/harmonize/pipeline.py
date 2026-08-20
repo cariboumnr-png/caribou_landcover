@@ -29,7 +29,8 @@ import os
 import typing
 # local imports
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.harmonize as harmonize
+import landseg.geopipe.harmonize.rasters as rasters
+import landseg.geopipe.harmonize.manifest as manifest
 
 
 @dataclasses.dataclass
@@ -67,7 +68,7 @@ class _AlignedRasters:
 
 # note: input label rasters must be single banded
 def process_source(
-    compiled_sources: dict[str, harmonize.DatasetConfigItem],
+    compiled_sources: dict[str, manifest.DatasetConfigItem],
     output_dir: str,
     world_grid: geo_core.GridLayout,
     *,
@@ -106,7 +107,7 @@ def process_source(
             f'(resampling: {resampling})'
         )
 
-        warped = harmonize.warp_to_grid(
+        warped = rasters.warp_to_grid(
             input_path=path,
             output_path=out_path,
             world_grid=world_grid,
@@ -120,10 +121,10 @@ def process_source(
             continue # fast tracking domain rasters
 
         if cfg['band_mapping']:
-            harmonize.add_band_description_to_vrt(warped, cfg['band_mapping'])
+            rasters.add_band_description_to_vrt(warped, cfg['band_mapping'])
 
         if cfg['label_specs']:
-            harmonize.add_tag_to_vrt(
+            rasters.add_tag_to_vrt(
                 warped,
                 num_cls=cfg['label_specs']['num_cls'],
                 ignore_cls=cfg['label_specs']['ignore_cls'],
@@ -138,7 +139,11 @@ def process_source(
         processed.harmonized.update({tagged_name: warped})
 
     stacked: dict[str, str] = {}
-    gen = _stack_rasters(aligned, output_dir)
+    gen = rasters.stack_rasters(
+        list(aligned.features.values()),
+        list(aligned.labels.values()),
+        output_dir
+    )
     while True:
         try:
             yield next(gen)
@@ -148,42 +153,3 @@ def process_source(
 
     processed.finalized.update(**stacked)
     return processed
-
-
-def _stack_rasters(
-    aligned: _AlignedRasters,
-    output_dir: str,
-) -> typing.Generator[str, None, dict[str, str]]:
-    '''Stack feature and label rasters if applicable.'''
-
-    def _out_path(tag: str) -> str:
-        return os.path.join(output_dir, f'harmonized_{tag}_STACKED.vrt')
-
-    stacked: dict[str, str] = {}
-    yield 'Stacking rasters if applicable'
-
-    fpaths = list(aligned.features.values())
-    n = len(fpaths)
-    if n == 0:
-        pass
-    elif n == 1:
-        stacked.update({'features': fpaths[0]})
-    else:
-        out_path = _out_path('features')
-        harmonize.stack_canonical_raster(fpaths, out_path)
-        stacked.update({'features': out_path})
-        yield f'Feature rasters stacked to {out_path} (n={n})'
-
-    fpaths = list(aligned.labels.values())
-    n = len(fpaths)
-    if n == 0:
-        pass
-    elif n == 1:
-        stacked.update({'labels': fpaths[0]})
-    else:
-        out_path = _out_path('labels')
-        harmonize.stack_canonical_raster(fpaths, out_path)
-        stacked.update({'labels': out_path})
-        yield f'Label rasters stacked to {out_path} (n={n})'
-
-    return stacked
