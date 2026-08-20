@@ -130,7 +130,8 @@ def process_source(
                 class_name=cfg['label_specs'].get('class_name', {}),
                 reclass=cfg['label_specs'].get('reclass', {}),
                 reclass_name=cfg['label_specs'].get('reclass_name', {}),
-                color_map=cfg['label_specs'].get('color_map', {})
+                color_map=cfg['label_specs'].get('color_map', {}),
+                taxonomy=cfg['label_specs'].get('taxonomy', {}),
             )
 
         aligned.add_raster(category, tagged_name, out_path)

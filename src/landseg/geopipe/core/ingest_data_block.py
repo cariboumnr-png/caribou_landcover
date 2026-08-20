@@ -92,12 +92,19 @@ class DataBlockManifest(typing.TypedDict):
     label_entropy: dict[str, float]
 
 
+class TaxonomySpecs(typing.TypedDict):
+    '''Typed dictionary for domain taxonomy specification.'''
+    profile: str
+    classes: list[str]
+
+
 class LabelSpecs(typing.TypedDict):
     '''Typed dictionary for label specification.'''
     # required
     num_cls: int
     ignore_cls: list[int]
     # optional
+    taxonomy: typing.NotRequired[TaxonomySpecs]
     class_name: typing.NotRequired[dict[str, str]]
     reclass: typing.NotRequired[dict[str, list[int]]]
     reclass_name: typing.NotRequired[dict[str, str]]

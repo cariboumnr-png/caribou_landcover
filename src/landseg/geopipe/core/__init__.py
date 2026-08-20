@@ -52,6 +52,7 @@ __all__ = [
     'GridMeta',
     'ImageBandStats',
     'LabelSpecs',
+    'TaxonomySpecs',
     'TransformSchema',
     'PartitionSummary',
 ]
@@ -63,7 +64,8 @@ if typing.TYPE_CHECKING:
         DataBlockConfig,
         DataBlockInputs,
         DataBlockManifest,
-        LabelSpecs
+        LabelSpecs,
+        TaxonomySpecs,
     )
     from .ingest_data_catalog import DataCatalog, CatalogEntry
     from .ingest_data_schema import DataSchema
@@ -101,7 +103,8 @@ def __getattr__(name: str):
         'DataBlockConfig',
         'DataBlockInputs',
         'DataBlockManifest',
-        'LabelSpecs'
+        'LabelSpecs',
+        'TaxonomySpecs',
     }:
         obj = importlib.import_module('.ingest_data_block', __package__)
         return getattr(obj, name)
