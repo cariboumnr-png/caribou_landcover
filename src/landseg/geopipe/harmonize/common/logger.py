@@ -54,8 +54,6 @@ class HarmonizationLogger(utils.Logger):
         self,
         *,
         run_id: str = '',
-        target_crs: str = '',
-        target_resolution: float = 0.0,
         timestamp: str | None = None
     ) -> None:
         '''Initialize the structured ETL run report summary.'''
@@ -64,20 +62,12 @@ class HarmonizationLogger(utils.Logger):
             'run_id': run_id,
             'timestamp': t,
             'status': 'SUCCESS',
-            'target_crs': target_crs,
-            'target_resolution': target_resolution,
-            'grid_shape': (0, 0),
             'provenance': {},
             'harmonized_sources': {},
             'finalized_rasters': {},
             'valid_mask_raster': '',
             'world_grid': None
         }
-
-    def set_grid_shape(self, height: int, width: int) -> None:
-        '''Record target grid pixel dimensions.'''
-        if self.summary is not None:
-            self.summary['grid_shape'] = (height, width)
 
     def add_source_provenance(self, name: str, source_path: str) -> None:
         '''Record source file size and modification timestamp provenance.'''

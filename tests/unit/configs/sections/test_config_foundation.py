@@ -31,69 +31,96 @@ import pytest
 import landseg.configs.schema.sections.data as data
 
 
-# ----- `_TileSpecs` tests
-def test_tile_specs_validation():
+# ----- `_GridParameters` tests
+def test_grid_parameters_validation():
     '''
-    Given: `_TileSpecs` instances with square or non-square dimensions.
-    When: `_TileSpecs.validate()` is invoked.
+    Given: `_GridParameters` instances with square or non-square dimensions.
+    When: `_GridParameters.validate()` is invoked.
     Then: Accept valid square configs or raise ValueError for invalid.
     '''
-    tile_specs = data._TileSpecs(
-        size_row=256,
-        size_col=256,
-        overlap_row=0,
-        overlap_col=0,
+    params = data._GridParameters(
+        tile_size=(256, 256),
+        tile_stride=(0, 0),
     )
-    tile_specs.validate()
+    params.validate()
 
     with pytest.raises(ValueError, match='Only square blocks are supported'):
-        data._TileSpecs(size_row=256, size_col=512).validate()
+        data._GridParameters(tile_size=(256, 512)).validate()
 
     with pytest.raises(ValueError, match='Only equal row/column stride'):
-        data._TileSpecs(
-            size_row=256,
-            size_col=256,
-            overlap_row=10,
-            overlap_col=20,
+        data._GridParameters(
+            tile_size=(256, 256),
+            tile_stride=(10, 20),
         ).validate()
 
     with pytest.raises(ValueError, match='Block size must be positive'):
-        data._TileSpecs(size_row=0, size_col=0).validate()
+        data._GridParameters(tile_size=(0, 0)).validate()
 
-    with pytest.raises(ValueError, match='stride must be zero or positive'):
-        data._TileSpecs(
-            size_row=256,
-            size_col=256,
-            overlap_row=-1,
-            overlap_col=-1,
+    with pytest.raises(ValueError, match='Block stride must be zero or positive'):
+        data._GridParameters(
+            tile_size=(256, 256),
+            tile_stride=(-1, -1),
         ).validate()
 
 
-# ----- `_Grid` tests
-def test_grid_validation():
+# ----- `_GridCfg` tests
+def test_grid_cfg_validation(tmp_path):
     '''
-    Given: `_Grid` instances with valid or invalid parameters.
-    When: `_Grid.validate()` is called.
-    Then: Pass valid ref grid definitions and raise ValueError for
-        non-ref modes.
+    Given: `_GridCfg` instances with valid or invalid parameters.
+    When: `_GridCfg.validate()` is called.
+    Then: Pass valid ref grid definitions and raise error for invalid.
     '''
-    grid_ref = data._Grid(
+    ref_file = tmp_path / 'ref.tif'
+    ref_file.write_text('dummy')
+
+    grid_ref = data._GridCfg(
         mode='ref',
-        crs='EPSG:32617',
+        params=data._GridParameters(
+            ref_fpath=str(ref_file),
+            crs_string='EPSG:32617',
+            tile_size=(256, 256),
+            tile_stride=(0, 0),
+        )
     )
     grid_ref.validate()
     assert grid_ref.tile_specs_tuple == (256, 256, 0, 0)
 
-    # non-ref mode raises error
-    with pytest.raises(ValueError, match='Invalid grid mode'):
-        data._Grid(mode='aoi', crs='EPSG:32617').validate()
+    # missing reference file
+    grid_missing_ref = data._GridCfg(
+        mode='ref',
+        params=data._GridParameters(
+            ref_fpath=str(tmp_path / 'non_existent.tif'),
+            crs_string='EPSG:32617',
+        )
+    )
+    with pytest.raises(FileNotFoundError):
+        grid_missing_ref.validate()
 
-    with pytest.raises(ValueError, match='Invalid grid mode'):
-        data._Grid(mode='invalid', crs='EPSG:32617').validate()
+    # manual mode validation
+    grid_manual = data._GridCfg(
+        mode='manual',
+        params=data._GridParameters(
+            crs_string='EPSG:32617',
+            origin=(0.0, 0.0),
+            pixel_size=(10.0, 10.0),
+            extent_in_crs_units=(100.0, 100.0),
+        )
+    )
+    grid_manual.validate()
+    assert grid_manual.spatial_resolution == 10.0
 
-    # invalid CRS format
-    with pytest.raises(ValueError, match='Invalid CRS identifier'):
-        data._Grid(mode='ref', crs='WGS84').validate()
+    # invalid manual CRS
+    grid_invalid_crs = data._GridCfg(
+        mode='manual',
+        params=data._GridParameters(
+            crs_string='INVALID_CRS',
+            origin=(0.0, 0.0),
+            pixel_size=(10.0, 10.0),
+            extent_in_crs_units=(100.0, 100.0),
+        )
+    )
+    with pytest.raises(ValueError, match='Invalid CRS'):
+        grid_invalid_crs.validate()
 
 
 # ----- `_Domains` tests
@@ -123,53 +150,16 @@ def test_datablocks_and_data_validation():
 
 
 # ----- `_HarmonizationCfg` tests
-def test_harmonization_cfg_validation(tmp_path):
+def test_harmonization_cfg_validation():
     '''
     Given: `_HarmonizationCfg` instances with parameters.
     When: `_HarmonizationCfg.validate()` is called.
-    Then: Accept valid settings and raise errors on invalid paths
-        or CRS.
+    Then: Accept valid settings.
     '''
-    ref_tif = tmp_path / 'ref.tif'
-    ref_tif.write_text('dummy')
-    cfg_json = tmp_path / 'config.json'
-    cfg_json.write_text('{}')
-
-    # valid configuration
     h_cfg = data._HarmonizationCfg(
-        canvas=data._Canvas(
-            reference_raster=str(ref_tif),
-            target_crs='EPSG:3161',
-            target_resolution=20.0
-        ),
-        dataset_manifest=str(cfg_json)
+        dataset_manifest='/path/to/manifest.json',
+        resampling_continuous='bilinear',
+        resampling_categorical='nearest',
     )
     h_cfg.validate()
-
-    # missing reference raster
-    invalid_h_cfg = data._HarmonizationCfg(
-        canvas=data._Canvas(reference_raster='/missing/ref.tif')
-    )
-    with pytest.raises(FileNotFoundError):
-        invalid_h_cfg.validate()
-
-    # invalid CRS format
-    invalid_crs_cfg = data._HarmonizationCfg(
-        canvas=data._Canvas(
-            reference_raster=str(ref_tif),
-            target_crs='INVALID_CRS'
-        )
-    )
-    with pytest.raises(ValueError, match='Invalid CRS identifier'):
-        invalid_crs_cfg.validate()
-
-    # non-positive target resolution
-    invalid_res_cfg = data._HarmonizationCfg(
-        canvas=data._Canvas(
-            reference_raster=str(ref_tif),
-            target_crs='EPSG:3161',
-            target_resolution=-5.0
-        )
-    )
-    with pytest.raises(ValueError, match='target_resolution must be positive'):
-        invalid_res_cfg.validate()
+    assert h_cfg.resampling_continuous == 'bilinear'

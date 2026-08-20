@@ -56,10 +56,6 @@ class HarmonizationPaths:
         return os.path.join(self.effective_root, 'valid_pixel_mask.vrt')
 
     @property
-    def grids(self):
-        return _WorldGrids(os.path.join(self.effective_root, 'world_grids'))
-
-    @property
     def report(self) -> str:
         return os.path.join(self.effective_root, 'harmonize_report.json')
 
@@ -138,16 +134,3 @@ class HarmonizationPaths:
 
         self._current_run_folder = os.path.join(self.root, runs[-1])
         return self._current_run_folder
-
-
-# ----- private helper path containers
-@dataclasses.dataclass
-class _WorldGrids:
-    '''Paths for spatial grid tile artifacts.'''
-    root: str
-
-    def fpath(self, tile_specs: tuple[int, int, int, int]) -> str:
-        '''Return canonical grid artifact file path.'''
-        srow, scol, orow, ocol = tile_specs
-        gid = f'grid_row_{srow}_{orow}_col_{scol}_{ocol}'
-        return os.path.join(self.root, f'{gid}.json')

@@ -97,6 +97,7 @@ src/landseg/
 |   |-- executor.py               Point d'entree unifie d'execution
 |   `-- pipelines/
 |       |-- _registry.py          Lookup et enregistrement des pipelines
+|       |-- world_grid.py         Pipeline de génération de grille monde
 |       |-- data_harmonize.py     Pipeline d'harmonisation des données
 |       |-- data_ingest.py        Pipeline d'ingestion des données
 |       |-- data_prepare.py       Pipeline de préparation des données
@@ -108,12 +109,12 @@ src/landseg/
 |
 |-- geopipe/
 |   |-- core/                     Contrats de données d'harmonisation, d'ingestion et de préparation
+|   |-- grid/                     Construction et cycle de vie des grilles monde
 |   |-- harmonize/                Reprojection, empilement et masques de validité
-|   |-- ingest/                   Grilles monde, cartes de domaine et blocs de données
+|   |-- ingest/                   Cartes de domaine et blocs de données
 |   |   |-- common/               Loggers et alias d'ingestion
 |   |   |-- data_blocks/          Manifestes, mapping et pipeline de blocs
-|   |   |-- domain_maps/          Construction et cycle de vie des cartes de domaine
-|   |   `-- world_grids/          Construction et cycle de vie des grilles monde
+|   |   `-- domain_maps/          Construction et cycle de vie des cartes de domaine
 |   |-- prepare/                  Partitionnement, normalisation et schéma
 |   |   |-- common/               Loggers et alias de préparation
 |   |   |-- data_partition/       Split, filter, hydrate et scoring

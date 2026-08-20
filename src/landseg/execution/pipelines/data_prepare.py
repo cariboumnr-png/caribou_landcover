@@ -89,7 +89,7 @@ def prepare(config: configs.RootConfig):
             scoring_alpha=scoring.alpha,
             scoring_beta=scoring.beta,
             max_skew_rate=hydration.max_skew_rate,
-            block_spec=config.data.harmonization.grid.tile_specs_tuple,
+            block_spec=config.data.world_grid.tile_specs_tuple,
             train_aoi=partition.train_aoi,
             val_aoi=partition.val_aoi,
             test_aoi=partition.test_aoi,

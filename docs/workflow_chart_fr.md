@@ -3,12 +3,12 @@
 Dernière mise à jour : 2026-05-12
 
 ```
-[ingest/world_grids/builder]            (1 Grille globale – construction pure)
+[grid/builder]                           (1 Grille globale – construction pure)
 |
 +--> [artifacts/controller]
 |        (résolution / build / réutilisation selon politique)
 |
-+--> [ingest/world_grids/lifecycle]
++--> [grid/lifecycle]
 |        (persistance et validation de l’artefact grille)
 |
 +--> [ingest/domain_maps/mapper]        (2 Domaine → alignement sur grille, optionnel)

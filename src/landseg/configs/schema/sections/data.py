@@ -36,97 +36,85 @@ import landseg.configs.schema.utils as utils
 field = dataclasses.field
 
 
-# ----- data harmonization
+# ----- world grid
 @dataclasses.dataclass
-class _Canvas:
-    reference_raster: str = ''
-    target_crs: str | None = None
-    target_resolution: float | None = None
-
-
-@dataclasses.dataclass
-class _Extent:
-    origin: tuple[float, float] = (0.0, 0.0)
-    pixel_size: tuple[float, float] = (0.0, 0.0)
-    grid_extent: tuple[float, float] | None = None
-    grid_shape: tuple[int, int] | None = None
-
-
-@dataclasses.dataclass
-class _TileSpecs:
-    size_row: int = 256
-    size_col: int = 256
-    overlap_row: int = 0
-    overlap_col: int = 0
+class _GridParameters:
+    tile_size: tuple[int, int] = (256, 256)
+    tile_stride: tuple[int, int] = (128, 128)
+    ref_fpath: str | None = None
+    crs_string: str | None = None
+    origin: tuple[float, float] | None = None
+    pixel_size: tuple[float, float] | None = None
+    extent_in_crs_units: tuple[float, float] | None = None
 
     def validate(self):
         # currently we only accept equal row and col sizes and strides
-        if self.size_row != self.size_col:
+        if self.tile_size[0] != self.tile_size[1]:
             raise ValueError('Only square blocks are supported.')
-
-        if self.overlap_row != self.overlap_col:
-            raise ValueError('Only equal row/column stride is supported.')
-
-        if self.size_row <= 0:
+        if self.tile_size[0] <= 0:
             raise ValueError('Block size must be positive.')
 
-        if self.overlap_row < 0:
+        if self.tile_stride[0] != self.tile_stride[1]:
+            raise ValueError('Only equal row/column stride is supported.')
+        if self.tile_stride[0] < 0:
             raise ValueError('Block stride must be zero or positive.')
 
 
 @dataclasses.dataclass
-class _Grid:
+class _GridCfg:
     mode: str = 'ref'
-    crs: str = ''
-    extent: _Extent = field(default_factory=_Extent)
-    tile_specs: _TileSpecs = field(default_factory=_TileSpecs)
+    params: _GridParameters = field(default_factory=_GridParameters)
+    output_dpath: str = 'experiment/artifacts/world_grids'
 
     @property
     def tile_specs_tuple(self) -> tuple[int, int, int, int]:
         '''Tile specs in px as (row, col, overlap_row, overlap_col).'''
-        return dataclasses.astuple(self.tile_specs)
+        return (
+            self.params.tile_size[0],
+            self.params.tile_size[1],
+            self.params.tile_stride[0],
+            self.params.tile_stride[1]
+        )
+
+    @property
+    def spatial_resolution(self) -> float | None:
+        '''Return resolution (CRS units per pixel). Assume square px.'''
+        if self.params.pixel_size:
+            return self.params.pixel_size[0]
+        return None
 
     def validate(self) -> None:
-        if self.mode != 'ref':
-            raise ValueError(
-                f'Invalid grid mode: {self.mode}. '
-                'Data harmonization requires "ref" grid mode.'
-            )
-        # crs string format (optional if derived from ref raster)
-        if self.crs and not bool(re.fullmatch(r'epsg:\d+', self.crs, re.I)):
-            raise ValueError('Invalid CRS identifier. Must be [EPSG:....]')
-        # tile specs
-        self.tile_specs.validate()
+        self.params.validate() # validates tile size and stride values
+
+        if self.mode == 'ref':
+            utils.must_exist(self.params.ref_fpath, 'grid reference raster')
+
+        elif self.mode == 'manual':
+            crs = self.params.crs_string
+            if not crs or not bool(re.fullmatch(r'epsg:\d+', crs, re.I)):
+                raise ValueError(f'Invalid CRS, must be [EPSG:....], got {crs}')
+
+            if not self.params.origin:
+                raise ValueError('Origin not provided')
+            if not self.params.pixel_size:
+                raise ValueError('Pixel size not provided')
+            if not self.params.extent_in_crs_units:
+                raise ValueError('Extent (in CRS units) not provided')
+
+            if self.params.pixel_size[0] != self.params.pixel_size[1]:
+                raise ValueError('Only square pixels are supported')
 
 
+# ----- data harmonization
 @dataclasses.dataclass
 class _HarmonizationCfg:
-    canvas: _Canvas = field(default_factory=_Canvas)
-    grid: _Grid = field(default_factory=_Grid)
     dataset_manifest: str = ''
     resampling_continuous: str = 'bilinear'
     resampling_categorical: str = 'nearest'
     output_dpath: str = 'experiment/artifacts/harmonized_data'
 
     def validate(self) -> None:
-        utils.must_exist(self.canvas.reference_raster, 'Reference raster')
-        if self.dataset_manifest:
-            utils.must_exist(self.dataset_manifest, 'Dataset configuration JSON')
-
-        if (
-            self.canvas.target_crs and
-            not bool(re.fullmatch(r'epsg:\d+', self.canvas.target_crs, re.I))
-        ):
-            raise ValueError('Invalid CRS identifier. Must be "EPSG:...."')
-
-        if (
-            self.canvas.target_resolution and
-            self.canvas.target_resolution <= 0.0
-        ):
-            raise ValueError('target_resolution must be positive.')
-
-        self.grid.validate()
-
+        pass
 
 # ----- data ingestion
 @dataclasses.dataclass
@@ -249,12 +237,14 @@ class _Specification:
 # ----- composite
 @dataclasses.dataclass
 class DataConfig:
+    world_grid: _GridCfg = field(default_factory=_GridCfg)
     harmonization: _HarmonizationCfg = field(default_factory=_HarmonizationCfg)
     ingestion: _IngestionCfg = field(default_factory=_IngestionCfg)
     preparation: _PreparationCfg = field(default_factory=_PreparationCfg)
     specification: _Specification = field(default_factory=_Specification)
 
     def validate(self):
+        self.world_grid.validate()
         self.harmonization.validate()
         self.ingestion.validate()
         self.preparation.validate()

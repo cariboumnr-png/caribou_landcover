@@ -28,6 +28,7 @@ import dataclasses
 import os
 import typing
 # local imports
+import landseg.geopipe.core as geo_core
 import landseg.geopipe.harmonize as harmonize
 
 
@@ -68,7 +69,7 @@ class _AlignedRasters:
 def process_source(
     compiled_sources: dict[str, harmonize.DatasetConfigItem],
     output_dir: str,
-    canvas_spec: harmonize.CanvasSpec,
+    world_grid: geo_core.GridLayout,
     *,
     categorical_resampling: str,
     continuous_resampling: str,
@@ -105,10 +106,10 @@ def process_source(
             f'(resampling: {resampling})'
         )
 
-        warped = harmonize.warp_to_canvas(
+        warped = harmonize.warp_to_grid(
             input_path=path,
             output_path=out_path,
-            canvas=canvas_spec,
+            world_grid=world_grid,
             is_categorical=is_categorical,
             resampling_method=resampling,
         )
@@ -126,9 +127,10 @@ def process_source(
                 warped,
                 num_cls=cfg['label_specs']['num_cls'],
                 ignore_cls=cfg['label_specs']['ignore_cls'],
-                class_name=cfg['label_specs'].get('class_name', []),
+                class_name=cfg['label_specs'].get('class_name', {}),
                 reclass=cfg['label_specs'].get('reclass', {}),
-                reclass_name=cfg['label_specs'].get('reclass_name', {})
+                reclass_name=cfg['label_specs'].get('reclass_name', {}),
+                color_map=cfg['label_specs'].get('color_map', {})
             )
 
         aligned.add_raster(category, tagged_name, out_path)

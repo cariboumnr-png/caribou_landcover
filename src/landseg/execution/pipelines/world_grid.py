@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -20,39 +20,36 @@
 # =========================================================================== #
 
 '''
-TypedDict definitions for data harmonization execution summaries/reports.
+World grid pipeline command implementation.
 '''
 
-# standard imports
-from __future__ import annotations
-import typing
+# local imports
+import landseg.configs as configs
+import landseg.geopipe.grid as grid
+import landseg.utils as utils
 
 
-# ----- report schema definitions
-class ProvenanceRecord(typing.TypedDict):
-    '''Provenance record for a raw source raster file.'''
-    path: str
-    size_bytes: int
-    mtime: float
+# ----- public functions
+def exec_world_grid(config: configs.RootConfig) -> None:
+    '''
+    Execute the world-grid pipeline.
 
+    Args:
+        config: Resolved root configuration object.
+    '''
+    grid_cfg = config.data.world_grid
 
-class WorldGridReport(typing.TypedDict):
-    '''Summary report for a generated world grid layout.'''
-    grid_fpath: str
-    grid_id: str
-    crs: str
-    pixel_size: tuple[float, float]
-    tile_size: tuple[int, int]
-    tile_overlap: tuple[int, int]
+    logger = utils.Logger(name='world-grid', enable_file_log=False)
 
+    logger.log_sep()
+    logger.log('INFO', 'Building/loading canonical world grid')
 
-class HarmonizationReportSchema(typing.TypedDict):
-    '''Root report mapping the entire data harmonization pipeline run.'''
-    run_id: str
-    timestamp: str
-    status: typing.Literal['SUCCESS', 'FAILED', 'SKIPPED']
-    provenance: dict[str, ProvenanceRecord]
-    harmonized_sources: dict[str, str]
-    finalized_rasters: dict[str, str]
-    valid_mask_raster: str
-    world_grid: WorldGridReport | None
+    is_loaded, grid_fp, world_grid = grid.prepare_world_grid(grid_cfg)
+    status_str = 'loaded' if is_loaded else 'created and persisted'
+
+    logger.log('INFO', f'[COMPLETE] World grid {status_str}')
+    logger.log('INFO', f'Grid ID: {world_grid.gid}')
+    logger.log('INFO', f'Grid artifact file path: {grid_fp}')
+    logger.log('INFO', f'CRS: {world_grid.crs}')
+    logger.log('INFO', f'Total Tiles: {len(world_grid)}')
+    logger.log_sep()

@@ -38,6 +38,7 @@ __all__ = [
     'get',
     'default_action',
     'evaluate',
+    'exec_world_grid',
     'exec_harmonize_data',
     'exec_ingest_data',
     'overfit',
@@ -52,6 +53,7 @@ __all__ = [
 if typing.TYPE_CHECKING:
     from ._registry import get
     from .default import default_action
+    from .world_grid import exec_world_grid
     from .data_harmonize import exec_harmonize_data
     from .data_ingest import exec_ingest_data
     from .data_prepare import prepare
@@ -68,6 +70,9 @@ def __getattr__(name: str):
 
     if name in {'default_action'}:
         return getattr(importlib.import_module('.default', __package__), name)
+
+    if name in {'exec_world_grid'}:
+        return getattr(importlib.import_module('.world_grid', __package__), name)
 
     if name in {'exec_harmonize_data'}:
         return getattr(importlib.import_module('.data_harmonize', __package__), name)

@@ -29,7 +29,7 @@ the immutable raw block catalogue for later experiments.
 # local imports
 import landseg.artifacts as artifacts
 import landseg.configs as configs
-import landseg.geopipe.harmonize as harmonize
+import landseg.geopipe.grid as grid
 import landseg.geopipe.ingest as ingest
 
 # aliases
@@ -78,31 +78,11 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
             else artifacts.LifecyclePolicy.BUILD_IF_MISSING
         )
 
-        # ----- load/prepare canonical world grid
-        grid_cfg = config.data.harmonization.grid
-        logger.log('INFO', '[START] World grid preparation')
-        grid_config = harmonize.GridParameters(
-            mode=grid_cfg.mode,
-            crs=grid_cfg.crs,
-            ref_fpath=harmonized.valid_mask_raster,
-            origin=grid_cfg.extent.origin,
-            pixel_size=grid_cfg.extent.pixel_size,
-            grid_extent=grid_cfg.extent.grid_extent,
-            grid_shape=grid_cfg.extent.grid_shape,
-            tile_specs=grid_cfg.tile_specs_tuple,
-        )
-        grid_fpath = (
-            harmonized.world_grid_fpath
-            or artifact_paths.data_harmonization.grids.fpath(
-                grid_cfg.tile_specs_tuple
-            )
-        )
-        world_grid = harmonize.prepare_world_grid(
-            grid_fpath,
-            grid_config,
-            policy=policy,
-        )
-        logger.log('INFO', f'[COMPLETE] World grid loaded: {world_grid.gid}')
+        # ----- load canonical world grid
+        logger.log('INFO', '[START] Loading world grid from configuration')
+        world_grid = grid.load_grid_from_fpath(harmonized.grid_fpath)
+        gid = world_grid.gid
+        logger.log('INFO', f'[COMPLETE] World grid loaded: {gid}')
 
         # ----- materialize domain maps
         domain_cfg = config.data.ingestion.domains
@@ -112,9 +92,7 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
                 ingest.DomainBuildingParameters(
                     input_fpath=path,
                     domain_fpath=ingestion_paths.domains.domain_map_fpath(name),
-                    tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(
-                        name, world_grid.gid
-                    ),
+                    tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(name, gid),
                     index_base=1,
                     valid_threshold=domain_cfg.valid_threshold,
                     target_variance=domain_cfg.target_variance,
@@ -142,7 +120,6 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
             logger.log('INFO', '[START] Canonical data blocks building')
             assert harmonized.features
             data_blocks_config = ingest.BlockBuildingParameters(
-                stage='canonical',
                 image_fpath=harmonized.features,
                 label_fpath=harmonized.labels,
                 dem_pad=config.data.ingestion.datablocks.image_dem_pad,
@@ -156,12 +133,12 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
                 logger=logger,
             )
 
-            if 'canonical' in logger.summary['data_blocks']:
-                d = logger.summary['data_blocks']['canonical']['duration_sec']
-                logger.log(
-                    'INFO',
-                    f'[COMPLETE] Canonical data blocks preparation (D_{d:.2f}s)'
-                )
+            assert logger.summary['data_blocks'] # typing
+            d = logger.summary['data_blocks']['duration_sec']
+            logger.log(
+                'INFO',
+                f'[COMPLETE] Canonical data blocks preparation (D_{d:.2f}s)'
+            )
 
         # persist the config -> JSON
         ConfigController(ingestion_paths.config).persist(config.as_dict)

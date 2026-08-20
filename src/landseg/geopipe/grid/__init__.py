@@ -20,39 +20,47 @@
 # =========================================================================== #
 
 '''
-TypedDict definitions for data harmonization execution summaries/reports.
+Top-level namespace for `landseg.geopipe.grid`.
+
+Exposes selected public functions via lazy resolution to keep import
+order simple and circular-free.
 '''
 
 # standard imports
 from __future__ import annotations
+import importlib
 import typing
 
+__all__ = [
+    # classes
+    'GridParameters',
+    # functions
+    'build_grid',
+    'prepare_world_grid',
+    'load_grid_from_config',
+    'load_grid_from_fpath'
+]
 
-# ----- report schema definitions
-class ProvenanceRecord(typing.TypedDict):
-    '''Provenance record for a raw source raster file.'''
-    path: str
-    size_bytes: int
-    mtime: float
+# for static check
+if typing.TYPE_CHECKING:
+    from .builder import GridParameters, build_grid
+    from .lifecycle import (
+        prepare_world_grid,
+        load_grid_from_config,
+        load_grid_from_fpath,
+    )
 
 
-class WorldGridReport(typing.TypedDict):
-    '''Summary report for a generated world grid layout.'''
-    grid_fpath: str
-    grid_id: str
-    crs: str
-    pixel_size: tuple[float, float]
-    tile_size: tuple[int, int]
-    tile_overlap: tuple[int, int]
+def __getattr__(name: str):
 
+    if name in {'GridParameters', 'build_grid'}:
+        return getattr(importlib.import_module('.builder', __package__), name)
 
-class HarmonizationReportSchema(typing.TypedDict):
-    '''Root report mapping the entire data harmonization pipeline run.'''
-    run_id: str
-    timestamp: str
-    status: typing.Literal['SUCCESS', 'FAILED', 'SKIPPED']
-    provenance: dict[str, ProvenanceRecord]
-    harmonized_sources: dict[str, str]
-    finalized_rasters: dict[str, str]
-    valid_mask_raster: str
-    world_grid: WorldGridReport | None
+    if name in {
+        'prepare_world_grid',
+        'load_grid_from_config',
+        'load_grid_from_fpath'
+    }:
+        return getattr(importlib.import_module('.lifecycle', __package__), name)
+
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

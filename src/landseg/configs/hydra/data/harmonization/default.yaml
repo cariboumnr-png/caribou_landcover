@@ -1,12 +1,3 @@
-defaults:
-  - _self_
-  - grid: default
-
-canvas:
-  reference_raster: ''
-  target_crs: EPSG:3161
-  target_resolution: 20.0
-
 dataset_manifest: ''
 resampling_continuous: bilinear
 resampling_categorical: nearest

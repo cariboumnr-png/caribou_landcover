@@ -21,13 +21,13 @@
 
 # pylint: disable=protected-access
 
-'''Unit tests for world-grid tiling utility (ingest_world_grid.py).'''
+'''Unit tests for world-grid tiling utility (grid_layout.py).'''
 
 # third-party imports
 import pytest
 import rasterio.windows
 # local imports
-import landseg.geopipe.core.ingest_world_grid as world_grid
+import landseg.geopipe.core.grid_layout as grid_layout
 
 
 # ----- `GridSpec` tests
@@ -38,33 +38,34 @@ def test_gridspec_validation():
     Then: Raise a ValueError in post-init.
     '''
     with pytest.raises(ValueError, match='Overlap must be smaller'):
-        world_grid.GridSpec(
+        grid_layout.GridSpec(
             crs='EPSG:32617',
             origin=(500000.0, 5000000.0),
             pixel_size=(10.0, 10.0),
             tile_size=(256, 256),
-            tile_overlap=(300, 128)
+            tile_stride=(300, 128),
+            grid_extent=(5120.0, 5120.0),
         )
 
 
 # ----- `GridLayout` tests
-def test_gridlayout_bbox_generation():
+def test_gridlayout_generation():
     '''
     Given: A GridSpec with spatial extent.
-    When: `GridLayout` is constructed in `'bbox'` mode.
+    When: `GridLayout` is constructed.
     Then: Correct row/col tiles are generated within extent boundary
         constraints.
     '''
-    spec = world_grid.GridSpec(
+    spec = grid_layout.GridSpec(
         crs='EPSG:32617',
         origin=(0.0, 1000.0),
         pixel_size=(10.0, 10.0),
         tile_size=(256, 256),
-        tile_overlap=(128, 128),
-        grid_extent=(5120.0, 5120.0) # 512x512 pixels
+        tile_stride=(128, 128),
+        grid_extent=(5120.0, 5120.0), # 512x512 pixels
     )
 
-    layout = world_grid.GridLayout(mode='bbox', spec=spec)
+    layout = grid_layout.GridLayout(spec)
 
     # 512x512 grid, tile size 256, step size = 256-128 = 128.
     # coordinates row/col step ranges:
@@ -83,27 +84,6 @@ def test_gridlayout_bbox_generation():
     assert edge_tile.height == 128 # min(256, 512-384)
 
 
-def test_gridlayout_tiles_generation():
-    '''
-    Given: A GridSpec with a target grid shape.
-    When: `GridLayout` is constructed in `'tiles'` mode.
-    Then: Generate fixed tile count exactly matching requested shape.
-    '''
-    spec = world_grid.GridSpec(
-        crs='EPSG:32617',
-        origin=(0.0, 1000.0),
-        pixel_size=(10.0, 10.0),
-        tile_size=(256, 256),
-        tile_overlap=(128, 128),
-        grid_shape=(3, 3)
-    )
-
-    layout = world_grid.GridLayout(mode='tiles', spec=spec)
-
-    assert len(layout) == 9
-    assert layout.extent == (512, 512) # (3-1)*128 + 256 = 512
-
-
 def test_gridlayout_container_protocol():
     '''
     Given: A constructed `GridLayout`.
@@ -111,15 +91,15 @@ def test_gridlayout_container_protocol():
     Then: Iteration, length, keys, index validation, and value type
         checks succeed.
     '''
-    spec = world_grid.GridSpec(
+    spec = grid_layout.GridSpec(
         crs='EPSG:32617',
         origin=(0.0, 1000.0),
         pixel_size=(10.0, 10.0),
         tile_size=(256, 256),
-        tile_overlap=(128, 128),
-        grid_shape=(1, 1)
+        tile_stride=(128, 128),
+        grid_extent=(1280.0, 1280.0),
     )
-    layout = world_grid.GridLayout(mode='tiles', spec=spec)
+    layout = grid_layout.GridLayout(spec)
 
     assert len(layout) == 1
     assert list(layout.keys()) == [(0, 0)]
@@ -138,15 +118,15 @@ def test_gridlayout_offset_alignment():
     When: Computing offsets via `offset_from`.
     Then: Shift the output windows by the computed pixel offset amount.
     '''
-    spec = world_grid.GridSpec(
+    spec = grid_layout.GridSpec(
         crs='EPSG:32617',
         origin=(500000.0, 5000000.0),
         pixel_size=(10.0, 10.0),
         tile_size=(256, 256),
-        tile_overlap=(128, 128),
-        grid_shape=(1, 1)
+        tile_stride=(128, 128),
+        grid_extent=(2560.0, 2560.0),
     )
-    layout = world_grid.GridLayout(mode='tiles', spec=spec)
+    layout = grid_layout.GridLayout(spec)
 
     # raster is shifted right by 10 pixels and down by 20 pixels
     # affine transformation: a = 10.0, b = 0.0, c = rx = 500100.0
@@ -170,20 +150,19 @@ def test_gridlayout_serialization_roundtrip():
     When: Reconstructed using `to_payload` and `from_payload`.
     Then: All state attributes are perfectly restored.
     '''
-    spec = world_grid.GridSpec(
+    spec = grid_layout.GridSpec(
         crs='EPSG:32617',
         origin=(0.0, 1000.0),
         pixel_size=(10.0, 10.0),
         tile_size=(256, 256),
-        tile_overlap=(128, 128),
-        grid_shape=(2, 2)
+        tile_stride=(128, 128),
+        grid_extent=(3840.0, 3840.0),
     )
-    layout = world_grid.GridLayout(mode='tiles', spec=spec)
+    layout = grid_layout.GridLayout(spec)
 
     payload = layout.to_payload()
-    restored = world_grid.GridLayout.from_payload(payload)
+    restored = grid_layout.GridLayout.from_payload(payload)
 
-    assert restored._mode == layout._mode
-    assert restored._extent == layout._extent
+    assert restored.extent == layout.extent
     assert len(restored) == len(layout)
     assert restored[(0, 0)] == layout[(0, 0)]

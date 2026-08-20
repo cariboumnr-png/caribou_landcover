@@ -32,6 +32,8 @@ import landseg.execution.pipelines._registry as registry
 # ----- `get` helper
 @pytest.mark.parametrize('name', [
     'default',
+    'world-grid',
+    'data-harmonize',
     'data-ingest',
     'data-prepare',
     'diagnose-overfit',

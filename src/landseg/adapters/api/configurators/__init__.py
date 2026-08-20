@@ -19,6 +19,8 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=too-many-return-statements
+
 '''
 Top-level namespace for `landseg.adapters.api.configurators`.
 
@@ -32,6 +34,7 @@ import typing
 __all__ = [
     # classes
     'BaseConfigurator',
+    'WorldGridConfigurator',
     'DataHarmonizationConfigurator',
     'DataIngestionConfigurator',
     'DataPreparationConfigurator',
@@ -44,6 +47,7 @@ __all__ = [
 # for static check
 if typing.TYPE_CHECKING:
     from .base import BaseConfigurator
+    from .world_grid import WorldGridConfigurator
     from .data_harmonize import DataHarmonizationConfigurator
     from .data_ingest import DataIngestionConfigurator
     from .data_prepare import DataPreparationConfigurator
@@ -54,6 +58,9 @@ def __getattr__(name: str):
 
     if name in {'BaseConfigurator'}:
         return getattr(importlib.import_module('.base', __package__), name)
+
+    if name in {'WorldGridConfigurator'}:
+        return getattr(importlib.import_module('.world_grid', __package__), name)
 
     if name in {'DataHarmonizationConfigurator'}:
         return getattr(importlib.import_module('.data_harmonize', __package__), name)

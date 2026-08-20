@@ -23,16 +23,24 @@
 
 '''Unit tests for data harmonization processor (processor.py).'''
 
-
 # standard imports
+import dataclasses
 import os
 import typing
 # third-party imports
 import rasterio
 # local imports
+import landseg.geopipe.grid as grid
 import landseg.geopipe.harmonize as harmonize
 import landseg.geopipe.harmonize.rasters.processor as processor
 
+
+@dataclasses.dataclass
+class _GridParams:
+    ref_fpath: str
+    crs_string: str = 'EPSG:3161'
+    tile_size: tuple[int, int] = (16, 16)
+    tile_stride: tuple[int, int] = (8, 8)
 
 
 # ----- `process_source` tests
@@ -40,7 +48,7 @@ def test_process_source_features_and_labels(tmp_path, dummy_geotiff_factory):
     '''
     Given: Two feature rasters and one label raster.
     When: `process_source` is executed.
-    Then: Warp rasters to canvas and stack multiple features into one VRT.
+    Then: Warp rasters to grid and stack multiple features into one VRT.
     '''
     ref_path = dummy_geotiff_factory(
         filename='ref.tif', width=16, height=16, bands=1
@@ -55,11 +63,8 @@ def test_process_source_features_and_labels(tmp_path, dummy_geotiff_factory):
         filename='lbl.tif', width=16, height=16, bands=1
     )
 
-    canvas_spec = harmonize.create_canvas(
-        reference_raster=str(ref_path),
-        target_crs='EPSG:3161',
-        target_resolution=20.0
-    )
+    grid_params = _GridParams(ref_fpath=str(ref_path))
+    world_grid = grid.build_grid('ref', grid_params)
 
     compiled: dict[str, harmonize.DatasetConfigItem] = {
         str(s2_path): {
@@ -91,7 +96,7 @@ def test_process_source_features_and_labels(tmp_path, dummy_geotiff_factory):
     gen = processor.process_source(
         compiled,
         out_dir,
-        canvas_spec,
+        world_grid,
         categorical_resampling='nearest',
         continuous_resampling='bilinear',
     )
@@ -129,11 +134,8 @@ def test_process_source_domains(tmp_path, dummy_geotiff_factory):
         filename='eco.tif', width=16, height=16, bands=1
     )
 
-    canvas_spec = harmonize.create_canvas(
-        reference_raster=str(ref_path),
-        target_crs='EPSG:3161',
-        target_resolution=20.0
-    )
+    grid_params = _GridParams(ref_fpath=str(ref_path))
+    world_grid = grid.build_grid('ref', grid_params)
 
     compiled: dict[str, harmonize.DatasetConfigItem] = {
         str(dom_path): {
@@ -151,7 +153,7 @@ def test_process_source_domains(tmp_path, dummy_geotiff_factory):
     gen = processor.process_source(
         compiled,
         out_dir,
-        canvas_spec,
+        world_grid,
         categorical_resampling='nearest',
         continuous_resampling='bilinear',
     )

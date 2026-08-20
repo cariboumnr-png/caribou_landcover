@@ -19,6 +19,8 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=missing-function-docstring
+
 '''
 Tools for preparing and loading world grid layouts.
 
@@ -34,58 +36,48 @@ Supported extent modes:
 '''
 
 # standard imports
-import dataclasses
+import os
 import typing
 # local imports
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.utils as geo_utils
 
 
-# ------------------------------Public Dataclass------------------------------
-@dataclasses.dataclass
-class GridParameters:  # pylint: disable=too-many-instance-attributes
+# ------------------------------Public Protocol-------------------------------
+class GridParameters(typing.Protocol):
     '''Container for grid generation configuration.'''
-    mode: typing.Literal['ref', 'aoi', 'tiles'] | str
-    crs: str
-    ref_fpath: str
-    origin: tuple[float, float]
-    pixel_size: tuple[float, float]
-    grid_extent: tuple[float, float] | None
-    grid_shape: tuple[int, int] | None
-    tile_specs: tuple[int, int, int, int]
-
+    @property
+    def tile_size(self) -> tuple[int, int]: ...
+    @property
+    def tile_stride(self) -> tuple[int, int]: ...
+    @property
+    def ref_fpath(self) -> str | None: ...
+    @property
+    def crs_string(self) -> str | None: ...
+    @property
+    def origin(self) -> tuple[float, float] | None: ...
+    @property
+    def pixel_size(self) -> tuple[float, float] | None: ...
+    @property
+    def extent_in_crs_units(self) -> tuple[float, float] | None: ...
 
 # -------------------------------Public Function-------------------------------
-def build_grid(config: GridParameters) -> geo_core.GridLayout:
+def build_grid(
+    mode: typing.Literal['ref', 'manual'] | str,
+    config: GridParameters
+) -> geo_core.GridLayout:
     '''
     Build or load a persisted world grid.
 
     If a grid with the configured ID exists on disk, it is loaded.
     Otherwise, a new grid is constructed from the extent configuration
     and grid profile, saved to disk, and returned.
-
-    The grid extent may be derived from a reference raster, an explicit
-    AOI, or a tile-based definition.
     '''
-    # get gridspec from extent config
-    grid_spec = _get_grid_spec(config)
+    # derive from reference raster
+    if mode == 'ref':
+        if not (config.ref_fpath and os.path.exists(config.ref_fpath)):
+            raise ValueError(f'Invalid reference raster: {config.ref_fpath}')
 
-    # build - save - return
-    _mode = 'bbox' if config.mode in ['ref', 'aoi'] else 'tiles'
-    output_grid = geo_core.GridLayout(_mode, grid_spec)
-    return output_grid
-
-
-# ------------------------------private function------------------------------
-def _get_grid_spec(config: GridParameters) -> geo_core.GridSpec:
-    '''Parse grid extent and returns a partially filled `GridSpec`.'''
-    # static tile size and overlap
-    tile_size = (config.tile_specs[0], config.tile_specs[1])
-    tile_overlap = (config.tile_specs[2], config.tile_specs[3])
-
-    # from reference raster (auto)
-    if config.mode == 'ref':
-        # open reference raster
         with geo_utils.open_rasters(config.ref_fpath) as (src,):
             assert src
             # get transform - pixel size
@@ -94,40 +86,37 @@ def _get_grid_spec(config: GridParameters) -> geo_core.GridSpec:
             # get bounding box - origin and extent
             l, b, r, t = src.bounds
             # assign to gridspec
-            return geo_core.GridSpec(
-                crs=config.crs or str(src.crs),
+            grid_spec = geo_core.GridSpec(
+                crs=config.crs_string or str(src.crs),
                 origin=(l, t),             # left, top as x, y
                 pixel_size=(px, py),       # pixel size in x, y
-                tile_size=tile_size,
-                tile_overlap=tile_overlap,
+                tile_size=config.tile_size,
+                tile_stride=config.tile_stride,
                 grid_extent=(t - b, r - l) # top-bottom as H, right-left as W
             )
 
-    # from aoi (manual)
-    if config.mode == 'aoi':
-        # retrieve inputs and validate
-        assert config.grid_extent
-        assert all(isinstance(x, float) for x in config.grid_extent)
-        return geo_core.GridSpec(
-            crs=config.crs,
+    # manually define the extent
+    elif mode == 'manual':
+        if not config.crs_string:
+            raise ValueError('CRS string not provided')
+        if not config.origin:
+            raise ValueError('Origin not provided')
+        if not config.pixel_size:
+            raise ValueError('Pixel size not provided')
+        if not config.extent_in_crs_units:
+            raise ValueError('Extent (in CRS units) not provided')
+
+        grid_spec = geo_core.GridSpec(
+            crs=config.crs_string,
             origin=config.origin,
             pixel_size=config.pixel_size,
-            tile_size=tile_size,
-            tile_overlap=tile_overlap,
-            grid_extent=config.grid_extent
+            tile_size=config.tile_size,
+            tile_stride=config.tile_stride,
+            grid_extent=config.extent_in_crs_units
         )
 
-    # from tiles count (manual)
-    if config.mode == 'tiles':
-        assert config.grid_shape
-        assert all(isinstance(x, int) for x in config.grid_shape)
-        return geo_core.GridSpec(
-            crs=config.crs,
-            origin=config.origin,
-            pixel_size=config.pixel_size,
-            tile_size=tile_size,
-            tile_overlap=tile_overlap,
-            grid_shape=config.grid_shape
-        )
+    else:
+        raise ValueError(f'Invalid extent mode: {mode}')
 
-    raise ValueError(f'Invalid extent mode: {config.mode}')
+    output_grid = geo_core.GridLayout(grid_spec)
+    return output_grid

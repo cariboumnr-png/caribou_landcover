@@ -34,10 +34,8 @@ import landseg.geopipe.harmonize.common as common
 # ----- test cases
 def test_harmonization_logger_summary_lifecycle(tmp_path):
     '''
-    Given: A HarmonizationLogger initialized with a target CRS and
-        output path.
-    When: Recording grid shape, source outputs, composite path, and
-        closing.
+    Given: A HarmonizationLogger initialized with output path.
+    When: Recording source outputs, composite path, and closing.
     Then: Persists structured harmonize_report.json to output_dpath.
     '''
     out_dpath = str(tmp_path / 'harmonize_out')
@@ -49,11 +47,7 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
         log_file=report_file,
         enable_file_log=False
     )
-    logger.init_summary(
-        target_crs='EPSG:3161',
-        target_resolution=20.0
-    )
-    logger.set_grid_shape(500, 500)
+    logger.init_summary(run_id='run_0001')
     logger.add_harmonized_source('sentinel2', '/path/to/s2.tif')
     logger.add_finalized_raster('stacked', '/path/to/stacked.tif')
     logger.set_valid_mask_raster('/path/to/mask.tif')
@@ -66,9 +60,7 @@ def test_harmonization_logger_summary_lifecycle(tmp_path):
         saved_report = json.load(f)
 
     assert saved_report['status'] == 'SUCCESS'
-    assert saved_report['target_crs'] == 'EPSG:3161'
-    assert saved_report['target_resolution'] == 20.0
-    assert saved_report['grid_shape'] == [500, 500]
+    assert saved_report['run_id'] == 'run_0001'
     assert saved_report['harmonized_sources']['sentinel2'] == os.path.abspath(
         '/path/to/s2.tif'
     )
@@ -98,10 +90,7 @@ def test_harmonization_logger_add_provenance(tmp_path):
         log_file=report_file,
         enable_file_log=False
     )
-    logger.init_summary(
-        target_crs='EPSG:3161',
-        target_resolution=20.0,
-    )
+    logger.init_summary(run_id='run_0001')
 
     logger.add_source_provenance('sentinel2', str(sample_file))
     logger.close()
@@ -131,9 +120,6 @@ def test_harmonization_logger_schema_types():
         'run_id': 'run_0001',
         'timestamp': '2026-01-01T00:00:00Z',
         'status': 'SUCCESS',
-        'target_crs': 'EPSG:3161',
-        'target_resolution': 20.0,
-        'grid_shape': (500, 500),
         'provenance': {'sentinel2': prov},
         'harmonized_sources': {'sentinel2': '/path/to/s2.tif'},
         'finalized_rasters': {'stacked': '/path/to/stacked.tif'},

@@ -3,25 +3,29 @@
 # -----------------------------------------------------------------------------
 # This file provides inputs for the sequential experiment pipelines:
 #
-#   0. data-harmonize: Harmonizes raw inputs (S2, DEM, Labels) into canonical VRTs.
-#   1. data-ingest: Ingests datasets, grid references, & domains.
-#   2. data-prepare: Handles block splits & class balancing.
-#   3. model-train: Configures model structure & session params.
+#   0. world-grid: Builds and persists the canonical spatial world grid.
+#   1. data-harmonize: Harmonizes raw inputs (S2, DEM, Labels) into canonical VRTs.
+#   2. data-ingest: Ingests datasets, grid references, & domains.
+#   3. data-prepare: Handles block splits & class balancing.
+#   4. model-train: Configures model structure & session params.
 # =============================================================================
 
 # Root directory for experiment outputs, logs, and checkpoints
 exp_root: ./experiment
 
-data-harmonize:
-  output_dpath: ./experiment/artifacts/harmonized_data
+world-grid:
+  output_dpath: ./experiment/artifacts/world_grids
   # ---------------------------------------------------------------------------
   # Spatial Target & World Grid Tiling
   # ---------------------------------------------------------------------------
-  reference_raster: ./experiment/input/reference_raster/sample_extent.tif
-  target_crs: EPSG:3161
-  target_resolution: 20.0
-  tile_size: 256
-  tile_overlap: 128
+  extent_reference_raster: ./experiment/input/reference_raster/sample_extent.tif
+
+  tile_size: [256, 256]
+  tile_stride: [128, 128]
+
+
+data-harmonize:
+  output_dpath: ./experiment/artifacts/harmonized_data
 
   # ---------------------------------------------------------------------------
   # Input Source Rasters (Features & Ground-Truth Labels)

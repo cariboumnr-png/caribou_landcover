@@ -46,7 +46,49 @@ def test_validate_upstream_pipelines_entrypoints():
     config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
     # should not raise
     executor._validate_upstream_pipelines(config)
-    config.pipeline.name = 'data-harmonize'
+    config.pipeline.name = 'world-grid'
+    executor._validate_upstream_pipelines(config)
+
+
+def test_validate_upstream_pipelines_missing_world_grid(tmp_path):
+    '''
+    Given: A data-harmonize pipeline run when no world grid artifact exists.
+    When: Validating upstream pipelines.
+    Then: Raise an ArtifactError about missing world-grid.
+    '''
+    config = configs.RootConfig(
+        pipeline=secs.PipelineConfig(name='data-harmonize')
+    )
+    config.data.world_grid.output_dpath = str(tmp_path)
+    config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
+    with pytest.raises(
+        artifacts.ArtifactError,
+        match='Upstream pipeline "world-grid" has not been executed yet'
+    ):
+        executor._validate_upstream_pipelines(config)
+
+
+def test_validate_upstream_pipelines_world_grid_success(tmp_path):
+    '''
+    Given: A data-harmonize pipeline run when world grid artifact exists.
+    When: Validating upstream pipelines.
+    Then: Pass silently.
+    '''
+    config = configs.RootConfig(
+        pipeline=secs.PipelineConfig(name='data-harmonize')
+    )
+    config.data.world_grid.output_dpath = str(tmp_path)
+    config.session.orchestration.curriculum.single.phases[0].num_epochs = 1
+    # create grid artifact JSON
+    p = config.data.world_grid.params
+    gid = (
+        f'grid_row_{p.tile_size[0]}_{p.tile_stride[0]}'
+        f'_col_{p.tile_size[1]}_{p.tile_stride[1]}'
+    )
+    grid_fp = tmp_path / f'{gid}.json'
+    grid_fp.write_text('{}')
+
+    # should not raise
     executor._validate_upstream_pipelines(config)
 
 

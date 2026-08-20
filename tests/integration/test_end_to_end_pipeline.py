@@ -23,7 +23,6 @@
 
 '''Integration tests for the end-to-end data pipeline lifecycle.'''
 
-
 # standard imports
 import json
 import os
@@ -45,29 +44,26 @@ def test_end_to_end_data_pipeline_lifecycle(tmp_path, dummy_data_paths):
     '''
     cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
 
-    # 1. Harmonization configuration
+    # 1. World grid configuration
+    grid_cfg = cfg_schema.data.world_grid
+    grid_cfg.mode = 'ref'
+    grid_cfg.output_dpath = str(tmp_path / 'world_grids')
+    grid_cfg.params.ref_fpath = dummy_data_paths.extent
+    grid_cfg.params.crs_string = 'EPSG:3161'
+    grid_cfg.params.tile_size = (256, 256)
+    grid_cfg.params.tile_stride = (128, 128)
+
+    # 2. Harmonization configuration
     harm_cfg = cfg_schema.data.harmonization
-    harm_cfg.canvas.reference_raster = dummy_data_paths.extent
-    harm_cfg.canvas.target_crs = 'EPSG:3161'
-    harm_cfg.canvas.target_resolution = 10.0
     harm_cfg.dataset_manifest = dummy_data_paths.manifest
     harm_cfg.output_dpath = str(tmp_path / 'harmonized')
 
-    # Canonical world grid defined in harmonization
-    grid_cfg = harm_cfg.grid
-    grid_cfg.mode = 'ref'
-    grid_cfg.crs = 'EPSG:3161'
-    grid_cfg.tile_specs.size_row = 256
-    grid_cfg.tile_specs.size_col = 256
-    grid_cfg.tile_specs.overlap_row = 128
-    grid_cfg.tile_specs.overlap_col = 128
-
-    # 2. Ingestion configuration
+    # 3. Ingestion configuration
     ingest_cfg = cfg_schema.data.ingestion
     ingest_cfg.output_dpath = str(tmp_path / 'ingested_data')
     ingest_cfg.rebuild = True
 
-    # 3. Preparation configuration
+    # 4. Preparation configuration
     prep_cfg = cfg_schema.data.preparation
     prep_cfg.output_dpath = str(tmp_path / 'prepared_data')
     prep_cfg.rebuild = True
@@ -87,7 +83,16 @@ def test_end_to_end_data_pipeline_lifecycle(tmp_path, dummy_data_paths):
         omegaconf.OmegaConf.to_object(cfg_schema)
     )
 
-    # ----- stage 1: harmonize
+    # ----- stage 1: world grid
+    pipelines.exec_world_grid(config)
+    assert os.path.exists(
+        os.path.join(
+            str(tmp_path / 'world_grids'),
+            'grid_row_256_128_col_256_128.json'
+        )
+    )
+
+    # ----- stage 2: harmonize
     pipelines.exec_harmonize_data(config)
 
     h_run = os.path.join(config.data.harmonization.output_dpath, 'run_0001')
@@ -95,20 +100,12 @@ def test_end_to_end_data_pipeline_lifecycle(tmp_path, dummy_data_paths):
     assert os.path.exists(
         os.path.join(h_run, 'harmonized_features_STACKED.vrt')
     )
-
     assert os.path.exists(
         os.path.join(h_run, 'harmonized_labels_STACKED.vrt')
     )
     assert os.path.exists(os.path.join(h_run, 'valid_pixel_mask.vrt'))
-    assert os.path.exists(
-        os.path.join(
-            h_run,
-            'world_grids',
-            'grid_row_256_128_col_256_128.json'
-        )
-    )
 
-    # ----- stage 2: ingest
+    # ----- stage 3: ingest
     pipelines.exec_ingest_data(config)
 
     i_root = config.data.ingestion.output_dpath
@@ -132,7 +129,7 @@ def test_end_to_end_data_pipeline_lifecycle(tmp_path, dummy_data_paths):
         catalog = json.load(f)
     assert len(catalog) > 0
 
-    # ----- stage 3: prepare
+    # ----- stage 4: prepare
     pipelines.prepare(config)
 
     p_root = config.data.preparation.output_dpath

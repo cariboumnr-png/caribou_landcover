@@ -65,7 +65,6 @@ class BlockBuildingParameters:
     label_fpath: str | None
     dem_pad: int
     ignore_index: int
-    stage: str = 'canonical'
 
 
 # -------------------------------Public Function-------------------------------
@@ -164,4 +163,4 @@ def run_blocks_building(
             'schema_updated': manifest_report['schema_updated'],
         }
     }
-    logger.set_data_blocks_report(config.stage, report)
+    logger.set_data_blocks_report(report)

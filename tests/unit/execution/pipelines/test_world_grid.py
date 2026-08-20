@@ -19,38 +19,50 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
-'''
-Top-level namespace for `landseg.geopipe.harmonize.world_grids`.
-
-Exposes selected public functions via lazy resolution to keep import
-order simple and circular-free.
-'''
+'''Unit tests for the world grid execution pipeline.'''
 
 # standard imports
-from __future__ import annotations
-import importlib
+import json
+import os
 import typing
-
-__all__ = [
-    # classes
-    'GridParameters',
-    # functions
-    'build_grid',
-    'prepare_world_grid',
-]
-
-# for static check
-if typing.TYPE_CHECKING:
-    from .builder import GridParameters, build_grid
-    from .lifecycle import prepare_world_grid
+# third-party imports
+import omegaconf
+# local imports
+import landseg.configs as configs
+import landseg.execution.pipelines as pipelines
 
 
-def __getattr__(name: str):
+# ----- `exec_world_grid` tests
+def test_world_grid_pipeline_success(tmp_path, dummy_data_paths):
+    '''
+    Given: Valid extent reference raster and grid configuration.
+    When: `exec_world_grid` is executed.
+    Then: Produce canonical world grid JSON artifact on disk.
+    '''
+    cfg_schema = omegaconf.OmegaConf.structured(configs.RootConfig)
 
-    if name in {'GridParameters', 'build_grid'}:
-        return getattr(importlib.import_module('.builder', __package__), name)
+    grid_cfg = cfg_schema.data.world_grid
+    grid_cfg.mode = 'ref'
+    grid_cfg.output_dpath = str(tmp_path / 'world_grids')
+    grid_cfg.params.ref_fpath = dummy_data_paths.extent
+    grid_cfg.params.crs_string = 'EPSG:3161'
+    grid_cfg.params.tile_size = (256, 256)
+    grid_cfg.params.tile_stride = (128, 128)
 
-    if name in {'prepare_world_grid'}:
-        return getattr(importlib.import_module('.lifecycle', __package__), name)
+    config = typing.cast(
+        configs.RootConfig,
+        omegaconf.OmegaConf.to_object(cfg_schema)
+    )
 
-    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+    pipelines.exec_world_grid(config)
+
+    # verify canonical world grid artifact was generated
+    grid_fpath = os.path.join(
+        str(tmp_path / 'world_grids'),
+        'grid_row_256_128_col_256_128.json'
+    )
+    assert os.path.exists(grid_fpath)
+    with open(grid_fpath, 'r', encoding='utf-8') as f:
+        grid_data = json.load(f)
+    assert isinstance(grid_data, list)
+    assert len(grid_data) > 0

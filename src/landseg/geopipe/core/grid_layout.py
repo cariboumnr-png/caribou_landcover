@@ -83,16 +83,15 @@ class GridSpec:
         (for `'tiles'` mode) must be provided depending on how the grid
         is constructed.
     '''
-    crs: str                                        # a projected CRS
-    origin: tuple[float, float]                     # x, y in CRS units
-    pixel_size: tuple[float, float]                 # xsize, ysize in CRS units
-    tile_size: tuple[int, int]                      # rows, cols in pixels
-    tile_overlap: tuple[int, int]                   # rows, cols in pixels
-    grid_extent: tuple[float, float] | None = None  # H_y, W_x in in CRS units
-    grid_shape: tuple[int, int] | None = None       # rows, cols as n of tiles
+    crs: str                                      # a projected CRS
+    origin: tuple[float, float]                   # x, y in CRS units
+    pixel_size: tuple[float, float]               # xsize, ysize in CRS units
+    tile_size: tuple[int, int]                    # rows, cols in pixels
+    tile_stride: tuple[int, int]                  # rows, cols in pixels
+    grid_extent: tuple[float, float]              # H_y, W_x in in CRS units
 
     def __post_init__(self):
-        ts, to = self.tile_size, self.tile_overlap
+        ts, to = self.tile_size, self.tile_stride
         if not (to[0] < ts[0] and to[1] < ts[1]):
             raise ValueError('Overlap must be smaller than block size.')
 
@@ -130,7 +129,6 @@ class GridPayload(typing.TypedDict):
 class GridMeta(typing.TypedDict):
     '''Lightweight metadata describing a `GridLayout` artifact.'''
     gid: str
-    mode: str
     spec: dict[str, typing.Any]
     extent: tuple[int, int]
 
@@ -160,11 +158,7 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
     # current payload schema
     SCHEMA_ID: str = 'grid_layout_payload/v1'
 
-    def __init__(
-        self,
-        mode: typing.Literal['bbox', 'tiles'],
-        spec: GridSpec
-    ):
+    def __init__(self, spec: GridSpec):
         '''
         Initialize a `GridLayout` from a specification.
 
@@ -180,9 +174,7 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
 
         Notes: The grid is generated immediately upon initialization.
         '''
-
         # ingest spec and init attributes
-        self._mode = mode
         self._spec = spec
         self._extent: tuple[int, int] = (0, 0) # (rows, cols)
         self._data: RasterWindowDict = {}
@@ -226,15 +218,8 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
     def gid(self) -> str:
         '''
         Return a canonical identifier for the grid configuration.
-
-        Example:
-            A grid with tile size of (H256, W256) and overlap of (H128,
-            W128) will have a gid as `'grid_row_256_128_col_256_128'`.
         '''
-        return (
-            f'grid_row_{self._spec.tile_size[0]}_{self._spec.tile_overlap[0]}_'
-            f'col_{self._spec.tile_size[1]}_{self._spec.tile_overlap[0]}'
-        )
+        return self.generate_gid(self._spec.tile_size, self._spec.tile_stride)
 
     @property
     def crs(self) -> str:
@@ -259,7 +244,7 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
     @property
     def tile_overlap(self) -> tuple[int, int]:
         '''Return the overlap between adjacent tiles in pixels.'''
-        return self._spec.tile_overlap
+        return self._spec.tile_stride
 
     @property
     def extent(self) -> tuple[int, int]:
@@ -275,6 +260,18 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
     def w(self) -> int:
         '''Return the grid width in pixels.'''
         return self._extent[1]
+
+    @property
+    def transform(self) -> rasterio.Affine:
+        '''Return the affine transform for the grid.'''
+        return rasterio.Affine(
+            self._spec.pixel_size[0],
+            0.0,
+            self._spec.origin[0],
+            0.0,
+            -self._spec.pixel_size[1],
+            self._spec.origin[1],
+        )
 
     # ----- alternative constructor
     @classmethod
@@ -292,7 +289,6 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
         Notes: Runtime attributes such as offsets are reset and must be
         recomputed if needed.
         '''
-
         # parse data from payload
         parsed: RasterWindowDict = {}
         for c in payload['data']:
@@ -304,12 +300,17 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
         obj = cls.__new__(cls)
         # populate attributes from payload
         meta = payload['artifact_meta']
-        obj._mode = meta['mode']
         obj._extent = meta['extent']
         obj._data = parsed
 
         spec = dict(meta['spec'])
-        for key in ('origin', 'pixel_size', 'tile_size', 'tile_overlap'):
+        for key in (
+            'origin',
+            'pixel_size',
+            'tile_size',
+            'tile_stride',
+            'grid_extent'
+        ):
             if spec.get(key) is not None:
                 spec[key] = tuple(spec[key])
         obj._spec = GridSpec(**spec)
@@ -335,7 +336,6 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
         Notes: The raster must already be aligned in CRS and pixel size.
         Only integer pixel offsets are supported.
         '''
-
         # if a raster reader handler is provided:
         if isinstance(src, RasterReader):
             # check target raster CRS
@@ -367,7 +367,6 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
             A `GridLayoutPayload` containing all necessary information
             to reconstruct the layout.
         '''
-
         # get canonical serialization of the data (JSON compatible)
         canon: list[list[int]] = []
         for k, w in sorted(self._data.items()):
@@ -379,12 +378,27 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
             'schema_id': self.SCHEMA_ID,
             'artifact_meta': {
                 'gid': self.gid,
-                'mode': self._mode,
                 'spec': dataclasses.asdict(self._spec),
                 'extent': self._extent,
             },
             'data': canon
         }
+
+    @staticmethod
+    def generate_gid(
+        tile_size: tuple[int, int],
+        tile_stride: tuple[int, int]
+    ) -> str:
+        '''
+        Return a canonical identifier for the grid configuration.
+
+        Example:
+            A grid with tile size of (H256, W256) and stride of (H128,
+            W128) will have a gid as `'grid_row_256_128_col_256_128'`.
+        '''
+        row_size, col_size = tile_size
+        row_stride, col_stride = tile_stride
+        return f'grid_row_{row_size}_{row_stride}_col_{col_size}_{col_stride}'
 
     # ----- private method
     def _generate(self) -> None:
@@ -393,41 +407,20 @@ class GridLayout(collections.abc.Mapping[tuple[int, int], RasterWindow]):
 
         Intended to work with a projected CRS with meter unit.
         '''
-
         spec = self._spec
         # get extent dimensions (in crs units)
-        if self._mode == 'bbox':
-            assert spec.grid_extent is not None
-            row_px = math.floor(spec.grid_extent[0] / spec.pixel_size[1])
-            col_px = math.floor(spec.grid_extent[1] / spec.pixel_size[0])
-            # iterate through the blocks by row then col
-            ystep = spec.tile_size[0] - spec.tile_overlap[0]
-            xstep = spec.tile_size[1] - spec.tile_overlap[1]
-            for y in range(0, row_px, ystep):
-                for x in range(0, col_px, xstep):
-                    # dynamically adjust window size to stay within bounds
-                    th = min(spec.tile_size[0], row_px - y) # at the last row
-                    tw = min(spec.tile_size[1], col_px - x) # at the last col
-                    # set up the window and update the result dict
-                    window = RasterWindow(x, y, tw, th) # type: ignore
-                    self._data[(x, y)] = window
-            self._extent = row_px, col_px
-        elif self._mode == 'tiles':
-            assert spec.grid_shape is not None
-            # iterate through the blocks by row then col
-            ystep = spec.tile_size[0] - spec.tile_overlap[0]
-            xstep = spec.tile_size[1] - spec.tile_overlap[1]
-            for row in range(spec.grid_shape[0]):
-                for col in range(spec.grid_shape[1]):
-                    tw = spec.tile_size[1]
-                    th = spec.tile_size[0]
-                    x = col * xstep
-                    y = row * ystep
-                    window = RasterWindow(x, y, tw, th) # type: ignore
-                    self._data[(x, y)] = window
-            self._extent = (
-                (spec.grid_shape[0] - 1) * ystep + spec.tile_size[0],
-                (spec.grid_shape[1] - 1) * xstep + spec.tile_size[1]
-            )
-        else:
-            raise ValueError('Invalid extent mode')
+        assert spec.grid_extent is not None
+        row_px = math.floor(spec.grid_extent[0] / spec.pixel_size[1])
+        col_px = math.floor(spec.grid_extent[1] / spec.pixel_size[0])
+        # iterate through the blocks by row then col
+        ystep = spec.tile_size[0] - spec.tile_stride[0]
+        xstep = spec.tile_size[1] - spec.tile_stride[1]
+        for y in range(0, row_px, ystep):
+            for x in range(0, col_px, xstep):
+                # dynamically adjust window size to stay within bounds
+                th = min(spec.tile_size[0], row_px - y) # at the last row
+                tw = min(spec.tile_size[1], col_px - x) # at the last col
+                # set up the window and update the result dict
+                window = RasterWindow(x, y, tw, th) # type: ignore
+                self._data[(x, y)] = window
+        self._extent = row_px, col_px

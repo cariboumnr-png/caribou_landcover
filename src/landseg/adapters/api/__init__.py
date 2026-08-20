@@ -31,6 +31,7 @@ import typing
 
 __all__ = [
     # classes
+    'WorldGridConfigurator',
     'DataHarmonizationConfigurator',
     'DataIngestionConfigurator',
     'DataPreparationConfigurator',
@@ -45,6 +46,7 @@ __all__ = [
 if typing.TYPE_CHECKING:
     from .api import run
     from .configurators import (
+        WorldGridConfigurator,
         DataHarmonizationConfigurator,
         DataIngestionConfigurator,
         DataPreparationConfigurator,
@@ -58,6 +60,7 @@ def __getattr__(name: str):
         return getattr(importlib.import_module('.api', __package__), name)
 
     if name in {
+        'WorldGridConfigurator',
         'DataHarmonizationConfigurator',
         'DataIngestionConfigurator',
         'DataPreparationConfigurator',

@@ -42,6 +42,7 @@ class BaseConfigurator:
         self._cfg = configs.RootConfig()
         # set artifact output dirpaths
         self._cfg.execution.exp_root = experiment_root
+        self._cfg.data.world_grid.output_dpath = f'{experiment_root}/artifacts/world_grids'
         self._cfg.data.harmonization.output_dpath = f'{experiment_root}/artifacts/harmonized_data'
         self._cfg.data.ingestion.output_dpath = f'{experiment_root}/artifacts/ingested_data'
         self._cfg.data.preparation.output_dpath = f'{experiment_root}/artifacts/prepared_data'
@@ -52,6 +53,8 @@ class BaseConfigurator:
     def running_root_config(self) -> configs.RootConfig:
         '''Validate and return the `RootConfig`,'''
         match self._cfg.pipeline.name:
+            case 'world-grid':
+                self._cfg.data.world_grid.validate()
             case 'data-harmonize':
                 self._cfg.data.harmonization.validate()
             case 'data-ingest':

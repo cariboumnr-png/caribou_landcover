@@ -35,7 +35,7 @@ import landseg.artifacts as artifacts
 import landseg.configs as configs
 import landseg.core as core
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.harmonize.world_grids as world_grids
+import landseg.geopipe.grid as grid
 import landseg.geopipe.ingest as ingest
 import landseg.geopipe.ingest.data_blocks.assembler as assembler
 import landseg.geopipe.ingest.data_blocks.mapper as mapper
@@ -196,19 +196,8 @@ def _create_block(
 
     # construct world grid layout
     logger.log('INFO', 'Preparing world grid')
-    grid_cfg = config.data.harmonization.grid
-    world_grid = world_grids.build_grid(
-        world_grids.GridParameters(
-            mode=grid_cfg.mode,
-            crs=grid_cfg.crs,
-            ref_fpath=harmonized.valid_mask_raster,
-            origin=grid_cfg.extent.origin,
-            pixel_size=grid_cfg.extent.pixel_size,
-            grid_extent=grid_cfg.extent.grid_extent,
-            grid_shape=grid_cfg.extent.grid_shape,
-            tile_specs=grid_cfg.tile_specs_tuple,
-        )
-    )
+    grid_cfg = config.data.world_grid
+    world_grid = grid.build_grid(grid_cfg.mode, grid_cfg.params)
 
     # map raster windows onto world grid
     logger.log('INFO', 'Mapping image unto the world grid')

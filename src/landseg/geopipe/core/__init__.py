@@ -73,7 +73,7 @@ if typing.TYPE_CHECKING:
         DomainTile,
         DomainTileMap
     )
-    from .ingest_world_grid import (
+    from .grid_layout import (
         GridSpec,
         GridPayload,
         GridMeta,
@@ -87,6 +87,14 @@ if typing.TYPE_CHECKING:
     )
 
 def __getattr__(name: str):
+    if name in {
+        'GridSpec',
+        'GridPayload',
+        'GridMeta',
+        'GridLayout'
+    }:
+        obj = importlib.import_module('.grid_layout', __package__)
+        return getattr(obj, name)
 
     if name in {
         'DataBlock',
@@ -116,15 +124,6 @@ def __getattr__(name: str):
         'DomainTileMap'
     }:
         obj = importlib.import_module('.ingest_domain_map', __package__)
-        return getattr(obj, name)
-
-    if name in {
-        'GridSpec',
-        'GridPayload',
-        'GridMeta',
-        'GridLayout'
-    }:
-        obj = importlib.import_module('.ingest_world_grid', __package__)
         return getattr(obj, name)
 
     if name in {

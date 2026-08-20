@@ -30,15 +30,10 @@ import typing
 
 __all__ = [
     # classes
-    'CanvasSpec',
-    'GridParameters',
     'HarmonizationLogger',
     'ProcessedRasters',
     # functions
-    'create_canvas',
-    'warp_to_canvas',
-    'build_grid',
-    'prepare_world_grid',
+    'warp_to_grid',
     'stack_canonical_raster',
     'unify_nodata_mask',
     'validate_domain_raster_index',
@@ -62,9 +57,7 @@ if typing.TYPE_CHECKING:
         WorldGridReport,
     )
     from .rasters import (
-        CanvasSpec,
-        create_canvas,
-        warp_to_canvas,
+        warp_to_grid,
         stack_canonical_raster,
         unify_nodata_mask,
         validate_domain_raster_index,
@@ -74,11 +67,6 @@ if typing.TYPE_CHECKING:
         process_source,
         DatasetConfigItem,
         compile_dataset_manifest,
-    )
-    from .world_grids import (
-        GridParameters,
-        build_grid,
-        prepare_world_grid,
     )
 
 
@@ -93,9 +81,7 @@ def __getattr__(name: str):
         return getattr(importlib.import_module('.common', __package__), name)
 
     if name in {
-        'CanvasSpec',
-        'create_canvas',
-        'warp_to_canvas',
+        'warp_to_grid',
         'stack_canonical_raster',
         'unify_nodata_mask',
         'validate_domain_raster_index',
@@ -107,14 +93,5 @@ def __getattr__(name: str):
         'compile_dataset_manifest',
     }:
         return getattr(importlib.import_module('.rasters', __package__), name)
-
-    if name in {
-        'GridParameters',
-        'build_grid',
-        'prepare_world_grid',
-    }:
-        return getattr(
-            importlib.import_module('.world_grids', __package__), name
-        )
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

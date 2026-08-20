@@ -1,5 +1,5 @@
 # =========================================================================== #
-#           Copyright © His Majesty the King in right of Ontario,           #
+#            Copyright © His Majesty the King in right of Ontario,            #
 #         as represented by the Minister of Natural Resources, 2026.          #
 #                                                                             #
 #                      © King's Printer for Ontario, 2026.                    #
@@ -20,39 +20,45 @@
 # =========================================================================== #
 
 '''
-TypedDict definitions for data harmonization execution summaries/reports.
+World grid canonical lifecycle configurator.
 '''
 
 # standard imports
-from __future__ import annotations
 import typing
+# local imports
+import landseg.adapters.api.configurators as configurators
 
 
-# ----- report schema definitions
-class ProvenanceRecord(typing.TypedDict):
-    '''Provenance record for a raw source raster file.'''
-    path: str
-    size_bytes: int
-    mtime: float
+class WorldGridConfigurator(configurators.BaseConfigurator):
+    '''Configure canonical world grid generation and persistence.'''
 
+    def __init__(
+        self,
+        experiment_root: str,
+    ):
+        super().__init__(experiment_root, 'world-grid')
 
-class WorldGridReport(typing.TypedDict):
-    '''Summary report for a generated world grid layout.'''
-    grid_fpath: str
-    grid_id: str
-    crs: str
-    pixel_size: tuple[float, float]
-    tile_size: tuple[int, int]
-    tile_overlap: tuple[int, int]
+    def set_grid(
+        self,
+        tile_size: int = 256,
+        tile_stride: int = 0,
+        crs: str = '',
+        mode: str = 'ref',
+        reference_raster: str | None = None,
+    ) -> typing.Self:
+        '''Set study extent and grid specs.'''
+        self._cfg.data.world_grid.mode = mode
+        self._cfg.data.world_grid.params.crs_string = crs
+        self._cfg.data.world_grid.params.tile_size = (tile_size, tile_size)
+        self._cfg.data.world_grid.params.tile_stride = (
+            tile_stride,
+            tile_stride,
+        )
+        if reference_raster:
+            self._cfg.data.world_grid.params.ref_fpath = reference_raster
+        return self
 
-
-class HarmonizationReportSchema(typing.TypedDict):
-    '''Root report mapping the entire data harmonization pipeline run.'''
-    run_id: str
-    timestamp: str
-    status: typing.Literal['SUCCESS', 'FAILED', 'SKIPPED']
-    provenance: dict[str, ProvenanceRecord]
-    harmonized_sources: dict[str, str]
-    finalized_rasters: dict[str, str]
-    valid_mask_raster: str
-    world_grid: WorldGridReport | None
+    def set_output_dpath(self, output_dpath: str) -> typing.Self:
+        '''Set output directory path for world grid artifacts.'''
+        self._cfg.data.world_grid.output_dpath = output_dpath
+        return self

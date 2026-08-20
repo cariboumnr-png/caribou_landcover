@@ -118,7 +118,7 @@ def _read(
     '''Read a single raster window and return its first band.'''
 
     # if arr is not of expected H, W return an empty array
-    if not (raster_window.height, raster_window.width) == expected_h_w:
+    if (raster_window.height, raster_window.width) != tuple(expected_h_w):
         return raster_window_id, numpy.array([])
 
     # read raster at window and return
@@ -143,7 +143,7 @@ def _get_index_mapping(
         unique_values.remove(nodata) # remove nodata if present
     # safety check against empty input raster
     if not unique_values:
-        raise ValueError("No valid data values found.")
+        raise ValueError("No valid domain values found.")
     # make sure minimal aligns with index base
     if min(unique_values) != index_base:
         raise ValueError(

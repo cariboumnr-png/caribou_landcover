@@ -34,13 +34,10 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
     translated: dict[str, typing.Any] = {
         'execution': {},
         'data':{
-            'harmonization': {
-                'canvas': {},
-                'grid': {
-                    'extent': {},
-                    'tile_specs': {},
-                },
+            'world_grid': {
+                'params': {}
             },
+            'harmonization': {},
             'ingestion': {
                 'domains': {},
                 'datablocks': {},
@@ -69,6 +66,9 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
     if 'exp_root' in raw:
         _set_paths(translated, ['execution.exp_root'], raw['exp_root'])
 
+    if 'world-grid' in raw:
+        _translate_world_grid(raw['world-grid'], translated)
+
     if 'data-harmonize' in raw:
         _translate_data_harmonize(raw['data-harmonize'], translated)
 
@@ -84,25 +84,28 @@ def translate_user_config(raw: omegaconf.DictConfig) -> omegaconf.DictConfig:
     return omegaconf.OmegaConf.create(translated)
 
 
+def _translate_world_grid(
+    world_grid: omegaconf.DictConfig,
+    translated: dict
+) -> None:
+    '''Map world-grid settings to world grid fields.'''
+    mapping = {
+        'tile_size': ['data.world_grid.params.tile_size'],
+        'tile_stride': ['data.world_grid.params.tile_stride'],
+        'mode': ['data.world_grid.mode'],
+        'extent_reference_raster': ['data.world_grid.params.ref_fpath'],
+        'crs': ['data.world_grid.params.crs_string'],
+        'output_dpath': ['data.world_grid.output_dpath']
+    }
+    _apply_mapping(world_grid, translated, mapping)
+
+
 def _translate_data_harmonize(
     harmonization: omegaconf.DictConfig,
     translated: dict
 ) -> None:
     '''Map data-harmonize settings to harmonization fields.'''
     mapping = {
-        'target_crs': ['data.harmonization.canvas.target_crs'],
-        'target_resolution': ['data.harmonization.canvas.target_resolution'],
-        'reference_raster': ['data.harmonization.canvas.reference_raster'],
-        'grid_mode': ['data.harmonization.grid.mode'],
-        'grid_crs': ['data.harmonization.grid.crs'],
-        'tile_size': [
-            'data.harmonization.grid.tile_specs.size_row',
-            'data.harmonization.grid.tile_specs.size_col'
-        ],
-        'tile_overlap': [
-            'data.harmonization.grid.tile_specs.overlap_row',
-            'data.harmonization.grid.tile_specs.overlap_col'
-        ],
         'resampling_continuous': ['data.harmonization.resampling_continuous'],
         'resampling_categorical': ['data.harmonization.resampling_categorical'],
         'dataset_manifest': ['data.harmonization.dataset_manifest'],

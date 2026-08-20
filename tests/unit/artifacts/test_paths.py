@@ -103,11 +103,6 @@ def test_harmonization_paths(tmp_path):
     assert paths.valid_mask_raster == os.path.join(r, 'valid_pixel_mask.vrt')
     assert paths.config == os.path.join(r, 'config.json')
     assert paths.report == os.path.join(r, 'harmonize_report.json')
-    expected_grid = os.path.join(
-        r, 'world_grids', 'grid_row_256_0_col_256_0.json'
-    )
-    assert paths.grids.fpath((256, 256, 0, 0)) == expected_grid
-
 
     # second init auto-increments run_id
     etl_paths_2 = paths_mod.HarmonizationPaths(root=e)

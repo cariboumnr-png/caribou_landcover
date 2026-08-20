@@ -96,10 +96,10 @@ def test_root_config_validate_all(tmp_path):
     ref_tif.write_text('data')
 
     root = root_mod.RootConfig()
-    root.data.harmonization.canvas.reference_raster = str(ref_tif)
+    root.data.world_grid.mode = 'ref'
+    root.data.world_grid.params.ref_fpath = str(ref_tif)
+    root.data.world_grid.params.crs_string = 'EPSG:32617'
     root.data.harmonization.dataset_manifest = str(cfg_json)
-    root.data.harmonization.grid.mode = 'ref'
-    root.data.harmonization.grid.crs = 'EPSG:32617'
     root.session.orchestration.single_phase.num_epochs = 10
 
     root.validate_all()

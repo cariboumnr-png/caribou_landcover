@@ -22,6 +22,7 @@
 '''Unit tests for the canonical block-building pipeline module.'''
 
 # standard imports
+import dataclasses
 import json
 import os
 # third-party imports
@@ -29,9 +30,20 @@ import numpy
 import rasterio
 # local imports
 import landseg.artifacts as artifacts
-import landseg.geopipe.harmonize as harmonize
+import landseg.geopipe.grid as grid
 import landseg.geopipe.ingest.common as common
 import landseg.geopipe.ingest.data_blocks as data_blocks
+
+
+@dataclasses.dataclass
+class _Params:
+    tile_size: tuple[int, int] = (256, 256)
+    tile_stride: tuple[int, int] = (128, 128)
+    ref_fpath: str | None = None
+    crs_string: str | None = None
+    origin: tuple[float, float] | None = None
+    pixel_size: tuple[float, float] | None = None
+    extent_in_crs_units: tuple[float, float] | None = None
 
 
 # ----- pipeline execution
@@ -74,22 +86,13 @@ def test_pipeline_run_canonical_blocks(tmp_path, dummy_geotiff_factory):
         dataset.update_tags(1, num_cls=2, ignore_cls='[255]')
 
     # prepare world grid from the reference raster
-    grid_config = harmonize.GridParameters(
-        mode='ref',
-        crs='EPSG:3161',
+    grid_config = _Params(
         ref_fpath=str(img),
-        origin=(0.0, 0.0),
-        pixel_size=(0.0, 0.0),
-        grid_extent=None,
-        grid_shape=None,
-        tile_specs=(256, 256, 128, 128)
+        crs_string='EPSG:3161',
+        tile_size=(256, 256),
+        tile_stride=(128, 128)
     )
-    grid_file = str(tmp_path / 'grid.json')
-    world_grid = harmonize.prepare_world_grid(
-        grid_file,
-        grid_config,
-        policy=artifacts.LifecyclePolicy.REBUILD,
-    )
+    world_grid = grid.build_grid('ref', grid_config)
 
     # initialize pipeline path containers in temp output directory
     paths = artifacts.IngestionPaths(str(tmp_path))
@@ -100,7 +103,6 @@ def test_pipeline_run_canonical_blocks(tmp_path, dummy_geotiff_factory):
         label_fpath=str(lbl),
         dem_pad=8,
         ignore_index=255,
-        stage='canonical',
     )
 
     # run the pipeline
@@ -122,14 +124,13 @@ def test_pipeline_run_canonical_blocks(tmp_path, dummy_geotiff_factory):
     with open(db_paths.catalog, 'r', encoding='UTF-8') as f:
         catalog_data = json.load(f)
     assert len(catalog_data) > 0
-    first_key = list(catalog_data.keys())[0]
-    assert 'block_name' in catalog_data[first_key]
-    assert 'file_path' in catalog_data[first_key]
+    first_block = next(iter(catalog_data.values()))
+    assert 'block_name' in first_block
+    assert 'file_path' in first_block
 
     # read and inspect report
     assert logger.summary is not None
     assert 'data_blocks' in logger.summary
-    assert 'canonical' in logger.summary['data_blocks']
-    report = logger.summary['data_blocks']['canonical']
-    assert report['image_filepath'] == str(img)
-    assert report['label_filepath'] == str(lbl)
+    assert logger.summary['data_blocks'] is not None
+    assert logger.summary['data_blocks']['image_filepath'] == str(img)
+    assert logger.summary['data_blocks']['label_filepath'] == str(lbl)

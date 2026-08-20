@@ -29,7 +29,6 @@ Dummy dataset generator for landseg integration testing and local execution.
 import dataclasses
 import json
 import os
-import shutil
 import typing
 # third-party imports
 import numpy
@@ -66,13 +65,6 @@ class TIFFPaths:
     def test_aoi(self) -> str:
         return os.path.abspath(
             os.path.join(self.root, 'reference_raster/sample_test_aoi.tif')
-        )
-
-    @property
-    def test_aio(self) -> str:
-        '''Alias for test_aoi matching alternative naming.'''
-        return os.path.abspath(
-            os.path.join(self.root, 'reference_raster/sample_test_aio.tif')
         )
 
     @property
@@ -193,9 +185,7 @@ def create_dummy_geotiff(
             dst.write(band_data, b)
 
 
-def generate_dummy_data(
-    input_root: str = './experiment/input'
-) -> TIFFPaths:
+def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     '''Generate the full dummy dataset under input root.
 
     Args:
@@ -253,7 +243,6 @@ def generate_dummy_data(
         ),
         data_gen_func=lambda s, b: numpy.ones(s, dtype=numpy.uint8),
     )
-    shutil.copyfile(paths.test_aoi, paths.test_aio)
 
     # domain knowledge layers
     print(f'Creating domain knowledge 1: {paths.domain_1}')
@@ -470,6 +459,14 @@ def generate_dummy_data(
             'label_specs': {
                 'num_cls': 2,
                 'ignore_cls': [255],
+                'class_name': {
+                    '1': 'coniferous',
+                    '2': 'deciduous',
+                },
+                'color_map': {
+                    '1': [34, 139, 34],
+                    '2': [218, 165, 32],
+                },
             },
         },
         {
@@ -480,6 +477,14 @@ def generate_dummy_data(
             'label_specs': {
                 'num_cls': 2,
                 'ignore_cls': [255],
+                'class_name': {
+                    '1': 'spruce',
+                    '2': 'pine',
+                },
+                'color_map': {
+                    '1': [0, 100, 0],
+                    '2': [107, 142, 35],
+                },
             },
         },
     ]

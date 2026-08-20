@@ -131,25 +131,43 @@ under the configured experiment root.
 
 Pipeline names are registered in `landseg.execution.pipelines`.
 
-### 1. Data Ingestion
+### 0. World Grid Generation
 
-Build ingestion artifacts from raw rasters. This typically runs once per source
-dataset or whenever source rasters/grid settings change.
+Build and persist the canonical spatial tiling world grid artifact from a
+reference raster or explicit extent parameters.
+
+```bash
+landseg pipeline=world-grid
+```
+
+### 1. Data Harmonization
+
+Harmonize, reproject, and resample raw raster datasets (features, labels,
+and domain masks) onto the canonical world grid canvas.
+
+```bash
+landseg pipeline=data-harmonize
+```
+
+### 2. Data Ingestion
+
+Build canonical unpartitioned data blocks from harmonized rasters and the
+world grid.
 
 ```bash
 landseg pipeline=data-ingest
 ```
 
-### 2. Data Preparation
+### 3. Data Preparation
 
-Build experiment-scoped artifacts from ingested data blocks, including splits,
-normalization/statistics, and dataset schemas.
+Build experiment-scoped artifacts from ingested data blocks, including
+geographic AOI partitioning, splits, normalization statistics, and schemas.
 
 ```bash
 landseg pipeline=data-prepare
 ```
 
-### 3. Model Training
+### 4. Model Training
 
 Construct and run a full training session from prepared artifacts.
 
@@ -157,7 +175,7 @@ Construct and run a full training session from prepared artifacts.
 landseg pipeline=model-train
 ```
 
-### 4. Model Evaluation
+### 5. Model Evaluation
 
 Run evaluation from prepared artifacts and a trained checkpoint.
 
@@ -165,7 +183,7 @@ Run evaluation from prepared artifacts and a trained checkpoint.
 landseg pipeline=model-evaluate pipeline.model_evaluate.checkpoint=path/to/checkpoint
 ```
 
-### 5. Overfit Diagnostic
+### 6. Overfit Diagnostic
 
 Run a constrained end-to-end diagnostic on a small scope to validate model,
 dataset, loss, optimizer, metric, and execution wiring.
@@ -174,7 +192,7 @@ dataset, loss, optimizer, metric, and execution wiring.
 landseg pipeline=diagnose-overfit
 ```
 
-### 6. Study Sweep
+### 7. Study Sweep
 
 Run the Optuna-oriented study sweep entry point.
 

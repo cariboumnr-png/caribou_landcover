@@ -126,10 +126,18 @@ def build_blocks(
         'blocks_created': len(coords_todo)
     }
 
+    # extract label color map from specs if present
+    label_color_map: dict[str, list[int]] | None = None
+    if config.label_specs:
+        for spec in config.label_specs.values():
+            if 'color_map' in spec and spec['color_map']:
+                label_color_map = spec['color_map']
+                break
+
     return BlockBuildingOutput(
         coords_created=coords_todo,
         stats=stats,
-        label_color_map=None # TODO
+        label_color_map=label_color_map
     )
 
 
