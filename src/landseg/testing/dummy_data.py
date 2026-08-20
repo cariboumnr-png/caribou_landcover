@@ -80,51 +80,27 @@ class TIFFPaths:
         )
 
     @property
-    def raw_dev_sentinel2(self) -> str:
+    def sentinel2(self) -> str:
         return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_dev_sentinel2.tif')
+            os.path.join(self.root, 'raw_data/sample_sentinel2.tif')
         )
 
     @property
-    def raw_dev_dem(self) -> str:
+    def dem(self) -> str:
         return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_dev_dem.tif')
+            os.path.join(self.root, 'raw_data/sample_dem.tif')
         )
 
     @property
-    def raw_dev_landcover(self) -> str:
+    def landcover(self) -> str:
         return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_dev_landcover.tif')
+            os.path.join(self.root, 'raw_data/sample_landcover.tif')
         )
 
     @property
-    def raw_dev_leadspc(self) -> str:
+    def leadspc(self) -> str:
         return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_dev_leadspc.tif')
-        )
-
-    @property
-    def raw_test_sentinel2(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_test_sentinel2.tif')
-        )
-
-    @property
-    def raw_test_dem(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_test_dem.tif')
-        )
-
-    @property
-    def raw_test_landcover(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_test_landcover.tif')
-        )
-
-    @property
-    def raw_test_leadspc(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_test_leadspc.tif')
+            os.path.join(self.root, 'raw_data/sample_leadspc.tif')
         )
 
     @property
@@ -141,13 +117,10 @@ class TIFFPaths:
                 self.test_aoi,
                 self.domain_1,
                 self.domain_2,
-                self.raw_dev_sentinel2,
-                self.raw_dev_dem,
-                self.raw_dev_landcover,
-                self.raw_dev_leadspc,
-                self.raw_test_sentinel2,
-                self.raw_test_dem,
-                self.raw_test_landcover,
+                self.sentinel2,
+                self.dem,
+                self.landcover,
+                self.leadspc,
                 self.manifest,
             ]
         )
@@ -201,8 +174,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     # raw source rasters are generated in 10m resolution (double dimensions)
     raw_shape = (height * 2, width * 2)
 
-    # combined extent shape covers dev and test side-by-side
-    extent_shape = (height, width * 2)
+    extent_shape = (height, width)
     extent_transform = rasterio.transform.from_origin(orig_x, orig_y, pxs, pxs)
 
     # test AOI covers exactly the top-left (0, 0) block (256x256)
@@ -279,28 +251,21 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
 
     # raw input rasters in UTM CRS
     utm_crs = 'EPSG:2958'
-    dev_res = rasterio.warp.transform(
+    utm_res = rasterio.warp.transform(
         'EPSG:3161', utm_crs, [500000.0], [5000000.0]
     )
-    utm_dev_transform = rasterio.transform.from_origin(
-        dev_res[0][0], dev_res[1][0], 10.0, 10.0
+    utm_transform = rasterio.transform.from_origin(
+        utm_res[0][0], utm_res[1][0], 10.0, 10.0
     )
 
-    test_res = rasterio.warp.transform(
-        'EPSG:3161', utm_crs, [500000.0 + (width * pxs)], [5000000.0]
-    )
-    utm_test_transform = rasterio.transform.from_origin(
-        test_res[0][0], test_res[1][0], 10.0, 10.0
-    )
-
-    print(f'Creating raw dev Sentinel-2: {paths.raw_dev_sentinel2}')
+    print(f'Creating raw Sentinel-2: {paths.sentinel2}')
     create_dummy_geotiff(
-        paths.raw_dev_sentinel2,
+        paths.sentinel2,
         config=TIFFConfig(
             shape=raw_shape,
             bands=10,
             crs=utm_crs,
-            transform=utm_dev_transform,
+            transform=utm_transform,
             dtype=numpy.uint16,
             nodata=65535,
         ),
@@ -309,100 +274,42 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         ),
     )
 
-    print(f'Creating raw dev DEM: {paths.raw_dev_dem}')
+    print(f'Creating raw DEM: {paths.dem}')
     create_dummy_geotiff(
-        paths.raw_dev_dem,
+        paths.dem,
         config=TIFFConfig(
             shape=raw_shape,
             bands=1,
             crs=utm_crs,
-            transform=utm_dev_transform,
+            transform=utm_transform,
             dtype=numpy.float32,
             nodata=-9999.9,
         ),
         data_gen_func=lambda s, _: _gen_image_data(s, 1),
     )
 
-    print(f'Creating raw dev Landcover Label: {paths.raw_dev_landcover}')
+    print(f'Creating raw Landcover Label: {paths.landcover}')
     create_dummy_geotiff(
-        paths.raw_dev_landcover,
+        paths.landcover,
         config=TIFFConfig(
             shape=raw_shape,
             bands=1,
             crs=utm_crs,
-            transform=utm_dev_transform,
+            transform=utm_transform,
             dtype=numpy.uint8,
             nodata=255,
         ),
         data_gen_func=_gen_label_data,
     )
 
-    print(f'Creating raw dev Leadspc Label: {paths.raw_dev_leadspc}')
+    print(f'Creating raw Leadspc Label: {paths.leadspc}')
     create_dummy_geotiff(
-        paths.raw_dev_leadspc,
+        paths.leadspc,
         config=TIFFConfig(
             shape=raw_shape,
             bands=1,
             crs=utm_crs,
-            transform=utm_dev_transform,
-            dtype=numpy.uint8,
-            nodata=255,
-        ),
-        data_gen_func=_gen_label_data,
-    )
-
-    print(f'Creating raw test Sentinel-2: {paths.raw_test_sentinel2}')
-    create_dummy_geotiff(
-        paths.raw_test_sentinel2,
-        config=TIFFConfig(
-            shape=raw_shape,
-            bands=10,
-            crs=utm_crs,
-            transform=utm_test_transform,
-            dtype=numpy.uint16,
-            nodata=65535,
-        ),
-        data_gen_func=lambda s, b: numpy.random.randint(
-            100, 3000, size=s, dtype=numpy.uint16
-        ),
-    )
-
-    print(f'Creating raw test DEM: {paths.raw_test_dem}')
-    create_dummy_geotiff(
-        paths.raw_test_dem,
-        config=TIFFConfig(
-            shape=raw_shape,
-            bands=1,
-            crs=utm_crs,
-            transform=utm_test_transform,
-            dtype=numpy.float32,
-            nodata=-9999.9,
-        ),
-        data_gen_func=lambda s, _: _gen_image_data(s, 1),
-    )
-
-    print(f'Creating raw test Landcover Label: {paths.raw_test_landcover}')
-    create_dummy_geotiff(
-        paths.raw_test_landcover,
-        config=TIFFConfig(
-            shape=raw_shape,
-            bands=1,
-            crs=utm_crs,
-            transform=utm_test_transform,
-            dtype=numpy.uint8,
-            nodata=255,
-        ),
-        data_gen_func=_gen_label_data,
-    )
-
-    print(f'Creating raw test Leadspc Label: {paths.raw_test_leadspc}')
-    create_dummy_geotiff(
-        paths.raw_test_leadspc,
-        config=TIFFConfig(
-            shape=raw_shape,
-            bands=1,
-            crs=utm_crs,
-            transform=utm_test_transform,
+            transform=utm_transform,
             dtype=numpy.uint8,
             nodata=255,
         ),
@@ -426,7 +333,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         },
         {
             'name': 'sentinel2',
-            'path': paths.raw_dev_sentinel2,
+            'path': paths.sentinel2,
             'category': 'features',
             'band_mapping': {
                 1: 'blue',
@@ -444,7 +351,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         },
         {
             'name': 'dem',
-            'path': paths.raw_dev_dem,
+            'path': paths.dem,
             'category': 'features',
             'band_mapping': {
                 1: 'dem',
@@ -453,7 +360,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         },
         {
             'name': 'landcover',
-            'path': paths.raw_dev_landcover,
+            'path': paths.landcover,
             'category': 'labels',
             'band_mapping': None,
             'label_specs': {
@@ -471,7 +378,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         },
         {
             'name': 'leadspc',
-            'path': paths.raw_dev_leadspc,
+            'path': paths.leadspc,
             'category': 'labels',
             'band_mapping': None,
             'label_specs': {
