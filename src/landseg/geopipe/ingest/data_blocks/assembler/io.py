@@ -172,17 +172,30 @@ def read_label_specs(fpath: str | None) -> dict[str, geo_core.LabelSpecs]:
                 if not isinstance(tax_val, dict):
                     return {}
                 profile = tax_val.get('profile')
-                classes = tax_val.get('classes')
-                if (
-                    not isinstance(profile, str)
-                    or not isinstance(classes, list)
-                    or not all(isinstance(c, str) for c in classes)
-                ):
+                if not isinstance(profile, str):
                     return {}
-                spec['taxonomy'] = {
-                    'profile': profile,
-                    'classes': classes,
-                }
+                tax_spec: geo_core.TaxonomySpecs = {'profile': profile}
+                if 'species_mapping' in tax_val and isinstance(
+                    tax_val['species_mapping'], dict
+                ):
+                    tax_spec['species_mapping'] = {
+                        str(k): str(v)
+                        for k, v in tax_val['species_mapping'].items()
+                    }
+                if 'classes' in tax_val and isinstance(
+                    tax_val['classes'], list
+                ):
+                    tax_spec['classes'] = [
+                        str(c) for c in tax_val['classes']
+                    ]
+                if 'canonical_indices' in tax_val and isinstance(
+                    tax_val['canonical_indices'], dict
+                ):
+                    tax_spec['canonical_indices'] = {
+                        str(k): int(v)
+                        for k, v in tax_val['canonical_indices'].items()
+                    }
+                spec['taxonomy'] = tax_spec
         specs[name] = spec
 
     return specs

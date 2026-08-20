@@ -85,6 +85,7 @@ class DataBlockManifest(typing.TypedDict):
     label_parent: dict[str, str | None]
     label_parent_cls: dict[str, int | None]
     label_names: dict[str, list[str]]
+    label_taxonomy: typing.NotRequired[dict[str, TaxonomySpecs]]
     # derived stats
     valid_ratios: dict[str, float]
     image_stats: dict[str, dict[str, int | float]]
@@ -95,7 +96,9 @@ class DataBlockManifest(typing.TypedDict):
 class TaxonomySpecs(typing.TypedDict):
     '''Typed dictionary for domain taxonomy specification.'''
     profile: str
-    classes: list[str]
+    species_mapping: typing.NotRequired[dict[str, str]]
+    classes: typing.NotRequired[list[str]]
+    canonical_indices: typing.NotRequired[dict[str, int]]
 
 
 class LabelSpecs(typing.TypedDict):
@@ -616,6 +619,13 @@ class DataBlock:
         self.manifest['label_parent'] = parent_map
         self.manifest['label_parent_cls'] = parent_cls_map
         self.manifest['label_names'] = label_names
+
+        label_taxonomy: dict[str, TaxonomySpecs] = {}
+        for name, spec in self.lbl_specs.items():
+            if 'taxonomy' in spec and spec['taxonomy']:
+                label_taxonomy[name] = spec['taxonomy']
+        if label_taxonomy:
+            self.manifest['label_taxonomy'] = label_taxonomy
 
     def _label_get_stats(self) -> None:
         '''Count present label values and calculate entropy.'''

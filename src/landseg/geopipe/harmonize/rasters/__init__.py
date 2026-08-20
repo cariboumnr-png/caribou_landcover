@@ -41,6 +41,9 @@ __all__ = [
     'add_tag_to_vrt',
     'compile_dataset_manifest',
     'process_source',
+    'get_available_profiles',
+    'resolve_taxonomy_metadata',
+    'validate_taxonomy_specs',
 ]
 
 # for static check
@@ -62,6 +65,11 @@ if typing.TYPE_CHECKING:
     from .validator import (
         DatasetConfigItem,
         compile_dataset_manifest,
+    )
+    from .taxonomy import (
+        get_available_profiles,
+        resolve_taxonomy_metadata,
+        validate_taxonomy_specs,
     )
 
 
@@ -97,6 +105,15 @@ def __getattr__(name: str):
     }:
         return getattr(
             importlib.import_module('.validator', __package__), name
+        )
+
+    if name in {
+        'get_available_profiles',
+        'resolve_taxonomy_metadata',
+        'validate_taxonomy_specs',
+    }:
+        return getattr(
+            importlib.import_module('.taxonomy', __package__), name
         )
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

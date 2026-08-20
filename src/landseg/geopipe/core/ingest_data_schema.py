@@ -36,6 +36,9 @@ reproducibility across the data pipeline.
 from __future__ import annotations
 import typing
 
+if typing.TYPE_CHECKING:
+    from .ingest_data_block import TaxonomySpecs
+
 SCHEMA_ID = 'data_schema/v1.1'
 
 # ---------------------------------Public Type---------------------------------
@@ -132,3 +135,4 @@ class _LabelsInfo(typing.TypedDict):
     label_parent_cls: dict[str, int | None]
     label_names: dict[str, list[str]]
     label_color_map: dict[str, list[int]] | None
+    label_taxonomy: typing.NotRequired[dict[str, TaxonomySpecs]]

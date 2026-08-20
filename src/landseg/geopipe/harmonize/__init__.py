@@ -41,6 +41,9 @@ __all__ = [
     'add_tag_to_vrt',
     'compile_dataset_manifest',
     'process_source',
+    'get_available_profiles',
+    'resolve_taxonomy_metadata',
+    'validate_taxonomy_specs',
     # typing
     'HarmonizationReportSchema',
     'ProvenanceRecord',
@@ -67,6 +70,9 @@ if typing.TYPE_CHECKING:
         process_source,
         DatasetConfigItem,
         compile_dataset_manifest,
+        get_available_profiles,
+        resolve_taxonomy_metadata,
+        validate_taxonomy_specs,
     )
 
 
@@ -91,6 +97,9 @@ def __getattr__(name: str):
         'process_source',
         'DatasetConfigItem',
         'compile_dataset_manifest',
+        'get_available_profiles',
+        'resolve_taxonomy_metadata',
+        'validate_taxonomy_specs',
     }:
         return getattr(importlib.import_module('.rasters', __package__), name)
 

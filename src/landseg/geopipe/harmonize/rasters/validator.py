@@ -29,6 +29,7 @@ import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
+from .taxonomy import validate_taxonomy_specs
 
 
 class DatasetConfigItem(typing.TypedDict):
@@ -45,7 +46,6 @@ class DatasetConfigItem(typing.TypedDict):
     ]
     band_mapping: dict[int, str] | None
     label_specs: geo_core.LabelSpecs | None
-
 
 
 def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
@@ -115,7 +115,29 @@ def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
                 f'Required value for [name] missing or of wrong type, '
                 f'got: {category} ({type(category)} at dictionary index {i}'
             )
-        # NOTE here we skip checking band mapping and label specs for now
+
+        # validate label specs and taxonomy if present
+        if label_specs is not None:
+            num_cls = label_specs.get('num_cls')
+            if not isinstance(num_cls, int) or num_cls < 1:
+                raise ValueError(
+                    f"Invalid 'num_cls' in label_specs for '{name}': {num_cls}"
+                )
+            if 'taxonomy' in label_specs and label_specs['taxonomy']:
+                try:
+                    resolved_tax, inferred_names, _ = validate_taxonomy_specs(
+                        label_specs['taxonomy'],
+                        num_cls=num_cls,
+                    )
+                except ValueError as e:
+                    raise ValueError(
+                        f"Taxonomy validation failed for label layer '{name}' "
+                        f"in '{config_p}': {e}"
+                    ) from e
+
+                label_specs['taxonomy'] = resolved_tax
+                if 'class_name' not in label_specs or not label_specs['class_name']:
+                    label_specs['class_name'] = inferred_names
 
         compiled.append({
             'name': name,
