@@ -49,7 +49,6 @@ class TIFFConfig:
     nodata: int | float
 
 
-# ----- private dataclass
 @dataclasses.dataclass
 class TIFFPaths:
     '''Container for dummy TIFF file paths.'''
@@ -57,57 +56,39 @@ class TIFFPaths:
 
     @property
     def extent(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'reference_raster/sample_extent.tif')
-        )
+        return self._make_path('reference_raster/sample_extent.tif')
 
     @property
     def test_aoi(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'reference_raster/sample_test_aoi.tif')
-        )
+        return self._make_path('reference_raster/sample_test_aoi.tif')
 
     @property
     def domain_1(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_domain_1.tif')
-        )
+        return self._make_path('raw_data/sample_domain_1.tif')
 
     @property
     def domain_2(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_domain_2.tif')
-        )
+        return self._make_path('raw_data/sample_domain_2.tif')
 
     @property
     def sentinel2(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_sentinel2.tif')
-        )
+        return self._make_path('raw_data/sample_sentinel2.tif')
 
     @property
     def dem(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_dem.tif')
-        )
+        return self._make_path('raw_data/sample_dem.tif')
 
     @property
     def landcover(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_landcover.tif')
-        )
+        return self._make_path('raw_data/sample_landcover.tif')
 
     @property
     def leadspc(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/sample_leadspc.tif')
-        )
+        return self._make_path('raw_data/sample_leadspc.tif')
 
     @property
     def manifest(self) -> str:
-        return os.path.abspath(
-            os.path.join(self.root, 'raw_data/manifest.json')
-        )
+        return self._make_path('raw_data/manifest.json')
 
     @property
     def all_paths_exist(self) -> bool:
@@ -125,6 +106,9 @@ class TIFFPaths:
             ]
         )
 
+    def _make_path(self, p: str) -> str:
+        return os.path.abspath(os.path.join(self.root, p))
+
 
 # ----- public function
 def create_dummy_geotiff(
@@ -136,9 +120,12 @@ def create_dummy_geotiff(
     '''Write a multi-band GeoTIFF with coordinate metadata.
 
     Args:
-        fpath: Output file path.
-        config: TIFFConfig with shape, bands, crs, transform, dtype, nodata.
-        data_gen_func: Callback generating data per band.
+        fpath:
+            Output file path.
+        config:
+            TIFFConfig with shape, bands, crs, transform, dtype, nodata.
+        data_gen_func:
+            Callback generating data per band.
     '''
     os.makedirs(os.path.dirname(fpath), exist_ok=True)
     with rasterio.open(
@@ -162,69 +149,67 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
     '''Generate the full dummy dataset under input root.
 
     Args:
-        input_root: Root directory for output files.
+        input_root:
+            Root directory for output files.
     '''
     print('Generating dummy geospatial data for landseg pipeline...')
-    crs = 'EPSG:3161'
-    pxs = 20.0
-    orig_x = 500000.0
-    orig_y = 5000000.0
-    # 512 height x 768 width gives 2 rows x 3 cols = 6 base blocks in 20m canvas
-    height, width = 512, 768
-    # raw source rasters are generated in 10m resolution (double dimensions)
-    raw_shape = (height * 2, width * 2)
+    os.makedirs(input_root, exist_ok=True)
+    paths = TIFFPaths(input_root)
 
-    extent_shape = (height, width)
-    extent_transform = rasterio.transform.from_origin(orig_x, orig_y, pxs, pxs)
+    canonical_crs = 'EPSG:3161'
+    # global transform (canonical CRS)
+    global_transform = _get_transform(500000.0, 5000000.0, 20)
+    # 512 height x 768 width gives 2 rows x 3 cols = 6 base blocks (20m res)
+    global_shape = (512, 768)
 
-    # test AOI covers exactly the top-left (0, 0) block (256x256)
-    test_aoi_shape = (256, 256)
-    test_aoi_transform = rasterio.transform.from_origin(
-        orig_x, orig_y, pxs, pxs
-    )
-
-    paths = TIFFPaths(root=input_root)
-    os.makedirs(paths.root, exist_ok=True)
-
-    # create extent reference
+    # -----create extent reference
+    # shape: global
+    # transform: global
     print(f'Creating extent reference: {paths.extent}')
     create_dummy_geotiff(
         paths.extent,
         config=TIFFConfig(
-            shape=extent_shape,
+            shape=global_shape,
             bands=1,
-            crs=crs,
-            transform=extent_transform,
+            crs=canonical_crs,
+            transform=global_transform,
             dtype=numpy.uint8,
             nodata=0,
         ),
         data_gen_func=lambda s, b: numpy.ones(s, dtype=numpy.uint8),
     )
 
-    # create test AOI raster
+    # ----- create test AOI raster
+    # shape: (256x256)
+    # transform: global (so it covers exactly the top-left block)
     print(f'Creating test AOI reference: {paths.test_aoi}')
     create_dummy_geotiff(
         paths.test_aoi,
         config=TIFFConfig(
-            shape=test_aoi_shape,
+            shape=(256, 256),
             bands=1,
-            crs=crs,
-            transform=test_aoi_transform,
+            crs=canonical_crs,
+            transform=global_transform,
             dtype=numpy.uint8,
             nodata=0,
         ),
         data_gen_func=lambda s, b: numpy.ones(s, dtype=numpy.uint8),
     )
 
-    # domain knowledge layers
-    print(f'Creating domain knowledge 1: {paths.domain_1}')
+    # each data raster adds a config JSON dict
+    data_configs: list[dict[str, typing.Any]] = []
+
+    # ----- create domains rasters
+    # shape: global
+    # transform: global
+    print(f'Creating domain knowledge [mock_geology]: {paths.domain_1}')
     create_dummy_geotiff(
         paths.domain_1,
         config=TIFFConfig(
-            shape=extent_shape,
+            shape=global_shape,
             bands=1,
-            crs=crs,
-            transform=extent_transform,
+            crs=canonical_crs,
+            transform=global_transform,
             dtype=numpy.uint8,
             nodata=255,
         ),
@@ -232,15 +217,24 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             1, 5, size=s, dtype=numpy.uint8
         ),
     )
+    data_configs.append({
+        'name': 'mock_geology',
+        'path': paths.domain_1,
+        'category': 'domains',
+        'band_mapping': {
+            1: "mock_geology"
+        },
+        'label_specs': None,
+    })
 
-    print(f'Creating domain knowledge 2: {paths.domain_2}')
+    print(f'Creating domain knowledge [mock_soil]: {paths.domain_2}')
     create_dummy_geotiff(
         paths.domain_2,
         config=TIFFConfig(
-            shape=extent_shape,
+            shape=global_shape,
             bands=1,
-            crs=crs,
-            transform=extent_transform,
+            crs=canonical_crs,
+            transform=global_transform,
             dtype=numpy.uint8,
             nodata=255,
         ),
@@ -248,24 +242,37 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             1, 10, size=s, dtype=numpy.uint8
         ),
     )
+    data_configs.append({
+        'name': 'mock_soil',
+        'path': paths.domain_2,
+        'category': 'domains',
+        'band_mapping': {
+            1: "mock_soil"
+        },
+        'label_specs': None,
+    })
 
-    # raw input rasters in UTM CRS
-    utm_crs = 'EPSG:2958'
-    utm_res = rasterio.warp.transform(
-        'EPSG:3161', utm_crs, [500000.0], [5000000.0]
+    # ----- create feature and label rasters
+    # shape: double dimensions in 10m resolution
+    # transform: different UTM CRS (to test harmonization)
+    raw_shape = (512 * 2, 768 * 2)
+    raw_crs = 'EPSG:2958'
+    raw_origin = rasterio.warp.transform(
+        canonical_crs,
+        raw_crs,
+        [500000.0],
+        [5000000.0]
     )
-    utm_transform = rasterio.transform.from_origin(
-        utm_res[0][0], utm_res[1][0], 10.0, 10.0
-    )
+    raw_transform = _get_transform(raw_origin[0][0], raw_origin[1][0], 10.0)
 
-    print(f'Creating raw Sentinel-2: {paths.sentinel2}')
+    print(f'Creating raw feature [Sentinel-2]: {paths.sentinel2}')
     create_dummy_geotiff(
         paths.sentinel2,
         config=TIFFConfig(
             shape=raw_shape,
             bands=10,
-            crs=utm_crs,
-            transform=utm_transform,
+            crs=raw_crs,
+            transform=raw_transform,
             dtype=numpy.uint16,
             nodata=65535,
         ),
@@ -273,155 +280,150 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             100, 3000, size=s, dtype=numpy.uint16
         ),
     )
+    data_configs.append({
+        'name': 'sentinel2',
+        'path': paths.sentinel2,
+        'category': 'features',
+        'band_mapping': {
+            1: 'blue',
+            2: 'green',
+            3: 'red',
+            4: 'red_edge1',
+            5: 'red_edge2',
+            6: 'red_edge3',
+            7: 'nir',
+            8: 'narrow_nir',
+            9: 'swir1',
+            10: 'swir2',
+        },
+        'label_specs': None,
+    })
 
-    print(f'Creating raw DEM: {paths.dem}')
+    print(f'Creating raw feature [DEM]: {paths.dem}')
     create_dummy_geotiff(
         paths.dem,
         config=TIFFConfig(
             shape=raw_shape,
             bands=1,
-            crs=utm_crs,
-            transform=utm_transform,
+            crs=raw_crs,
+            transform=raw_transform,
             dtype=numpy.float32,
             nodata=-9999.9,
         ),
         data_gen_func=lambda s, _: _gen_image_data(s, 1),
     )
+    data_configs.append({
+        'name': 'dem',
+        'path': paths.dem,
+        'category': 'features',
+        'band_mapping': {
+            1: 'dem',
+        },
+        'label_specs': None,
+    })
 
-    print(f'Creating raw Landcover Label: {paths.landcover}')
+    print(f'Creating raw label [Landcover]: {paths.landcover}')
     create_dummy_geotiff(
         paths.landcover,
         config=TIFFConfig(
             shape=raw_shape,
             bands=1,
-            crs=utm_crs,
-            transform=utm_transform,
+            crs=raw_crs,
+            transform=raw_transform,
             dtype=numpy.uint8,
             nodata=255,
         ),
         data_gen_func=_gen_label_data,
     )
+    data_configs.append({
+        'name': 'landcover',
+        'path': paths.landcover,
+        'category': 'labels',
+        'band_mapping': {
+            1: 'landcover'
+        },
+        'label_specs': {
+            'num_cls': 2,
+            'ignore_cls': [255],
+            'class_name': {
+                '1': 'coniferous',
+                '2': 'deciduous',
+            },
+            'color_map': {
+                '1': [34, 139, 34],
+                '2': [218, 165, 32],
+            },
+        },
+    })
 
-    print(f'Creating raw Leadspc Label: {paths.leadspc}')
+    print(f'Creating raw label [Leadspc]: {paths.leadspc}')
     create_dummy_geotiff(
         paths.leadspc,
         config=TIFFConfig(
             shape=raw_shape,
             bands=1,
-            crs=utm_crs,
-            transform=utm_transform,
+            crs=raw_crs,
+            transform=raw_transform,
             dtype=numpy.uint8,
             nodata=255,
         ),
         data_gen_func=_gen_label_data,
     )
-
-    data_configs = [
-        {
-            'name': 'domain_1',
-            'path': paths.domain_1,
-            'category': 'domains',
-            'band_mapping': None,
-            'label_specs': None,
+    data_configs.append({
+        'name': 'leadspc',
+        'path': paths.leadspc,
+        'category': 'labels',
+        'band_mapping': {
+            1: 'leadspc'
         },
-        {
-            'name': 'domain_2',
-            'path': paths.domain_2,
-            'category': 'domains',
-            'band_mapping': None,
-            'label_specs': None,
-        },
-        {
-            'name': 'sentinel2',
-            'path': paths.sentinel2,
-            'category': 'features',
-            'band_mapping': {
-                1: 'blue',
-                2: 'green',
-                3: 'red',
-                4: 'red_edge1',
-                5: 'red_edge2',
-                6: 'red_edge3',
-                7: 'nir',
-                8: 'narrow_nir',
-                9: 'swir1',
-                10: 'swir2',
-            },
-            'label_specs': None,
-        },
-        {
-            'name': 'dem',
-            'path': paths.dem,
-            'category': 'features',
-            'band_mapping': {
-                1: 'dem',
-            },
-            'label_specs': None,
-        },
-        {
-            'name': 'landcover',
-            'path': paths.landcover,
-            'category': 'labels',
-            'band_mapping': None,
-            'label_specs': {
-                'num_cls': 2,
-                'ignore_cls': [255],
-                'class_name': {
-                    '1': 'coniferous',
-                    '2': 'deciduous',
-                },
-                'color_map': {
-                    '1': [34, 139, 34],
-                    '2': [218, 165, 32],
+        'label_specs': {
+            'num_cls': 2,
+            'ignore_cls': [255],
+            'taxonomy': {
+                'profile': 'ontario_tree_species_grouped_profiles',
+                'species_mapping': {
+                    '1': 'SB_BLACK_SPRUCE',
+                    '2': 'PJ_JACK_PINE',
                 },
             },
-        },
-        {
-            'name': 'leadspc',
-            'path': paths.leadspc,
-            'category': 'labels',
-            'band_mapping': None,
-            'label_specs': {
-                'num_cls': 2,
-                'ignore_cls': [255],
-                'taxonomy': {
-                    'profile': 'ontario_tree_species_grouped_profiles',
-                    'species_mapping': {
-                        '1': 'SB_BLACK_SPRUCE',
-                        '2': 'PJ_JACK_PINE',
-                    },
-                },
-                'class_name': {
-                    '1': 'spruce',
-                    '2': 'pine',
-                },
-                'color_map': {
-                    '1': [0, 100, 0],
-                    '2': [107, 142, 35],
-                },
+            'class_name': {
+                '1': 'spruce',
+                '2': 'pine',
+            },
+            'color_map': {
+                '1': [0, 100, 0],
+                '2': [107, 142, 35],
             },
         },
-    ]
+    })
 
-    manifest = []
-    for cfg in data_configs:
-        json_fpath = cfg['path'].replace('tif', 'json')
-        with open(json_fpath, 'w', encoding='utf-8') as f:
-            json.dump(cfg, f, indent=4)
-        manifest.append({
-            'name': cfg['name'],
-            'path': cfg['path'],
-            'config': json_fpath,
-        })
-
-    with open(paths.manifest, 'w', encoding='utf-8') as f:
-        json.dump(manifest, f, indent=4)
-
+    _write_jsons(data_configs, paths.manifest)
     print('\nDummy data generation completed successfully!')
     return paths
 
 
 # ----- private functions
+def _get_transform(x: float, y: float, res: float) -> rasterio.transform.Affine:
+    '''Get transform from origin and resolution.'''
+    return rasterio.transform.from_origin(x, y, res, res)
+
+
+def _write_jsons(src: list[dict[str, typing.Any]], manifest: str) -> None:
+    '''Write per file config JSON and manifest JSON.'''
+    manifest_list: list[dict[str, typing.Any]] = []
+    for cfg in src:
+        json_fpath = cfg['path'].replace('tif', 'json')
+        with open(json_fpath, 'w', encoding='utf-8') as f:
+            json.dump(cfg, f, indent=4)
+        manifest_list.append({
+            'name': cfg['name'],
+            'path': cfg['path'],
+            'config': json_fpath,
+        })
+    with open(manifest, 'w', encoding='utf-8') as f:
+        json.dump(manifest_list, f, indent=4)
+
+
 def _gen_image_data(shape: tuple[int, int], band_idx: int) -> numpy.ndarray:
     '''Generate dummy image band or terrain elevation data.'''
     if band_idx == 1:
