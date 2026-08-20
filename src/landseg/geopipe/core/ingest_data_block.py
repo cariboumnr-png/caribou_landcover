@@ -85,20 +85,12 @@ class DataBlockManifest(typing.TypedDict):
     label_parent: dict[str, str | None]
     label_parent_cls: dict[str, int | None]
     label_names: dict[str, list[str]]
-    label_taxonomy: typing.NotRequired[dict[str, TaxonomySpecs]]
+    label_taxonomy: dict[str, typing.Any]
     # derived stats
     valid_ratios: dict[str, float]
     image_stats: dict[str, dict[str, int | float]]
     label_count: dict[str, list[int]]
     label_entropy: dict[str, float]
-
-
-class TaxonomySpecs(typing.TypedDict):
-    '''Typed dictionary for domain taxonomy specification.'''
-    profile: str
-    species_mapping: typing.NotRequired[dict[str, str]]
-    classes: typing.NotRequired[list[str]]
-    canonical_indices: typing.NotRequired[dict[str, int]]
 
 
 class LabelSpecs(typing.TypedDict):
@@ -107,11 +99,11 @@ class LabelSpecs(typing.TypedDict):
     num_cls: int
     ignore_cls: list[int]
     # optional
-    taxonomy: typing.NotRequired[TaxonomySpecs]
     class_name: typing.NotRequired[dict[str, str]]
     reclass: typing.NotRequired[dict[str, list[int]]]
     reclass_name: typing.NotRequired[dict[str, str]]
     color_map: typing.NotRequired[dict[str, list[int]]]
+    taxonomy: typing.NotRequired[dict[str, typing.Any]]
 
 
 # ------------------------------Public  Dataclass------------------------------
@@ -256,6 +248,7 @@ class DataBlock:
             'label_parent': {},
             'label_parent_cls': {},
             'label_names': {},
+            'label_taxonomy': {},
             # derived stats
             'valid_ratios': {},
             'image_stats': {},
@@ -620,7 +613,7 @@ class DataBlock:
         self.manifest['label_parent_cls'] = parent_cls_map
         self.manifest['label_names'] = label_names
 
-        label_taxonomy: dict[str, TaxonomySpecs] = {}
+        label_taxonomy: dict[str, typing.Any] = {}
         for name, spec in self.lbl_specs.items():
             if 'taxonomy' in spec and spec['taxonomy']:
                 label_taxonomy[name] = spec['taxonomy']
