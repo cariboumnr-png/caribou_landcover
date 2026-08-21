@@ -19,14 +19,14 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=protected-access
+
 '''Unit tests for taxonomy resolver and gatekeeper validation.'''
 
-# standard imports
-import json
 # third-party imports
 import pytest
 # local imports
-import landseg.geopipe.harmonize.taxomony.taxonomy as taxonomy
+import landseg.geopipe.harmonize.taxonomy.taxonomy as taxonomy
 
 
 # ----- `get_available_profiles` tests

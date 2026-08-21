@@ -29,7 +29,7 @@ import typing
 # local imports
 import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
-import landseg.geopipe.harmonize.taxomony as taxonomy
+import landseg.geopipe.harmonize.taxonomy as taxonomy
 
 
 class DatasetConfigItem(typing.TypedDict):

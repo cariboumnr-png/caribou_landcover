@@ -66,7 +66,7 @@ if typing.TYPE_CHECKING:
         unify_nodata_mask,
     )
 
-    from .taxomony import(
+    from .taxonomy import(
         get_available_profiles,
         validate_taxonomy_specs,
     )
