@@ -197,12 +197,10 @@ class CompositeLoss(torch.nn.Module):
             self.weights.append(config.tv.weight)
 
         # ecological similarity regularizer
-        if config.ecological.weight:
-            if ecological_similarity_matrix is None:
-                raise ValueError(
-                    'ecological_similarity_matrix must be provided when '
-                    'config.ecological.weight is non-zero.'
-                )
+        if (
+            config.ecological.weight
+            and ecological_similarity_matrix is not None
+        ):
             loss_fn = primitives.EcologicalSimilarityLoss(
                 similarity_matrix=ecological_similarity_matrix,
                 ignore_index=ignore_index

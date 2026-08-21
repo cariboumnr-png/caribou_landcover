@@ -35,8 +35,6 @@ Used by the trainer to supply consistent, per-head loss computation
 objects.
 '''
 
-# standard imports
-import os
 # third-party imports
 import torch
 # local imports
@@ -85,46 +83,33 @@ def build_headlosses(
 
     Args:
         headspecs: A structure describing the model's prediction heads,
-            including each head's name and its loss-specific parameters
-            (e.g., per-head a values for focal loss).
+            including each head's name, loss-specific parameters, and
+            pre-resolved ecological similarity matrix tensor.
         config: Base loss configuration shared across heads. Each enabled
             loss type must have its configuration block under a name
-            matching those used by `CompositeLoss.registry`. This
-            dictionary is modified per head if focal a values are
-            provided.
+            matching those used by `CompositeLoss.registry`.
         ignore_index: Label index to exclude from all loss computations.
         spectral_band_indices: Optional list of spectral band indices.
-        ecological_similarity_matrix: Optional precomputed similarity tensor.
+        ecological_similarity_matrix: Optional explicit precomputed
+            similarity tensor override.
 
     Returns:
         A `HeadLosses` container, providing typed access to the concrete
         `CompositeLoss` objects keyed by head name.
     '''
-    if (
-        config.ecological.weight > 0
-        and ecological_similarity_matrix is None
-        and config.ecological.matrix_path
-    ):
-        if os.path.isfile(config.ecological.matrix_path):
-            ecological_similarity_matrix = torch.load(
-                config.ecological.matrix_path,
-                map_location='cpu',
-                weights_only=True
-            )
-
     loss_dict: dict[str, loss.CompositeLoss] = {}
-    # iterate through names
-    per_head_alphas = {
-        h.name: h.loss_alpha for h in headspecs.as_dict().values()
-    }
-    for name in per_head_alphas.keys():
-        # init loss compute module for each head
+    for name, headspec in headspecs.as_dict().items():
+        sim_mat = (
+            ecological_similarity_matrix
+            if ecological_similarity_matrix is not None
+            else headspec.similarity_matrix
+        )
         loss_cls = loss.CompositeLoss(
             config,
             ignore_index=ignore_index,
-            focal_alpha=per_head_alphas[name],
+            focal_alpha=headspec.loss_alpha,
             spectral_band_indices=spectral_band_indices,
-            ecological_similarity_matrix=ecological_similarity_matrix
+            ecological_similarity_matrix=sim_mat
         )
         loss_dict[name] = loss_cls
     return HeadLosses(loss_dict)

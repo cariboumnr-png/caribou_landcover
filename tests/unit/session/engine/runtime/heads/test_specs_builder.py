@@ -25,6 +25,7 @@
 
 # third-party imports
 import pytest
+import torch
 # local imports
 import landseg.session.engine.runtime.tasks.heads.specs as head_specs
 
@@ -100,17 +101,14 @@ def test_headspecs_build_with_head_weights(dataspecs):
     assert specs['head_2'].weight == 1.0
 
 
-def test_headspecs_build_with_taxonomy(dataspecs):
+def test_headspecs_build_with_similarity_matrices(dataspecs):
     '''
-    Given: `DataSpecs` fixture with taxonomy metadata attached to heads.
+    Given: `DataSpecs` fixture with similarity matrix attached to heads.
     When: `build_headspecs()` is called.
-    Then: Taxonomy metadata is propagated to the corresponding `HeadSpec`.
+    Then: Similarity matrix tensor is attached to the corresponding `HeadSpec`.
     '''
-    dataspecs.heads.taxonomy = {
-        'head_1': {
-            'profile': 'ontario_tree_species_grouped_profiles',
-            'canonical_indices': {'1': 0, '2': 3},
-        }
+    dataspecs.heads.similarity_matrices = {
+        'head_1': torch.eye(2, dtype=torch.float32)
     }
 
     specs = head_specs.build_headspecs(
@@ -118,12 +116,9 @@ def test_headspecs_build_with_taxonomy(dataspecs):
         alpha_fn='inverse',
     )
 
-    assert specs['head_1'].taxonomy is not None
-    assert (
-        specs['head_1'].taxonomy['profile']
-        == 'ontario_tree_species_grouped_profiles'
-    )
-    assert specs['head_2'].taxonomy is None
+    assert specs['head_1'].similarity_matrix is not None
+    assert isinstance(specs['head_1'].similarity_matrix, torch.Tensor)
+    assert specs['head_2'].similarity_matrix is None
 
 
 def test_count_to_inv_weights():
