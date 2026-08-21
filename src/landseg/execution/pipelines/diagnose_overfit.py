@@ -42,7 +42,7 @@ import landseg.geopipe.ingest as ingest
 import landseg.geopipe.ingest.data_blocks.assembler as assembler
 import landseg.geopipe.ingest.data_blocks.mapper as mapper
 import landseg.geopipe.utils as geo_utils
-
+import landseg.knowledge as knowledge
 import landseg.models as models
 import landseg.session as session
 import landseg.session.engine as engine
@@ -145,16 +145,12 @@ def _prepare_dataspecs(
     for hname, tax_dict in tax.items():
         if isinstance(tax_dict, dict) and 'profile' in tax_dict:
             profile = tax_dict['profile']
-            matrix_path = os.path.join(
-                'knowledge', 'embeddings', profile,
-                'species_similarity_matrix.pt'
-            )
-            if os.path.isfile(matrix_path):
-                sim_matrices[hname] = torch.load(
-                    matrix_path,
-                    map_location='cpu',
-                    weights_only=True
+            try:
+                sim_matrices[hname] = knowledge.resolve_similarity_matrix(
+                    profile
                 )
+            except (FileNotFoundError, artifacts.ArtifactError):
+                pass
 
     return core.DataSpecs(
         name='overfit_single_block',

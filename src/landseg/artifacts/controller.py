@@ -24,7 +24,7 @@ Artifact lifecycle controller.
 
 This module provides a generic controller for managing persisted
 artifacts with lifecycle policies, integrity validation via SHA256,
-and support for JSON and NumPy-based storage formats.
+and support for JSON, NumPy, CSV, and PyTorch storage formats.
 '''
 
 # standard imports

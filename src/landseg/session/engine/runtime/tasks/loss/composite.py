@@ -145,10 +145,12 @@ class CompositeLoss(torch.nn.Module):
               component loss.
 
         Args:
-            config: Dictionary mapping loss-type names to their parameter
-                blocks. Must satisfy `loss.is_loss_types(...)`.
-            ignore_index: Label index to ignore in all component losses
-                that support masking of invalid or void labels.
+            config: Structure mapping loss-type names to parameter blocks.
+            ignore_index: Label index to ignore in all component losses.
+            focal_alpha: Optional per-class alpha weights for Focal Loss.
+            spectral_band_indices: Optional list of spectral band indices.
+            ecological_similarity_matrix: Optional pre-resolved N x N
+                species similarity matrix tensor for ecological loss.
         '''
 
         super().__init__()

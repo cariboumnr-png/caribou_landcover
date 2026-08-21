@@ -70,12 +70,15 @@ def validate_taxonomy_specs(
     Validate a label layer taxonomy specification against knowledge base.
 
     Args:
-        todo
+        profile: Canonical taxonomy profile name.
+        species_mapping: Mapping of integer class string IDs to species
+            codes.
         num_cls: Number of active classes for the label layer (1..N).
         knowledge_root: Root directory of the knowledge base.
 
     Returns:
-        todo
+        Mapping of class string index to canonical metadata embedding
+        index.
 
     Raises:
         ValueError: On missing profile, invalid mapping, or unknown codes.
@@ -117,10 +120,10 @@ def _resolve_taxonomy_metadata(
 
     Args:
         profile: Profile name or direct directory path.
-        knowledge_root: Root directory of the knowledge base.
+        root: Root directory of the knowledge base.
 
     Returns:
-        Code lookup dictionary
+        Code lookup dictionary mapping species codes to entry metadata.
 
     Raises:
         ValueError: If the profile metadata cannot be found.
