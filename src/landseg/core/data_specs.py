@@ -43,6 +43,8 @@ components.
 from __future__ import annotations
 import dataclasses
 import typing
+# third-party imports
+import torch
 
 # CONSTANTS
 SPEC_BAND_NAMES = {
@@ -162,6 +164,7 @@ class Heads:
     head_parent: dict[str, str | None]
     head_parent_cls: dict[str, int | None]
     taxonomy: dict[str, dict[str, typing.Any]] = field(default_factory=dict)
+    similarity_matrices: dict[str, torch.Tensor] = field(default_factory=dict)
 
     def __str__(self) -> str:
         def _ln(lst):
