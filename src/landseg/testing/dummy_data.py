@@ -381,14 +381,10 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'ignore_cls': [255],
             'taxonomy': {
                 'profile': 'ontario_tree_species_grouped_profiles',
-                'species_mapping': {
-                    '1': 'SB_BLACK_SPRUCE',
-                    '2': 'PJ_JACK_PINE',
-                },
             },
-            'class_name': {
-                '1': 'spruce',
-                '2': 'pine',
+            'class_name': { # names here need to match corresponding profile
+                '1': 'SB_BLACK_SPRUCE',
+                '2': 'PJ_JACK_PINE',
             },
             'color_map': {
                 '1': [0, 100, 0],

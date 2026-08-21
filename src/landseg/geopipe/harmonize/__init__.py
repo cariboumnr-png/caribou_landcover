@@ -37,7 +37,6 @@ __all__ = [
     'compile_dataset_manifest',
     'process_source',
     'get_available_profiles',
-    'resolve_taxonomy_metadata',
     'validate_taxonomy_specs',
     # typing
     'HarmonizationReportSchema',
@@ -69,7 +68,6 @@ if typing.TYPE_CHECKING:
 
     from .taxomony import(
         get_available_profiles,
-        resolve_taxonomy_metadata,
         validate_taxonomy_specs,
     )
 
@@ -110,7 +108,6 @@ def __getattr__(name: str):
 
     if name in {
         'get_available_profiles',
-        'resolve_taxonomy_metadata',
         'validate_taxonomy_specs',
     }:
         return getattr(

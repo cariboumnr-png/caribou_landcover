@@ -31,7 +31,6 @@ import typing
 __all__ = [
     # functions
     'get_available_profiles',
-    'resolve_taxonomy_metadata',
     'validate_taxonomy_specs',
 ]
 
@@ -39,7 +38,6 @@ __all__ = [
 if typing.TYPE_CHECKING:
     from .taxonomy import (
         get_available_profiles,
-        resolve_taxonomy_metadata,
         validate_taxonomy_specs,
     )
 
@@ -48,7 +46,6 @@ def __getattr__(name: str):
 
     if name in {
         'get_available_profiles',
-        'resolve_taxonomy_metadata',
         'validate_taxonomy_specs',
     }:
         return getattr(importlib.import_module('.taxonomy', __package__), name)

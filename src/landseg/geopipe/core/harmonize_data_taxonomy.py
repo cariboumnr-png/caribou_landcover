@@ -30,6 +30,4 @@ import typing
 class TaxonomySpecs(typing.TypedDict):
     '''Typed dictionary for domain taxonomy specification.'''
     profile: str
-    species_mapping: typing.NotRequired[dict[str, str]]
-    classes: typing.NotRequired[list[str]]
     canonical_indices: typing.NotRequired[dict[str, int]]
