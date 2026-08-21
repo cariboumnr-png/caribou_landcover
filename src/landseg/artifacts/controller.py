@@ -33,11 +33,14 @@ import datetime
 import hashlib
 import json
 import os
+import pickle
 import typing
 import zipfile
 import zlib
 # third-party imports
 import numpy
+import pandas
+import torch
 # local imports
 import landseg._constants as c
 import landseg.artifacts as artifacts
@@ -89,11 +92,20 @@ class Controller(typing.Generic[T]):
         t = os.path.getctime(self.fp)
         return datetime.datetime.fromtimestamp(t).strftime(c.TF_ISO8601)
 
-    # ----- alternative constructor
+    # ----- alternative constructors
     @classmethod
-    def load_json_or_fail(cls, fp) -> 'Controller[T]':
+    def load_json_or_fail(cls, fp: str) -> 'Controller[T]':
         '''Factory for a JSON controller that reads or fails.'''
+        return cls(fp, artifacts.LifecyclePolicy.LOAD_OR_FAIL)
 
+    @classmethod
+    def load_csv_or_fail(cls, fp: str) -> 'Controller[T]':
+        '''Factory for a CSV controller that reads or fails.'''
+        return cls(fp, artifacts.LifecyclePolicy.LOAD_OR_FAIL)
+
+    @classmethod
+    def load_pt_or_fail(cls, fp: str) -> 'Controller[T]':
+        '''Factory for a PyTorch PT controller that reads or fails.'''
         return cls(fp, artifacts.LifecyclePolicy.LOAD_OR_FAIL)
 
     # ----- public method
@@ -163,6 +175,10 @@ class Controller(typing.Generic[T]):
                 self._json_write(self.fp, src)
             case 'npz_dict':
                 self._npz_write_dict(self.fp, src)
+            case 'csv':
+                self._csv_write(self.fp, src)
+            case 'pt':
+                self._pt_write(self.fp, src)
         self.hash()
 
     def hash(self, overwrite: bool = True):
@@ -198,13 +214,24 @@ class Controller(typing.Generic[T]):
             match self.type:
                 case 'json': loaded = self._json_read(self.fp)
                 case 'npz_dict': loaded = self._npz_read_dict(self.fp)
+                case 'csv': loaded = self._csv_read(self.fp)
+                case 'pt': loaded = self._pt_read(self.fp)
                 case _: raise ValueError(f'Unsupported type: {self.type}')
             if self._check_sha256():
                 return loaded
             raise _ArtifactHashMismatch
         except FileNotFoundError as exc:
             raise _ArtifactMissing from exc
-        except (json.JSONDecodeError, zipfile.error, zlib.error) as exc:
+        except (
+            json.JSONDecodeError,
+            zipfile.error,
+            zlib.error,
+            pandas.errors.ParserError,
+            pandas.errors.EmptyDataError,
+            pickle.UnpicklingError,
+            EOFError,
+            RuntimeError,
+        ) as exc:
             raise _ArtifactCorrupted from exc
 
     def _check_sha256(self) -> bool:
@@ -217,11 +244,15 @@ class Controller(typing.Generic[T]):
             return False
 
     @staticmethod
-    def _get_file_type(fp):
-        if fp.endswith('json'):
+    def _get_file_type(fp: str) -> str:
+        if fp.endswith('.json') or fp.endswith('json'):
             return 'json'
-        if fp.endswith('npz'):
+        if fp.endswith('.npz') or fp.endswith('npz'):
             return 'npz_dict'
+        if fp.endswith('.csv') or fp.endswith('csv'):
+            return 'csv'
+        if fp.endswith('.pt') or fp.endswith('pt'):
+            return 'pt'
         raise ValueError(f'Unsupported file type: {fp}')
 
     @staticmethod
@@ -243,6 +274,32 @@ class Controller(typing.Generic[T]):
                 json.dump(src, file, indent=4)
 
     @staticmethod
+    def _csv_read(fp: str) -> pandas.DataFrame:
+        '''Read CSV data from disk into DataFrame.'''
+        return pandas.read_csv(fp)
+
+    @staticmethod
+    def _csv_write(fp: str, src: typing.Any) -> None:
+        '''Write DataFrame or CSV formatted string to disk.'''
+        if isinstance(src, pandas.DataFrame):
+            src.to_csv(fp)
+        elif isinstance(src, str):
+            with open(fp, 'w', encoding='UTF-8') as file:
+                file.write(src)
+        else:
+            raise ValueError(f'Unsupported CSV source type: {type(src)}')
+
+    @staticmethod
+    def _pt_read(fp: str) -> typing.Any:
+        '''Read PyTorch object or tensor from disk.'''
+        return torch.load(fp, map_location='cpu', weights_only=True)
+
+    @staticmethod
+    def _pt_write(fp: str, src: typing.Any) -> None:
+        '''Write PyTorch object or tensor to disk.'''
+        torch.save(src, fp)
+
+    @staticmethod
     def _npz_read_dict(fp):
         '''Load a dictionary of arrays from a compressed NPZ file.'''
         data = numpy.load(fp)
@@ -252,7 +309,6 @@ class Controller(typing.Generic[T]):
         else:
             resolved_keys = [k.item() if hasattr(k, 'item') else k for k in keys]
         return dict(zip(resolved_keys, data['values']))
-
 
     @staticmethod
     def _npz_write_dict(fp, src):
@@ -287,18 +343,22 @@ class Controller(typing.Generic[T]):
         # write src to npz
         numpy.savez_compressed(fp, keys=keys, values=values)
 
+
 class ArtifactError(Exception):
     '''Base class for artifact-related errors.'''
     def __init__(self, message='Error loading artifact'):
         super().__init__(message)
 
+
 class _ArtifactCorrupted(ArtifactError):
     def __init__(self, message='Artifact file probably corrupted'):
         super().__init__(message)
 
+
 class _ArtifactHashMismatch(ArtifactError):
     def __init__(self, message='Artifact file hash value mismatch'):
         super().__init__(message)
+
 
 class _ArtifactMissing(ArtifactError):
     def __init__(self, message='Artifact file not found on disk'):

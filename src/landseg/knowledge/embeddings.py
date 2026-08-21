@@ -25,7 +25,6 @@ profiles.
 '''
 
 # standard imports
-import json
 import pathlib
 import typing
 # third-party imports
@@ -33,6 +32,8 @@ import numpy
 import pandas
 import sentence_transformers
 import torch
+# local imports
+import landseg.artifacts as artifacts
 
 
 class SpeciesEntry(typing.TypedDict):
@@ -55,17 +56,26 @@ class SpeciesEmbeddingsMetadata(typing.TypedDict):
 
 def generate_embeddings_and_matrix(
     csv_path: str | pathlib.Path,
-    output_dir: str | pathlib.Path,
+    knowledge_root: str | pathlib.Path = 'knowledge',
+    *,
     model_name: str = 'BAAI/bge-base-en-v1.5',
     normalize: bool = True,
 ) -> None:
     '''
     Generate Sentence Transformer embeddings and similarity matrix from
     species CSV.
+
+    Args:
+        csv_path: Path to species/grouped profiles CSV.
+        knowledge_root: Root directory path for knowledge base artifacts.
+        model_name: HuggingFace sentence transformer model name.
+        normalize: Whether to L2-normalize embeddings for cosine similarity.
     '''
     csv_path = pathlib.Path(csv_path)
     csv_stem = csv_path.stem
-    target_dir = pathlib.Path(output_dir) / csv_stem
+    kp = artifacts.KnowledgePaths(root=str(knowledge_root))
+
+    target_dir = pathlib.Path(kp.profile_dpath(csv_stem))
     target_dir.mkdir(parents=True, exist_ok=True)
 
     print(f'Loading species profiles from: {csv_path}')
@@ -118,32 +128,30 @@ def generate_embeddings_and_matrix(
         ],
     }
 
-    # save output artifacts
-    emb_path = target_dir / 'species_embeddings.pt'
-    sim_path = target_dir / 'species_similarity_matrix.pt'
-    meta_path = target_dir / 'species_metadata.json'
-    sim_csv_path = target_dir / 'species_similarity_matrix.csv'
+    # save output artifacts via canonical KnowledgePaths
+    emb_path = kp.embeddings_fpath(csv_stem)
+    sim_path = kp.similarity_matrix_fpath(csv_stem)
+    meta_path = kp.metadata_fpath(csv_stem)
+    sim_csv_path = kp.similarity_csv_fpath(csv_stem)
 
-    torch.save(embeddings_tensor, emb_path)
-    torch.save(similarity_tensor, sim_path)
-
-    with open(meta_path, 'w', encoding='utf-8') as f:
-        json.dump(metadata, f, indent=2)
+    artifacts.Controller[torch.Tensor](emb_path).persist(embeddings_tensor)
+    artifacts.Controller[torch.Tensor](sim_path).persist(similarity_tensor)
+    artifacts.Controller[SpeciesEmbeddingsMetadata](meta_path).persist(metadata)
 
     # save similarity matrix as readable CSV for inspection
     sim_df = pandas.DataFrame(
         similarity_np, index=pandas.Index(keys), columns=pandas.Index(keys)
     )
-    sim_df.to_csv(sim_csv_path)
+    artifacts.Controller[pandas.DataFrame](sim_csv_path).persist(sim_df)
 
     print('\n--- Artifacts Successfully Generated ---')
     print(
         f'Embeddings Tensor [N={len(keys)}, D={embeddings_tensor.shape[1]}]: '
-        f'{emb_path.resolve()}'
+        f'{emb_path}'
     )
     print(
         f'Similarity Matrix Tensor [N={len(keys)}, N={len(keys)}]: '
-        f'{sim_path.resolve()}'
+        f'{sim_path}'
     )
-    print(f'Readable Similarity CSV: {sim_csv_path.resolve()}')
-    print(f'Class Metadata JSON: {meta_path.resolve()}')
+    print(f'Readable Similarity CSV: {sim_csv_path}')
+    print(f'Class Metadata JSON: {meta_path}')

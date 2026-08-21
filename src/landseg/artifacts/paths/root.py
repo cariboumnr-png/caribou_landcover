@@ -45,6 +45,7 @@ class ArtifactPaths:
     ingestion_root: str | None = None
     preparation_root: str | None = None
     session_root: str | None = None
+    knowledge_root: str = 'knowledge'
 
     @classmethod
     def from_config(cls, config: 'configs.RootConfig') -> typing.Self:
@@ -76,3 +77,7 @@ class ArtifactPaths:
     def session(self) -> paths.SessionPaths:
         r = self.session_root or os.path.join(self.root, 'results')
         return paths.SessionPaths(root=r)
+
+    @property
+    def knowledge(self) -> paths.KnowledgePaths:
+        return paths.KnowledgePaths(self.knowledge_root)

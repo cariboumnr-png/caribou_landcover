@@ -37,6 +37,7 @@ __all__ = [
     'Controller',
     'HarmonizationPaths',
     'IngestionPaths',
+    'KnowledgePaths',
     'LifecyclePolicy',
     'PayloadController',
     'SessionPaths',
@@ -56,6 +57,7 @@ if typing.TYPE_CHECKING:
         ArtifactPaths,
         HarmonizationPaths,
         IngestionPaths,
+        KnowledgePaths,
         PreparationPaths,
         SessionPaths,
     )
@@ -74,6 +76,7 @@ def __getattr__(name: str):
         'ArtifactPaths',
         'HarmonizationPaths',
         'IngestionPaths',
+        'KnowledgePaths',
         'PreparationPaths',
         'SessionPaths',
     }:

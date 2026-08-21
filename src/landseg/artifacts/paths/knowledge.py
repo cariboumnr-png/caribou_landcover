@@ -19,61 +19,47 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=missing-function-docstring
+
 '''
-Generate Sentence Transformer embeddings for tree species ecological
-profiles.
+Path manager for repository knowledge base artifacts.
 '''
 
 # standard imports
-import argparse
-# local imports
-import landseg.knowledge as knowledge
+import dataclasses
+import os
 
 
-def main() -> None:
-    '''CLI entrypoint for building species embedding space.'''
-    parser = argparse.ArgumentParser(
-        description=(
-            'Generate Sentence Transformer embeddings from species CSV '
-            'knowledge base.'
+# ----- `KnowledgePaths` definition
+@dataclasses.dataclass
+class KnowledgePaths:
+    '''Path manager for repository knowledge base embeddings and profiles.'''
+    root: str = 'knowledge'
+
+    def profile_dpath(self, profile: str) -> str:
+        '''Return path to the profile embedding directory.'''
+        return os.path.join(self.root, 'embeddings', profile)
+
+    def similarity_matrix_fpath(self, profile: str) -> str:
+        '''Return path to species similarity matrix tensor for profile.'''
+        return os.path.join(
+            self.profile_dpath(profile), 'species_similarity_matrix.pt'
         )
-    )
-    parser.add_argument(
-        '--csv-path',
-        type=str,
-        default='knowledge/ontario_tree_species_grouped_profiles.csv',
-        help='Path to species/grouped profiles CSV',
-    )
-    parser.add_argument(
-        '--knowledge-root',
-        type=str,
-        default='knowledge',
-        help='Knowledge base root directory',
-    )
-    parser.add_argument(
-        '--model-name',
-        type=str,
-        default='BAAI/bge-base-en-v1.5',
-        help=(
-            'Sentence Transformer model name from HuggingFace '
-            '(e.g. BAAI/bge-base-en-v1.5)'
-        ),
-    )
-    parser.add_argument(
-        '--no-normalize',
-        action='store_true',
-        help='Disable L2 normalization of embedding vectors',
-    )
 
-    args = parser.parse_args()
+    def embeddings_fpath(self, profile: str) -> str:
+        '''Return path to species embeddings tensor for profile.'''
+        return os.path.join(
+            self.profile_dpath(profile), 'species_embeddings.pt'
+        )
 
-    knowledge.generate_embeddings_and_matrix(
-        csv_path=args.csv_path,
-        knowledge_root=args.knowledge_root,
-        model_name=args.model_name,
-        normalize=not args.no_normalize,
-    )
+    def metadata_fpath(self, profile: str) -> str:
+        '''Return path to species metadata JSON for profile.'''
+        return os.path.join(
+            self.profile_dpath(profile), 'species_metadata.json'
+        )
 
-
-if __name__ == '__main__':
-    main()
+    def similarity_csv_fpath(self, profile: str) -> str:
+        '''Return path to species similarity CSV for profile.'''
+        return os.path.join(
+            self.profile_dpath(profile), 'species_similarity_matrix.csv'
+        )
