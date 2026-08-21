@@ -32,7 +32,7 @@ import rasterio
 # local imports
 import landseg.geopipe.grid as grid
 import landseg.geopipe.harmonize as harmonize
-import landseg.geopipe.harmonize.rasters.processor as processor
+import landseg.geopipe.harmonize.pipeline as processor
 
 
 @dataclasses.dataclass

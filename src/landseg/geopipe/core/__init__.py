@@ -113,7 +113,6 @@ def __getattr__(name: str):
         'DataBlockInputs',
         'DataBlockManifest',
         'LabelSpecs',
-        'TaxonomySpecs',
     }:
         obj = importlib.import_module('.ingest_data_block', __package__)
         return getattr(obj, name)
