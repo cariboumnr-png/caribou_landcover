@@ -29,7 +29,6 @@ by assembling a `DataSpecs` object consumed by models and trainers.
 
 # standard imports
 import math
-import os
 import typing
 # third-party imports
 import numpy
@@ -39,6 +38,7 @@ import landseg.artifacts as artifacts
 import landseg.core as core
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.utils as geo_utils
+import landseg.knowledge as knowledge
 
 def build_dataspec(
     artifact_paths: artifacts.ArtifactPaths,
@@ -193,18 +193,10 @@ def _get_heads(
     for hname, tax_dict in taxonomy.items():
         if isinstance(tax_dict, dict) and 'profile' in tax_dict:
             profile = tax_dict['profile']
-            matrix_path = kp.similarity_matrix_fpath(profile)
-            if os.path.isfile(matrix_path):
-                sim_matrices[hname] = torch.load(
-                    matrix_path,
-                    map_location='cpu',
-                    weights_only=True
-                )
-            else:
-                raise FileNotFoundError(
-                    f'Ecological similarity matrix not found for taxonomy '
-                    f'profile "{profile}" at path: {matrix_path}'
-                )
+            sim_matrices[hname] = knowledge.resolve_similarity_matrix(
+                profile,
+                knowledge_root=kp.root,
+            )
 
     return core.Heads(
         class_counts=counts,

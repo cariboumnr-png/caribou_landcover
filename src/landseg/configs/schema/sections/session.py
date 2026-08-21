@@ -99,10 +99,7 @@ class _TVLossConfig:
 @dataclasses.dataclass
 class _EcologicalLossConfig:
     weight: float = 0.0
-    matrix_path: str | None = (
-        'knowledge/embeddings/ontario_tree_species_grouped_profiles/'
-        'species_similarity_matrix.pt'
-    )
+    profile: str | None = 'ontario_tree_species_grouped_profiles'
 
 @dataclasses.dataclass
 class _LossTypesConfig:

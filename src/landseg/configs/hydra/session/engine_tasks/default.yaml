@@ -23,7 +23,7 @@ loss_configs:
     weight: 1e-4
   ecological:
     weight: 0.0
-    matrix_path: 'knowledge/embeddings/ontario_tree_species_grouped_profiles/species_similarity_matrix.pt'
+    profile: 'ontario_tree_species_grouped_profiles'
 
 # multi task (multihead) learning related
 mtl_constraints: []
