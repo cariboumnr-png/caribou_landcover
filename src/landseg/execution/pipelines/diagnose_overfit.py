@@ -161,6 +161,7 @@ def _prepare_dataspecs(
             logits_adjust={k: [1.0] * len(v) for k, v in cc.items()}, # neutral
             head_parent=block.manifest['label_parent'],
             head_parent_cls=block.manifest['label_parent_cls'],
+            taxonomy=block.manifest.get('label_taxonomy', {}),
         ),
         splits=core.Splits(
             train={block.manifest['block_name']: block_fpath},

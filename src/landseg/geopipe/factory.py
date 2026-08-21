@@ -186,7 +186,8 @@ def _get_heads(
         class_counts=counts,
         logits_adjust={k: __la_from_count(v) for k, v in counts.items()},
         head_parent=data_schema['labels']['label_parent'],
-        head_parent_cls=data_schema['labels']['label_parent_cls']
+        head_parent_cls=data_schema['labels']['label_parent_cls'],
+        taxonomy=data_schema['labels'].get('label_taxonomy', {})
     )
 
 def __la_from_count(ct: list[int], t: float=1.0, e: float=1e-6) -> list[float]:

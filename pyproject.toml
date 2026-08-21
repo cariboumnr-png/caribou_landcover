@@ -48,3 +48,12 @@ filterwarnings = [
     "ignore::DeprecationWarning:rasterio.*",
     "ignore:Setting the shape on a NumPy array:DeprecationWarning",
 ]
+
+[tool.pyright]
+include = ["src", "tests"]
+extraPaths = ["src"]
+venvPath = "."
+venv = ".venv"
+reportGeneralTypeIssues = "none"
+reportAttributeAccessIssue = "none"
+reportOptionalContextManager = "none"

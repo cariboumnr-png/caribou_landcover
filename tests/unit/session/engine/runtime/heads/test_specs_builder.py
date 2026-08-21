@@ -100,6 +100,32 @@ def test_headspecs_build_with_head_weights(dataspecs):
     assert specs['head_2'].weight == 1.0
 
 
+def test_headspecs_build_with_taxonomy(dataspecs):
+    '''
+    Given: `DataSpecs` fixture with taxonomy metadata attached to heads.
+    When: `build_headspecs()` is called.
+    Then: Taxonomy metadata is propagated to the corresponding `HeadSpec`.
+    '''
+    dataspecs.heads.taxonomy = {
+        'head_1': {
+            'profile': 'ontario_tree_species_grouped_profiles',
+            'canonical_indices': {'1': 0, '2': 3},
+        }
+    }
+
+    specs = head_specs.build_headspecs(
+        dataspecs,
+        alpha_fn='inverse',
+    )
+
+    assert specs['head_1'].taxonomy is not None
+    assert (
+        specs['head_1'].taxonomy['profile']
+        == 'ontario_tree_species_grouped_profiles'
+    )
+    assert specs['head_2'].taxonomy is None
+
+
 def test_count_to_inv_weights():
     '''
     Given: Class counts.

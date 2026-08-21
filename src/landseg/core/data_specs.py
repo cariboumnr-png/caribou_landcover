@@ -92,7 +92,8 @@ class DataSpecs:
             'heads': {
                 'names': list(self.heads.class_counts.keys()),
                 'class_counts': self.heads.class_counts,
-                'head_parent': self.heads.head_parent
+                'head_parent': self.heads.head_parent,
+                'taxonomy': self.heads.taxonomy,
             },
             'splits': {
                 'train_count': len(self.splits.train),
@@ -160,6 +161,7 @@ class Heads:
     logits_adjust: dict[str, list[float]]
     head_parent: dict[str, str | None]
     head_parent_cls: dict[str, int | None]
+    taxonomy: dict[str, dict[str, typing.Any]] = field(default_factory=dict)
 
     def __str__(self) -> str:
         def _ln(lst):
@@ -168,10 +170,15 @@ class Heads:
         la = self.logits_adjust
         t1 = '\n - '.join([f'{k}:\t{v}' for k, v in cc.items()])
         t2 = '\n - '.join([f'{k}:\t{_ln(v)}' for k, v in la.items()])
+        t3 = ', '.join([
+            f'{k}: {v.get("profile", "none")}'
+            for k, v in self.taxonomy.items()
+        ]) if self.taxonomy else 'none'
         return '\n'.join([
             '[Heads Specs]',
             f'Class distribution of each head: \n - {t1}',
             f'Head-wise logits adjustment: \n - {t2}',
+            f'Head taxonomy profiles: {t3}',
         ])
 
 @dataclasses.dataclass

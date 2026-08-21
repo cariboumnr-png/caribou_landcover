@@ -32,6 +32,7 @@ specifications used during loss computation and evaluation.
 
 # standard imports
 import dataclasses
+import typing
 # third-party imports
 import numpy
 # local imports
@@ -49,6 +50,7 @@ class HeadSpec:
     parent_cls: int | None # 1-based
     exclude_cls: tuple[int, ...] | None
     weight: float = 1.0 # default weight for loss scaling across heads
+    taxonomy: dict[str, typing.Any] | None = None
 
 # --------------------------------Public  Class--------------------------------
 class HeadSpecs:
@@ -149,8 +151,18 @@ def build_headspecs(
     headspecs_dict: dict[str, heads.HeadSpec] = {}
     # iterate heads in data and create headspec for each
     for name, counts in data.heads.class_counts.items():
-        exclude = tuple(excluded_cls.get(name, [])) if excluded_cls else None
-        weight = head_weights.get(name, 1.0) if head_weights and name in head_weights else 1.0
+        exclude = (
+            tuple(excluded_cls.get(name, []))
+            if excluded_cls else None
+        )
+        weight = (
+            head_weights.get(name, 1.0)
+            if head_weights and name in head_weights else 1.0
+        )
+        taxonomy = (
+            data.heads.taxonomy.get(name)
+            if data.heads.taxonomy else None
+        )
         headspec = heads.HeadSpec(
             name=name,
             count=counts,
@@ -159,6 +171,7 @@ def build_headspecs(
             parent_cls=data.heads.head_parent_cls[name],
             exclude_cls=exclude,
             weight=weight,
+            taxonomy=taxonomy,
         )
         headspecs_dict[name] = headspec
 
