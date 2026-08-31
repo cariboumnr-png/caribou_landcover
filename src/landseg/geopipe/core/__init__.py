@@ -52,18 +52,22 @@ __all__ = [
     'GridMeta',
     'ImageBandStats',
     'LabelSpecs',
+    'TaxonomySpecs',
     'TransformSchema',
     'PartitionSummary',
 ]
 
 # for static check
 if typing.TYPE_CHECKING:
+    from .harmonize_data_taxonomy import (
+        TaxonomySpecs
+    )
     from .ingest_data_block import (
         DataBlock,
         DataBlockConfig,
         DataBlockInputs,
         DataBlockManifest,
-        LabelSpecs
+        LabelSpecs,
     )
     from .ingest_data_catalog import DataCatalog, CatalogEntry
     from .ingest_data_schema import DataSchema
@@ -86,7 +90,14 @@ if typing.TYPE_CHECKING:
         PartitionSummary
     )
 
+
 def __getattr__(name: str):
+    if name in {
+        'TaxonomySpecs',
+    }:
+        obj = importlib.import_module('.harmonize_data_taxonomy', __package__)
+        return getattr(obj, name)
+
     if name in {
         'GridSpec',
         'GridPayload',
@@ -101,7 +112,7 @@ def __getattr__(name: str):
         'DataBlockConfig',
         'DataBlockInputs',
         'DataBlockManifest',
-        'LabelSpecs'
+        'LabelSpecs',
     }:
         obj = importlib.import_module('.ingest_data_block', __package__)
         return getattr(obj, name)

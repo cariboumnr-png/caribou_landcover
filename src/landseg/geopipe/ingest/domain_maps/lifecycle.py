@@ -163,11 +163,16 @@ def _prep_mapping(
         raise artifacts.ArtifactError from exc
     # create a new mapping if not valid
     if not mapped:
-        mapped = domain_maps.map_domain_to_grid(
-            grid,
-            config.input_fpath,
-            index_base=config.index_base,
-        )
-        ctrl.persist(mapped)
+        try:
+            mapped = domain_maps.map_domain_to_grid(
+                grid,
+                config.input_fpath,
+                index_base=config.index_base,
+            )
+            ctrl.persist(mapped)
+        except ValueError as e:
+            raise ValueError(
+                f'Error mapping domain to grid for file: {config.input_fpath}'
+            ) from e
 
     return mapped

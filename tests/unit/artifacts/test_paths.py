@@ -244,3 +244,51 @@ def test_session_paths_init_and_checkpoints(tmp_path):
     results_last = paths_mod.SessionPaths(root=str(tmp_path))
     results_last.init(trace_to_last=True)
     assert results_last.run_id == 'run_0002'
+
+
+# ----- `KnowledgePaths` tests
+def test_knowledge_paths_defaults_and_fpaths():
+    '''
+    Given: A default or custom knowledge root directory string.
+    When: Calling `KnowledgePaths` helper methods for a profile.
+    Then: Return joined filepaths to matrix and manifest artifacts.
+    '''
+    kp = paths_mod.KnowledgePaths()
+    assert kp.root == 'knowledge'
+    assert kp.profile_dpath('my_profile') == os.path.join(
+        'knowledge', 'embeddings', 'my_profile'
+    )
+    assert kp.similarity_matrix_fpath('my_profile') == os.path.join(
+        'knowledge', 'embeddings', 'my_profile',
+        'species_similarity_matrix.pt'
+    )
+    assert kp.embeddings_fpath('my_profile') == os.path.join(
+        'knowledge', 'embeddings', 'my_profile',
+        'species_embeddings.pt'
+    )
+    assert kp.metadata_fpath('my_profile') == os.path.join(
+        'knowledge', 'embeddings', 'my_profile',
+        'species_metadata.json'
+    )
+    assert kp.similarity_csv_fpath('my_profile') == os.path.join(
+        'knowledge', 'embeddings', 'my_profile',
+        'species_similarity_matrix.csv'
+    )
+
+    # custom knowledge root
+    kp_custom = paths_mod.KnowledgePaths(root='/opt/knowledge')
+    assert kp_custom.similarity_matrix_fpath('tree_prof') == os.path.join(
+        '/opt/knowledge', 'embeddings', 'tree_prof',
+        'species_similarity_matrix.pt'
+    )
+
+
+def test_artifact_paths_knowledge_integration():
+    '''
+    Given: `ArtifactPaths` with default or overridden knowledge_root.
+    When: Accessing `.knowledge` property.
+    Then: Return configured `KnowledgePaths` instance.
+    '''
+    art = paths_mod.ArtifactPaths(knowledge_root='/data/knowledge')
+    assert isinstance(art.knowledge, paths_mod.KnowledgePaths)
+    assert art.knowledge.root == '/data/knowledge'

@@ -34,6 +34,7 @@ specifications used during loss computation and evaluation.
 import dataclasses
 # third-party imports
 import numpy
+import torch
 # local imports
 import landseg.core as core
 import landseg.session.engine.runtime.tasks.heads as heads
@@ -49,6 +50,7 @@ class HeadSpec:
     parent_cls: int | None # 1-based
     exclude_cls: tuple[int, ...] | None
     weight: float = 1.0 # default weight for loss scaling across heads
+    similarity_matrix: torch.Tensor | None = None
 
 # --------------------------------Public  Class--------------------------------
 class HeadSpecs:
@@ -90,8 +92,8 @@ def build_headspecs(
     Construct per-head specifications from dataset metadata.
 
     Generates a ``HeadSpec`` for each head defined in the dataset,
-    computing class-balanced loss weights and attaching hierarchy
-    and exclusion information.
+    computing class-balanced loss weights, attaching pre-resolved
+    taxonomy similarity matrices, hierarchy, and exclusion information.
 
     Args:
         data: Dataset specification containing per-head class counts
@@ -149,8 +151,18 @@ def build_headspecs(
     headspecs_dict: dict[str, heads.HeadSpec] = {}
     # iterate heads in data and create headspec for each
     for name, counts in data.heads.class_counts.items():
-        exclude = tuple(excluded_cls.get(name, [])) if excluded_cls else None
-        weight = head_weights.get(name, 1.0) if head_weights and name in head_weights else 1.0
+        exclude = (
+            tuple(excluded_cls.get(name, []))
+            if excluded_cls else None
+        )
+        weight = (
+            head_weights.get(name, 1.0)
+            if head_weights and name in head_weights else 1.0
+        )
+        sim_matrix = (
+            data.heads.similarity_matrices.get(name)
+            if data.heads.similarity_matrices else None
+        )
         headspec = heads.HeadSpec(
             name=name,
             count=counts,
@@ -159,6 +171,7 @@ def build_headspecs(
             parent_cls=data.heads.head_parent_cls[name],
             exclude_cls=exclude,
             weight=weight,
+            similarity_matrix=sim_matrix,
         )
         headspecs_dict[name] = headspec
 

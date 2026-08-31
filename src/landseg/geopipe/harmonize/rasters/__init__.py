@@ -30,17 +30,12 @@ import typing
 
 __all__ = [
     # classes
-    'ProcessedRasters',
-    'DatasetConfigItem',
     # functions
     'warp_to_grid',
-    'stack_canonical_raster',
+    'stack_rasters',
     'unify_nodata_mask',
-    'validate_domain_raster_index',
     'add_band_description_to_vrt',
     'add_tag_to_vrt',
-    'compile_dataset_manifest',
-    'process_source',
 ]
 
 # for static check
@@ -48,22 +43,19 @@ if typing.TYPE_CHECKING:
     from .spatial import (
         warp_to_grid,
     )
-    from .raster_ops import (
-        stack_canonical_raster,
-        unify_nodata_mask,
-        validate_domain_raster_index,
+
+    from .metadata import (
         add_band_description_to_vrt,
         add_tag_to_vrt,
     )
-    from .processor import (
-        ProcessedRasters,
-        process_source,
-    )
-    from .validator import (
-        DatasetConfigItem,
-        compile_dataset_manifest,
+
+    from .mask import (
+        unify_nodata_mask,
     )
 
+    from .stack import(
+        stack_rasters,
+    )
 
 def __getattr__(name: str):
 
@@ -73,30 +65,25 @@ def __getattr__(name: str):
         return getattr(importlib.import_module('.spatial', __package__), name)
 
     if name in {
-        'stack_canonical_raster',
-        'unify_nodata_mask',
-        'validate_domain_raster_index',
         'add_band_description_to_vrt',
         'add_tag_to_vrt',
     }:
         return getattr(
-            importlib.import_module('.raster_ops', __package__), name
+            importlib.import_module('.metadata', __package__), name
         )
 
     if name in {
-        'ProcessedRasters',
-        'process_source',
+        'unify_nodata_mask',
     }:
         return getattr(
-            importlib.import_module('.processor', __package__), name
+            importlib.import_module('.mask', __package__), name
         )
 
     if name in {
-        'DatasetConfigItem',
-        'compile_dataset_manifest',
+        'stack_rasters',
     }:
         return getattr(
-            importlib.import_module('.validator', __package__), name
+            importlib.import_module('.stack', __package__), name
         )
 
     raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

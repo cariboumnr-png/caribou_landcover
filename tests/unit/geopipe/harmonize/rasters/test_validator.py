@@ -26,7 +26,7 @@ import json
 # third-party imports
 import pytest
 # local imports
-import landseg.geopipe.harmonize.rasters.validator as validator
+import landseg.geopipe.harmonize.manifest as validator
 
 
 

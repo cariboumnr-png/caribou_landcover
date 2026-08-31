@@ -29,6 +29,8 @@ and trains until near-perfect IoU to validate the end-to-end stack.
 # standard imports
 import os
 import typing
+# third-party imports
+import torch
 # local imports
 import landseg._constants as c
 import landseg.artifacts as artifacts
@@ -40,7 +42,7 @@ import landseg.geopipe.ingest as ingest
 import landseg.geopipe.ingest.data_blocks.assembler as assembler
 import landseg.geopipe.ingest.data_blocks.mapper as mapper
 import landseg.geopipe.utils as geo_utils
-
+import landseg.knowledge as knowledge
 import landseg.models as models
 import landseg.session as session
 import landseg.session.engine as engine
@@ -138,6 +140,18 @@ def _prepare_dataspecs(
     counts = block.manifest['label_count']
     cc = {k: [1] * len(counts[k]) for k in counts if k != 'original'}
 
+    tax = block.manifest.get('label_taxonomy', {})
+    sim_matrices: dict[str, torch.Tensor] = {}
+    for hname, tax_dict in tax.items():
+        if isinstance(tax_dict, dict) and 'profile' in tax_dict:
+            profile = tax_dict['profile']
+            try:
+                sim_matrices[hname] = knowledge.resolve_similarity_matrix(
+                    profile
+                )
+            except (FileNotFoundError, artifacts.ArtifactError):
+                pass
+
     return core.DataSpecs(
         name='overfit_single_block',
         mode='default',
@@ -161,6 +175,8 @@ def _prepare_dataspecs(
             logits_adjust={k: [1.0] * len(v) for k, v in cc.items()}, # neutral
             head_parent=block.manifest['label_parent'],
             head_parent_cls=block.manifest['label_parent_cls'],
+            taxonomy=tax,
+            similarity_matrices=sim_matrices,
         ),
         splits=core.Splits(
             train={block.manifest['block_name']: block_fpath},

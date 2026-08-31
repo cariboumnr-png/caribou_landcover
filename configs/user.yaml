@@ -44,13 +44,7 @@ data-ingest:
   output_dpath: ./experiment/artifacts/ingested_data
   # Targeted harmonization run folder index, name, or path (null for latest)
   harmonization_run: null
-
-  # ---------------------------------------------------------------------------
-  # Domain Context Layer Settings
-  # ---------------------------------------------------------------------------
-  domain_ids_name: null
-  domain_vec_name: null
-
+  # Force rebuild even if ingested blocks exist
   rebuild: true
 
 
@@ -89,6 +83,11 @@ data-prepare:
 
 model-train:
   output_dpath: ./experiment/results
+  # ---------------------------------------------------------------------------
+  # Domain Context Layer Settings
+  # ---------------------------------------------------------------------------
+  categorical_domain: null
+  continuous_domain: null
   # ---------------------------------------------------------------------------
   # Model Architecture & Training Hyperparameters
   # ---------------------------------------------------------------------------

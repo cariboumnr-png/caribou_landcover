@@ -162,6 +162,30 @@ def read_label_specs(fpath: str | None) -> dict[str, geo_core.LabelSpecs]:
                 if not isinstance(value, dict):
                     return {}
                 spec[key] = value
+
+        if 'taxonomy' in tags:
+            try:
+                tax_val = _parse_vrt_tag(tags['taxonomy'])
+            except (ValueError, SyntaxError, json.JSONDecodeError):
+                return {}
+            if tax_val:
+                if not isinstance(tax_val, dict):
+                    return {}
+                profile = tax_val.get('profile')
+                if not isinstance(profile, str):
+                    return {}
+
+                spec['taxonomy'] = {}
+                spec['taxonomy']['profile'] = profile
+                if (
+                    'canonical_indices' in tax_val and
+                    isinstance(tax_val['canonical_indices'], dict)
+                ):
+                    spec['taxonomy']['canonical_indices'] = {
+                        str(k): int(v)
+                        for k, v in tax_val['canonical_indices'].items()
+                    }
+
         specs[name] = spec
 
     return specs

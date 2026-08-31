@@ -67,6 +67,8 @@ def warp_to_grid(
     else:
         resample_alg = rasterio.enums.Resampling.bilinear
 
+    data_type = 'uint8' if is_categorical else 'float32' # current canon dtype
+
     with rasterio.open(input_path) as src:
 
         nodata_val = (
@@ -84,6 +86,7 @@ def warp_to_grid(
                 height=world_grid.h,
                 resampling=resample_alg,
                 nodata=nodata_val,
+                dtype=data_type,
             ) as vrt:
                 rasterio.shutil.copy(vrt, output_path, driver='VRT')
 

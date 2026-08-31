@@ -24,12 +24,16 @@ Utility script to generate dummy/mock geospatial datasets (GeoTIFFs)
 and corresponding configurations for local pipeline runs and testing.
 '''
 
+# standard imports
+import argparse
 import os
 import sys
-import argparse
+# local imports
 import landseg.testing as testing
 
-if __name__ == '__main__':
+
+def main() -> None:
+    '''CLI entry point to generate dummy data.'''
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--output_dir',
@@ -63,3 +67,7 @@ if __name__ == '__main__':
 
     print('-' * 10)
     testing.generate_dummy_data(args.output_dir)
+
+
+if __name__ == '__main__':
+    main()

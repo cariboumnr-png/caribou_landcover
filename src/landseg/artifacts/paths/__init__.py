@@ -34,6 +34,7 @@ __all__ = [
     'ArtifactPaths',
     'HarmonizationPaths',
     'IngestionPaths',
+    'KnowledgePaths',
     'PreparationPaths',
     'SessionPaths',
 ]
@@ -43,6 +44,7 @@ if typing.TYPE_CHECKING:
     from .data_harmonization import HarmonizationPaths
     from .data_ingestion import IngestionPaths
     from .data_preparation import PreparationPaths
+    from .knowledge import KnowledgePaths
     from .root import ArtifactPaths
     from .session import SessionPaths
 
@@ -54,6 +56,9 @@ def __getattr__(name: str):
 
     if name in {'IngestionPaths'}:
         return getattr(importlib.import_module('.data_ingestion', __package__), name)
+
+    if name in {'KnowledgePaths'}:
+        return getattr(importlib.import_module('.knowledge', __package__), name)
 
     if name in {'PreparationPaths'}:
         return getattr(importlib.import_module('.data_preparation', __package__), name)

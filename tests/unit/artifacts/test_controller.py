@@ -27,7 +27,9 @@ Unit tests for `landseg.artifacts.controller`.
 
 # third-party imports
 import numpy
+import pandas
 import pytest
+import torch
 # local imports
 import landseg.artifacts.controller as ctrl_mod
 import landseg.artifacts.policy as policy_mod
@@ -93,6 +95,77 @@ def test_npz_write_validation(tmp_path):
 
     with pytest.raises(ValueError, match='Input source must be a dictionary'):
         ctrl._npz_write_dict(npz_path, {'key': 'not_an_array'})  # type: ignore
+
+
+# ----- `Controller` CSV tests
+def test_csv_persist_fetch_and_hash(tmp_path):
+    '''
+    Given: Target CSV file path and DataFrame payload.
+    When: `Controller.persist()` and `Controller.fetch()` are executed.
+    Then: Persist to CSV, record hash, and load with integrity check.
+    '''
+    csv_path = str(tmp_path / 'table.csv')
+    ctrl = ctrl_mod.Controller[pandas.DataFrame](csv_path)
+
+    df_in = pandas.DataFrame({'a': [1, 2], 'b': ['x', 'y']})
+    ctrl.persist(df_in)
+
+    assert ctrl.is_valid is True
+    loaded = ctrl.fetch()
+    assert loaded is not None
+    assert list(loaded['a']) == [1, 2]
+    assert list(loaded['b']) == ['x', 'y']
+
+    # load_csv_or_fail factory
+    ctrl_fail = ctrl_mod.Controller.load_csv_or_fail(csv_path)
+    loaded_fail = ctrl_fail.fetch()
+    assert loaded_fail is not None
+
+    # tampered CSV triggers hash mismatch
+    with open(csv_path, 'a', encoding='UTF-8') as f:
+        f.write('\n3,z')
+    assert ctrl.is_valid is False
+    with pytest.raises(ctrl_mod.ArtifactError):
+        ctrl.fetch()
+
+
+# ----- `Controller` PyTorch PT tests
+def test_pt_persist_fetch_and_hash(tmp_path):
+    '''
+    Given: Target PyTorch PT file path and tensor payload.
+    When: `Controller.persist()` and `Controller.fetch()` are executed.
+    Then: Persist tensor, record hash, and load with integrity check.
+    '''
+    pt_path = str(tmp_path / 'tensor.pt')
+    ctrl = ctrl_mod.Controller[torch.Tensor](pt_path)
+
+    tensor_in = torch.randn(4, 4)
+    ctrl.persist(tensor_in)
+
+    assert ctrl.is_valid is True
+    loaded = ctrl.fetch()
+    assert loaded is not None
+    assert torch.allclose(loaded, tensor_in)
+
+    # load_pt_or_fail factory
+    ctrl_fail = ctrl_mod.Controller.load_pt_or_fail(pt_path)
+    loaded_fail = ctrl_fail.fetch()
+    assert loaded_fail is not None
+    assert torch.allclose(loaded_fail, tensor_in)
+
+    # tampered PT triggers hash mismatch
+    tensor_tampered = torch.randn(4, 4)
+    torch.save(tensor_tampered, pt_path)
+    assert ctrl.is_valid is False
+    with pytest.raises(ctrl_mod.ArtifactError):
+        ctrl.fetch()
+
+    # corrupted bytes trigger decode failure and ArtifactError
+    with open(pt_path, 'wb') as f:
+        f.write(b'corrupted_bytes')
+    assert ctrl.is_valid is False
+    with pytest.raises(ctrl_mod.ArtifactError):
+        ctrl.fetch()
 
 
 # ----- `Controller` lifecycle policies tests

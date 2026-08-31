@@ -26,7 +26,7 @@ Tensorboard tracker
 # standard imports
 import typing
 # third-party imports
-import torch.utils.tensorboard as tensorbaord
+import torch.utils.tensorboard as tensorboard
 # local imports
 import landseg.session.instrumentation.dashboards as dashboards
 
@@ -40,7 +40,7 @@ class TensorBoardTracker(dashboards.BaseTracker):
 
     def __init__(self, uri: str):
         super().__init__(uri, None)
-        self.writer = tensorbaord.SummaryWriter(log_dir=self.uri)
+        self.writer = tensorboard.SummaryWriter(log_dir=self.uri)
 
     def log_scalar(self, key: str, value: float, step: int):
         self.writer.add_scalar(key, value, step)

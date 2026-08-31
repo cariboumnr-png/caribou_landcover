@@ -32,11 +32,13 @@ import math
 import typing
 # third-party imports
 import numpy
+import torch
 # local imports
 import landseg.artifacts as artifacts
 import landseg.core as core
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.utils as geo_utils
+import landseg.knowledge as knowledge
 
 def build_dataspec(
     artifact_paths: artifacts.ArtifactPaths,
@@ -94,16 +96,18 @@ def build_dataspec(
     assert transform_schema # typing assertion
 
     # return specs
-    specs = core.DataSpecs(
+    return core.DataSpecs(
         name=data_schema['dataset']['name'],
         mode=mode,
         meta=_get_meta(data_schema, transform_schema),
-        heads=_get_heads(data_schema, transform_schema),
+        heads=_get_heads(
+            data_schema,
+            transform_schema,
+            knowledge_paths=artifact_paths.knowledge
+        ),
         splits=_get_split(transform_schema),
         domains=_get_domain(transform_schema, ids_domain, vec_domain)
     )
-
-    return specs
 
 # ------------------------------private  function------------------------------
 def _load_domain(fp: str) -> geo_core.DomainTileMap | None:
@@ -176,17 +180,31 @@ def _get_meta(
 
 def _get_heads(
     data_schema: geo_core.DataSchema,
-    transform_schema: geo_core.TransformSchema
+    transform_schema: geo_core.TransformSchema,
+    knowledge_paths: artifacts.KnowledgePaths | None = None
 ) -> core.Heads:
     '''Populate `_Heads` dataclass from schema dictionary.'''
 
     raw_counts: dict[str, list[int]] = transform_schema['label_stats']
     counts = {k: v for k, v in raw_counts.items() if k != 'original'}
+    taxonomy = data_schema['labels'].get('label_taxonomy', {})
+    sim_matrices: dict[str, torch.Tensor] = {}
+    kp = knowledge_paths or artifacts.KnowledgePaths()
+    for hname, tax_dict in taxonomy.items():
+        if isinstance(tax_dict, dict) and 'profile' in tax_dict:
+            profile = tax_dict['profile']
+            sim_matrices[hname] = knowledge.resolve_similarity_matrix(
+                profile,
+                knowledge_root=kp.root,
+            )
+
     return core.Heads(
         class_counts=counts,
         logits_adjust={k: __la_from_count(v) for k, v in counts.items()},
         head_parent=data_schema['labels']['label_parent'],
-        head_parent_cls=data_schema['labels']['label_parent_cls']
+        head_parent_cls=data_schema['labels']['label_parent_cls'],
+        taxonomy=taxonomy,
+        similarity_matrices=sim_matrices,
     )
 
 def __la_from_count(ct: list[int], t: float=1.0, e: float=1e-6) -> list[float]:

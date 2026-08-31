@@ -25,17 +25,55 @@ Multi-raster channel composition and nodata mask unification operations.
 
 # standard imports
 import os
+import typing
 import xml.etree.ElementTree
 # third-party imports
-import numpy
 import rasterio
-import rasterio.crs
-import rasterio.shutil
-import rasterio.vrt
 
 
 # ----- public functions
-def stack_canonical_raster(
+def stack_rasters(
+    features_fapths: list[str],
+    labels_fapths: list[str],
+    output_dir: str,
+) -> typing.Generator[str, None, dict[str, str]]:
+    '''Stack feature and label rasters if applicable.'''
+
+    def _out_path(tag: str) -> str:
+        return os.path.join(output_dir, f'harmonized_{tag}_STACKED.vrt')
+
+    stacked: dict[str, str] = {}
+    yield 'Stacking rasters if applicable'
+
+    # features
+    n = len(features_fapths)
+    if n == 0:
+        pass
+    elif n == 1:
+        stacked.update({'features': features_fapths[0]})
+    else:
+        out_path = _out_path('features')
+        _composite_vrt(features_fapths, out_path)
+        stacked.update({'features': out_path})
+        yield f'Feature rasters stacked to {out_path} (n={n})'
+
+    # labels
+    n = len(labels_fapths)
+    if n == 0:
+        pass
+    elif n == 1:
+        stacked.update({'labels': labels_fapths[0]})
+    else:
+        out_path = _out_path('labels')
+        _composite_vrt(labels_fapths, out_path)
+        stacked.update({'labels': out_path})
+        yield f'Label rasters stacked to {out_path} (n={n})'
+
+    return stacked
+
+
+# ----- private helpers
+def _composite_vrt(
     source_paths: list[str],
     output_path: str
 ) -> str:
@@ -64,111 +102,6 @@ def stack_canonical_raster(
     return os.path.abspath(output_path)
 
 
-def unify_nodata_mask(
-    input_path: str,
-    output_mask_path: str
-) -> str:
-    '''
-    Create a 1-band boolean valid pixel mask across bands.
-
-    Value mapping: 1=valid, 0=nodata.
-
-    Args:
-        input_path:
-            Path to the multi-band source raster.
-        output_mask_path:
-            Destination path for the valid-pixel mask raster.
-
-    Returns:
-        Absolute path to the created mask raster.
-    '''
-    out_dir = os.path.dirname(os.path.abspath(output_mask_path))
-    os.makedirs(out_dir, exist_ok=True)
-
-    with rasterio.open(input_path) as src:
-        valid_mask = numpy.ones((src.height, src.width), dtype=numpy.uint8)
-
-        for b in range(1, src.count + 1):
-            data = src.read(b)
-            if src.nodatavals and src.nodatavals[b - 1] is not None:
-                nodata_val = src.nodatavals[b - 1]
-                if numpy.isnan(nodata_val):
-                    valid_mask[numpy.isnan(data)] = 0
-                else:
-                    valid_mask[data == nodata_val] = 0
-
-        meta = src.meta.copy()
-        meta.update({
-            'count': 1,
-            'dtype': 'uint8',
-            'nodata': 0,
-            'compress': 'deflate'
-        })
-        if output_mask_path.endswith('.vrt'):
-            meta['driver'] = 'GTiff'
-            raw_tif = output_mask_path[:-4] + '_mask.tif'
-            with rasterio.open(raw_tif, 'w', **meta) as dst:
-                dst.write(valid_mask, 1)
-
-            with rasterio.open(raw_tif) as mask_src:
-                with rasterio.vrt.WarpedVRT(mask_src) as vrt:
-                    rasterio.shutil.copy(vrt, output_mask_path, driver='VRT')
-        else:
-            meta['driver'] = 'GTiff'
-            with rasterio.open(output_mask_path, 'w', **meta) as dst:
-                dst.write(valid_mask, 1)
-
-    return os.path.abspath(output_mask_path)
-
-
-def validate_domain_raster_index(
-    input_path: str,
-    min_allowed: int = 1
-) -> None:
-    '''
-    Validate that a domain raster contains 1-based indices.
-
-    Args:
-        input_path: Path to the input domain raster file.
-        min_allowed: Minimum allowed index value (default: 1).
-
-    Raises:
-        ValueError: If valid pixel values contain any values < min_allowed.
-    '''
-    with rasterio.open(input_path) as src:
-        data = src.read(1)
-        nodata = src.nodata
-        valid_data = data[data != nodata] if nodata is not None else data
-        if valid_data.size > 0 and int(valid_data.min()) < min_allowed:
-            raise ValueError(
-                f'Domain raster [{input_path}] contains index values '
-                f'< {min_allowed} (minimum found: {valid_data.min()}). '
-                'Categorical domain rasters must use 1-based indexing.'
-            )
-
-
-def add_band_description_to_vrt(
-    vrt_fpath: str,
-    band_mapping: dict[int, str]
-):
-    '''Simple helper to add band description to a `.vrt` raster file.'''
-    with rasterio.open(vrt_fpath, 'r+') as vrt:
-        if len(band_mapping) != vrt.count:
-            raise ValueError(
-                f'Expected {vrt.count} band descriptions, '
-                f'got {len(band_mapping)}'
-            )
-        for band, name in band_mapping.items():
-            vrt.set_band_description(int(band), name)
-
-
-def add_tag_to_vrt(vrt_fpath: str, **kwargs):
-    '''Simple helper to add metadata to a `.vrt` raster file.'''
-    with rasterio.open(vrt_fpath, 'r+') as vrt:
-        vrt.update_tags(**kwargs)
-
-
-# ----- private helpers
 def _build_stacked_vrt_xml(
     source_paths: list[str],
     output_path: str,
