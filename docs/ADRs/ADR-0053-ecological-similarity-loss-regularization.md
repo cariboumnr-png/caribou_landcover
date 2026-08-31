@@ -1,120 +1,135 @@
-# ADR-0053: Ecological Similarity Loss Regularization for Tree Species Segmentation
+# ADR-0053: Ecological Similarity Loss for Tree Species Segmentation
 
-- **Status:** Proposed
-- **Date:** 2026-08-03
+* **Status:** Accepted and Implemented
+* **Date:** 2026-08-31
 
-## Context
+## 1. Context
 
-The `landseg` training pipeline currently configures loss via `CompositeLoss`,
-composing primitives such as Focal Loss, Dice Loss, Spectral Smoothness, and
-Total Variation (`session/engine/runtime/tasks/loss/primitives/`). While
-these primitives effectively address class imbalance, region overlap, and
-spatial smoothness, they treat all species class targets as orthogonal
-one-hot vectors.
+The `landseg` training pipeline uses `CompositeLoss` to combine loss functions
+such as Focal Loss, Dice Loss, Spectral Smoothness, and Total Variation.
 
-Under standard discrete one-hot target encodings, loss functions assume that
-all incorrect classes are uniformly equidistant from the ground truth. This
-fails to account for continuous domain semantics—such as taxonomic kinship,
-functional growth forms, and shared ecological niches—treating minor
-within-guild misclassifications as severely as major cross-guild or
-cross-climatic errors.
+These losses treat segmentation classes as discrete categories. As a result,
+all incorrect classes are treated independently of their semantic or
+ecological relationship to the target class.
 
-For example, misclassifying a Boreal Lowland Black Spruce (`SB`) as an
-ecologically similar Tamarack (`LA`) incurs the exact same cross-entropy or
-focal penalty as misclassifying it as an ecologically incongruous Carolinian
-Sugar Maple (`MH`).
+For tree species segmentation, this can be undesirable. For example,
+misclassifying Black Spruce (`SB`) as Tamarack (`LA`) may be more ecologically
+plausible than misclassifying it as Sugar Maple (`MH`), but a conventional
+classification loss does not distinguish these errors.
 
-To inject domain knowledge without architectural risk or inference latency,
-we will leverage a repository knowledge base (`knowledge/`) containing
-138 FRI species profiles and 29 ecological groups encoded via Sentence
-Transformers into embedding tensors and an $N \times N$ cosine similarity
-matrix (`species_similarity_matrix.pt`).
+The repository now contains a knowledge base of tree-species and ecological
+group profiles. The profile descriptions are converted into Sentence
+Transformer embeddings and a pairwise cosine-similarity matrix is generated
+and stored as a reusable artifact.
 
-## Decision
+## 2. Decision
 
-We will introduce an **Ecological Similarity Loss Regularizer** as Phase 1
-of our domain knowledge integration strategy.
+We introducde an **Ecological Similarity Loss** as an optional auxiliary loss
+for classification heads that have a compatible taxonomy profile.
 
-### Key Aspects of the Proposed Design
+### 2.1 Ecological Similarity Loss
 
-1. **Non-Invasive Model Architecture:**
-   - The UNet model structure and output layer will remain completely
-     unchanged.
-   - Inference execution and ONNX/PyTorch deployment speed will incur zero
-     overhead.
+For target class $y$, predicted probabilities $p_c$, and similarity matrix
+$S$, the ecological loss is:
 
-2. **Similarity Matrix Supervision:**
-   - We will load `species_similarity_matrix.pt` ($S \in \mathbb{R}^{N \times N}$)
-     during training.
-   - We will compute a domain-aware distance penalty:
+$$
+\mathcal{L}_{eco}
+=
+\sum_{c=1}^{N} p_c(1-S_{y,c})
+$$
 
-     $$
-     \mathcal{L}_{\text{eco}} = \sum_{c=1}^N p_c \cdot (1 - S_{y, c})
-     $$
+The loss therefore gives a smaller penalty to probability assigned to classes
+that are more similar to the target and a larger penalty to dissimilar
+classes.
 
-     where $p_c$ is the predicted softmax probability for class $c$ and $y$ is
-     the ground truth target class.
+The ecological loss is added to the existing composite loss using a configurable
+weight:
 
-3. **Loss Composite Integration:**
-   - We will implement `EcologicalSimilarityLoss` as a primitive loss
-     subclass under `session/components/task/loss/primitives/`.
-   - The loss will be composable via `CompositeLoss` with a configurable
-     weight $\lambda$.
+$$
+\mathcal{L}
+=
+\mathcal{L}_{existing}
++
+\lambda_{eco}\mathcal{L}_{eco}
+$$
 
-## Canonical Species Taxonomy Resolver (ETL & Ingestion Phase)
+The default ecological weight is `0`, so existing training behavior is
+unchanged unless explicitly enabled.
 
-To guarantee that target raster integer labels $y \in \{0, \dots, N-1\}$
-align deterministically with the rows and columns of the similarity matrix
-$S$, we will introduce a **Canonical Species Taxonomy Resolver** executed
-during ETL dataset preparation or custom raster ingestion:
+### 2.2 Taxonomy and Knowledge-Base Alignment
 
-1. **Explicit Ingestion Specifications:** Users will declare target species
-   layer types and their associated FRI codes (e.g. `["SB", "SW", "PJ"]` or
-   29 group codes) in their dataset ingestion configuration (`dataspecs`).
-2. **Ingestion-Time Validation:** The resolver will validate all user-supplied
-   species codes against canonical knowledge base profiles
-   (`species_metadata.json`). If unlisted or misspelled codes are detected,
-   the ingestion pipeline will halt immediately with an explicit error.
-3. **Canonical Label Encoding:** The rasterizer/ingestion module will map
-   species codes to canonical metadata indices ($0 \dots N-1$) and encode
-   target mask pixel values accordingly.
-4. **Deterministic Matrix Indexing:** During UNet training, target pixel
-   value $y$ will index matrix row $S_{y, c}$ with zero index ambiguity or
-   dynamic re-mapping overhead.
+A label head can declare a taxonomy profile in its `label_specs`, for example:
 
-## Implementation Plan
+```json
+{
+  "num_cls": 3,
+  "taxonomy": {
+    "profile": "ontario_tree_species_profiles"
+  },
+  "class_name": {
+    "1": "SB",
+    "2": "LA",
+    "3": "MH"
+  }
+}
+```
 
-1. Create `EcologicalSimilarityLoss` primitive loss module in
-   `session/components/task/loss/primitives/`.
-2. Add Hydra configuration schema and validation for
-   `ecological_similarity_weight`.
-3. Register the loss in loss factory builders.
-4. Integrate Canonical Species Resolver into data ingestion/ETL workflows.
-5. Execute overfit and validation benchmarks against baseline
-   Cross-Entropy.
+During data harmonization, the declared class codes are validated against the
+selected knowledge-base profile. The resolver produces a deterministic
+mapping from dataset class indices to the canonical indices in the profile.
+Invalid codes or class-count mismatches cause validation to fail.
 
-## Consequences
+The resolved taxonomy is carried through the data specification and is used
+to associate the appropriate similarity matrix with each prediction head.
+
+The taxonomy mapping is a metadata/indexing contract; it does not by itself
+change the raw raster label values.
+
+### 2.3 Similarity Matrix
+
+Similarity matrices are generated offline from the knowledge-base profile
+descriptions using a Sentence Transformer. Embeddings are normalized by
+default, allowing the pairwise matrix to be computed as the dot product of
+the normalized embeddings.
+
+The generated embeddings, similarity matrix, and class metadata are persisted
+as knowledge-base artifacts and resolved by profile name when required during
+training.
+
+## 3. Consequences
 
 ### Positive
 
-- Zero added model parameters or inference time latency.
-- Softens target distributions and penalizes ecologically absurd
-  misclassifications.
-- Low-risk, highly modular, and backwards-compatible addition to the training
-  stack.
-- Deterministic label indexing via canonical ETL species resolution.
+* No changes to the UNet architecture or prediction heads.
+* No additional trainable model parameters.
+* No inference-time computation.
+* Ecological relationships can influence training without replacing the
+  existing classification losses.
+* Taxonomy/profile mismatches are detected during data preparation.
+* The similarity matrix is generated once and reused as a versioned artifact.
+* The feature is opt-in and backwards compatible through a default weight of
+  `0`.
 
 ### Negative
 
-- Requires loading the precomputed similarity matrix tensor into GPU memory
-  during training (~3 KB).
-- Introduces one hyperparameter ($\lambda$) to tune during loss composition.
+* Adds computation during training.
+* Introduces an additional hyperparameter, $\lambda_{eco}$.
+* Training depends on the quality of the knowledge-base descriptions and the
+  embedding model used to construct the similarity matrix.
+* The similarity matrix represents an embedding-derived similarity prior; it
+  is not a formally validated ecological distance measure.
+
+## Scope
+
+This ADR covers only **Phase 1: ecological similarity loss regularization**.
+
+It does not change the model architecture or introduce ecological features
+into the network.
 
 ## Future Phases
-
-While this ADR focuses on Phase 1 (non-invasive loss regularization), future
-ADRs will evaluate and propose subsequent phases of ecological domain
-knowledge integration:
+Future work may consider additional uses of the knowledge base, such as
+topographic context conditioning or shared text-visual embeddings. Those
+changes should be addressed in separate ADRs:
 
 - **Phase 2 (Topographic Context Conditioning):** Introduce a
   multi-scale spatial neighborhood encoder over DEM, DSM, TPI, and TWI
