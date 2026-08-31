@@ -122,8 +122,6 @@ def _translate_data_ingest(
 
     mapping = {
         'harmonization_run': ['data.ingestion.harmonization_run'],
-        'domain_ids_name': ['dataspecs.domain_ids_name'],
-        'domain_vec_name': ['dataspecs.domain_vec_name'],
         'rebuild': ['data.ingestion.rebuild'],
         'output_dpath': ['data.ingestion.output_dpath'],
     }
@@ -162,6 +160,8 @@ def _translate_model_train(
     '''Map model-train settings to models and session fields.'''
     mapping = {
         'exp_root': ['execution.exp_root'],
+        'categorical_domain': ['dataspecs.domain_ids_name'],
+        'continuous_domain': ['dataspecs.domain_vec_name'],
         'model_body': ['models.model_body'],
         'bottleneck': ['models.bottleneck'],
         'conditioners': ['models.conditioners'],

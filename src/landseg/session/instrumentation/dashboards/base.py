@@ -27,6 +27,7 @@ Base tracker class
 
 # standard imports
 import abc
+import pathlib
 import typing
 
 #
@@ -36,7 +37,7 @@ if typing.TYPE_CHECKING:
 class BaseTracker(abc.ABC):
     '''Interface of the base tracker.'''
     def __init__(self, uri: str, artifact_path: str | None = None):
-        self.uri = uri
+        self.uri = pathlib.Path(uri).as_uri() # safe URI generation
         self.artifact_path = artifact_path
     @abc.abstractmethod
     def log_scalar(self, key: str, value: float, step: int): ...

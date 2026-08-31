@@ -58,9 +58,9 @@ class _AlignedRasters:
         match category:
             case 'domains' | 'domain':
                 self.domains.update({name: filepath})
-            case 'features' | 'feature' | 'dev_features' | 'test_features':
+            case 'features' | 'feature':
                 self.features.update({name: filepath})
-            case 'labels' | 'label' | 'dev_labels' | 'test_labels':
+            case 'labels' | 'label':
                 self.labels.update({name: filepath})
             case _:
                 raise ValueError(f'Unknown raster category: {category}')
@@ -88,11 +88,7 @@ def process_source(
         name = cfg['name']
         category = cfg['category']
         tagged_name = f'{category}_{name}'
-        is_categorical = category in [
-            'domains', 'domain',
-            'labels', 'label',
-            'dev_labels', 'test_labels',
-        ]
+        is_categorical = category in ['domains', 'domain', 'labels', 'label']
         resampling = (
             categorical_resampling
             if is_categorical

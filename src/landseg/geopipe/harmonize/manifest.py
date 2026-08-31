@@ -56,7 +56,7 @@ def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
     manifest = ctrl.fetch()
     assert manifest # typing
 
-    # expect JSON rea as a list of dicts
+    # expect JSON read as a list of dicts
     if not isinstance(manifest, list):
         raise ValueError(
             f'Manifest JSON expected to read as a list dictionaries, '
