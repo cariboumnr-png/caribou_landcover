@@ -109,7 +109,6 @@ def data_blocks_adapter(
 
     # load schema
     data_schema = SchemaCtrl.load_json_or_fail(schema).fetch()
-    assert data_schema
 
     # resolve canvas crs and transform from image source
     canvas_crs = 'EPSG:3161'
@@ -185,7 +184,6 @@ def _parse(
 ) -> _Parsed:
     '''Parse a catalog JSON into filtered class counts and file paths.'''
     catalog_dict = CatalogDictCtrl.load_json_or_fail(fpath).fetch()
-    assert catalog_dict
     catalog = geo_core.DataCatalog.from_dict(catalog_dict)
 
     # fallback to the first target if no focus target is specified

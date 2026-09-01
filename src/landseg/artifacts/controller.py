@@ -94,21 +94,27 @@ class Controller(typing.Generic[T]):
 
     # ----- alternative constructors
     @classmethod
-    def load_json_or_fail(cls, fp: str) -> 'Controller[T]':
+    def load_json_or_fail(cls, fp: str) -> 'LoadOrFailController[T]':
         '''Factory for a JSON controller that reads or fails.'''
-        return cls(fp, artifacts.LifecyclePolicy.LOAD_OR_FAIL)
+        return LoadOrFailController(fp)
 
     @classmethod
-    def load_csv_or_fail(cls, fp: str) -> 'Controller[T]':
+    def load_csv_or_fail(cls, fp: str) -> 'LoadOrFailController[T]':
         '''Factory for a CSV controller that reads or fails.'''
-        return cls(fp, artifacts.LifecyclePolicy.LOAD_OR_FAIL)
+        return LoadOrFailController(fp)
 
     @classmethod
-    def load_pt_or_fail(cls, fp: str) -> 'Controller[T]':
+    def load_pt_or_fail(cls, fp: str) -> 'LoadOrFailController[T]':
         '''Factory for a PyTorch PT controller that reads or fails.'''
-        return cls(fp, artifacts.LifecyclePolicy.LOAD_OR_FAIL)
+        return LoadOrFailController(fp)
 
     # ----- public method
+    @typing.overload
+    def fetch(self: LoadOrFailController[T]) -> T:...
+
+    @typing.overload
+    def fetch(self) -> T | None:...
+
     def fetch(self) -> T | None:
         '''
         Fetch the artifact according to the lifecycle policy.
@@ -127,17 +133,14 @@ class Controller(typing.Generic[T]):
             data = self._load()
         except _ArtifactMissing: # expect to build
             data = None
-            missing = True
         except ArtifactError as exc: # propagate to let caller to decide
             # corrupted or hash mismatch: always fatal for now
             raise ArtifactError from exc
-        else:
-            missing = False
 
         match self.policy:
             # policy: fail if can not load
             case artifacts.LifecyclePolicy.LOAD_OR_FAIL:
-                if missing:
+                if data is None:
                     raise ArtifactError('Required artifact is missing')
                 return data
             # policy: build if missing
@@ -342,6 +345,12 @@ class Controller(typing.Generic[T]):
 
         # write src to npz
         numpy.savez_compressed(fp, keys=keys, values=values)
+
+
+class LoadOrFailController(Controller[T]):
+    '''"Load or fail" specialized Controller subclass.'''
+    def __init__(self, file_path: str):
+        super().__init__(file_path, artifacts.LifecyclePolicy.LOAD_OR_FAIL)
 
 
 class ArtifactError(Exception):

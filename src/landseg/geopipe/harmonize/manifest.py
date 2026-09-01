@@ -49,12 +49,11 @@ class DatasetConfigItem(typing.TypedDict):
 
 
 def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
-    '''Read dataset manifest JSON.'''
-    # load JSON as artifact
+    '''Read and validate dataset manifest JSON.'''
+    # load JSON via artifact controller
     ctrl = artifacts.Controller[list[dict]].load_json_or_fail(manifest_fp)
     ctrl.hash(overwrite=False) # hash once
     manifest = ctrl.fetch()
-    assert manifest # typing
 
     # expect JSON read as a list of dicts
     if not isinstance(manifest, list):
@@ -72,7 +71,6 @@ def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
         ctrl = artifacts.Controller[DatasetConfigItem].load_json_or_fail(cfg_p)
         ctrl.hash(overwrite=False) # has once
         cfg = ctrl.fetch()
-        assert cfg # typing
 
         # get category with checkes
         category = cfg.get('category')

@@ -59,7 +59,6 @@ def read_harmonization_report(
     # read report into a typed dict
     report_path = harmonization_paths.report
     report = ReportController.load_json_or_fail(report_path).fetch()
-    assert report
 
     finals = report['finalized_rasters']
     assert finals

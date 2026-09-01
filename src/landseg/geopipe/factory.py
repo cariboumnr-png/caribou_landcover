@@ -88,12 +88,10 @@ def build_dataspec(
     # data schema
     data_ctrl = artifacts.Controller[geo_core.DataSchema].load_json_or_fail
     data_schema = data_ctrl(data_schema_fpath).fetch()
-    assert data_schema # typing assertion
 
     # transform schema
     transform_ctrl = artifacts.Controller[geo_core.TransformSchema].load_json_or_fail
     transform_schema = transform_ctrl(transform_schema_fpath).fetch()
-    assert transform_schema # typing assertion
 
     # return specs
     return core.DataSpecs(

@@ -58,10 +58,6 @@ def resolve_similarity_matrix(
     matrix_path = kp.similarity_matrix_fpath(profile)
     ctrl = artifacts.Controller[torch.Tensor].load_pt_or_fail(matrix_path)
     tensor = ctrl.fetch()
-    if tensor is None:
-        raise FileNotFoundError(
-            f'Similarity matrix artifact not found for profile: {profile}'
-        )
     return tensor
 
 
@@ -88,8 +84,4 @@ def resolve_profile_metadata(
     meta_path = kp.metadata_fpath(profile)
     ctrl = MetaController.load_json_or_fail(meta_path)
     meta = ctrl.fetch()
-    if meta is None:
-        raise FileNotFoundError(
-            f'Metadata artifact not found for profile: {profile}'
-        )
     return meta

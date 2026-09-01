@@ -85,7 +85,6 @@ def run_normalize_blocks(
     # load source blocks file lists
     ctrl = PartitionCtrl.load_json_or_fail(paths.splits_source_blocks)
     src = ctrl.fetch()
-    assert src # typing assertion
 
     # get source by split
     train = set(src['train'].values())

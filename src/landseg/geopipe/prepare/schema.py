@@ -113,17 +113,14 @@ def build_schema(
         # read blocks splits
         ctrl = PartitionCtrl.load_json_or_fail(paths.splits_transformed_blocks)
         block_splits = ctrl.fetch()
-        assert block_splits # typing assertion
 
         # read label stats
         ctrl = LabelStatsCtrl.load_json_or_fail(paths.label_stats)
         label_stats = ctrl.fetch()
-        assert label_stats # typing assertion
 
         # read image stats
         ctrl = ImageStatsCtrl.load_json_or_fail(paths.image_stats)
         image_stats = ctrl.fetch()
-        assert image_stats # typing assertion
 
         # populate schema dict
         schema = {

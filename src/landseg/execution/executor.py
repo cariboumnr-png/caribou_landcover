@@ -97,7 +97,6 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
         # fetch data harmonization report
         try:
             report_harmonize = ctrl_harmonize.fetch()
-            assert report_harmonize # typing guard
         except artifacts.ArtifactError as e:
             raise artifacts.ArtifactError(
                 'Upstream pipeline "data-harmonize" has not been executed yet.'
@@ -117,7 +116,6 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
         # check existing vs configured source of harmonized data
         try:
             report_ingest = ctrl_ingest.fetch()
-            assert report_ingest # typing guard
 
             if report_ingest.get('status') != 'SUCCESS':
                 return # existing ingestion not successful, proceed
@@ -150,7 +148,6 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
         # fetch data-ingest report
         try:
             report = ctrl_ingest.fetch()
-            assert report # typing guard
         except artifacts.ArtifactError as e:
             raise artifacts.ArtifactError(
                 'Upstream pipeline "data-ingest" has not been executed yet. '
@@ -170,7 +167,6 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
         # check existing data-prepare report
         try:
             report_prep = ctrl_prep.fetch()
-            assert report_prep # typing guard
 
             if report_prep.get('status') != 'SUCCESS':
                 return # existing preparation not successful, proceed
@@ -179,7 +175,6 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
             ctrl = DictControl.load_json_or_fail(paths_prepare.config)
             try:
                 saved_config = ctrl.fetch()
-                assert saved_config # typing
             except artifacts.ArtifactError:
                 print(f'Error reading config at: {paths_prepare.config}')
                 raise
@@ -204,7 +199,6 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
 
         try:
             report = ctrl_prep.fetch()
-            assert report # typing guard
         except artifacts.ArtifactError as e:
             raise artifacts.ArtifactError(
                 'Upstream pipeline "data-prepare" has not been executed yet. '
