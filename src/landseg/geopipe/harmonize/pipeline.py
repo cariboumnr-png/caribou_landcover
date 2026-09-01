@@ -116,8 +116,7 @@ def process_source(
             processed.finalized.update({tagged_name: warped})
             continue # fast tracking domain rasters
 
-        if cfg['band_mapping']:
-            rasters.add_band_description_to_vrt(warped, cfg['band_mapping'])
+        rasters.add_band_description_to_vrt(warped, cfg['band_mapping'])
 
         if cfg['label_specs']:
             rasters.add_tag_to_vrt(

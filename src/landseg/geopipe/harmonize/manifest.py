@@ -32,22 +32,27 @@ import landseg.geopipe.core as geo_core
 import landseg.geopipe.harmonize.taxonomy as taxonomy
 
 
+# ----- public types
+AllowedCategory = typing.Literal[
+    'domains',
+    'domain',
+    'features',
+    'feature',
+    'labels',
+    'label',
+]
+
+
 class DatasetConfigItem(typing.TypedDict):
     '''Expected shape of dataset config (per raster).'''
     name: str
     path: str
-    category: typing.Literal[
-        'domains',
-        'domain',
-        'features',
-        'feature',
-        'labels',
-        'label',
-    ]
-    band_mapping: dict[int, str] | None
+    category: AllowedCategory
+    band_mapping: dict[int, str]
     label_specs: geo_core.LabelSpecs | None
 
 
+# ----- public functions
 def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
     '''Read and validate dataset manifest JSON.'''
     # load JSON via artifact controller
@@ -64,33 +69,34 @@ def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
 
     compiled: list[DatasetConfigItem] = []
     for i, mfst in enumerate(manifest):
-        # safe retrieve values from manifest with validation
-        name, raster_p, cfg_p = _validate_manifest(i, mfst)
+        try:
+            name, raster_p, cfg = _resolve_manifest(mfst)
+        except ValueError as e:
+            raise ValueError(f'Invalid data config entry at index {i}') from e
 
-        # read individual config json
-        ctrl = artifacts.Controller[DatasetConfigItem].load_json_or_fail(cfg_p)
-        ctrl.hash(overwrite=False) # has once
-        cfg = ctrl.fetch()
-
-        # get category with checkes
         category = cfg.get('category')
-        if not category or not isinstance(category, str):
-            raise ValueError(
-                f'Required value for [name] missing or of wrong type, '
-                f'got: {category} ({type(category)} at dictionary index {i}'
-            )
+        try:
+            category = _resolve_category(category)
+        except ValueError as e:
+            raise ValueError(f'Invalid category value at index {i}') from e
 
-        # let band mapping pass through
-        band_mapping = cfg.get('band_mapping')
+        band_map = cfg.get('band_mapping')
+        try:
+            band_map = _resolve_band_mapping(band_map)
+        except ValueError as e:
+            raise ValueError(f'Invalid band mapping at index {i}') from e
 
-        # resolve label specs
-        label_specs = _resolve_label_specs(name, cfg.get('label_specs'))
+        label_specs = cfg.get('label_specs')
+        try:
+            label_specs = _resolve_label_specs(label_specs)
+        except ValueError as e:
+            raise ValueError(f'Invalid label specs at index {i}') from e
 
         compiled.append({
             'name': name,
             'path': raster_p,
             'category': category,
-            'band_mapping': band_mapping,
+            'band_mapping': band_map,
             'label_specs': label_specs
         })
 
@@ -98,89 +104,132 @@ def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
     return {c['path']: c for c in compiled}
 
 
-def _validate_manifest(
-    i: int,
-    manifest: dict[str, typing.Any]
-) -> tuple[str, str, str]:
-    '''Validate per file manifest dict.'''
-    if not isinstance(manifest, dict):
+# ----- private helpers
+def _resolve_manifest(mfst: typing.Any) -> tuple[str, str, DatasetConfigItem]:
+    '''Resolve one data config entry'''
+    if not isinstance(mfst, dict):
         raise ValueError(
             f'Manifest JSON expected to read as a list dictionaries, '
-            f'got: {type(manifest)} at index {i}'
+            f'got: {type(mfst)}'
         )
 
-    # safe retrieve values
-    name = manifest.get('name')
-    raster_p = manifest.get('path')
-    config_p = manifest.get('config')
+    name = mfst.get('name')
+    raster_p = mfst.get('path')
+    config_p = mfst.get('config')
 
-    # checks before proceeding
     if not name or not isinstance(name, str):
         raise ValueError(
             f'Required value for [name] missing or of wrong type, '
-            f'got: {name} ({type(name)} at dictionary index {i}'
+            f'got: {name} ({type(name)}'
         )
 
     if not raster_p or not isinstance(raster_p, str):
         raise ValueError(
             f'Required value for [name] missing or of wrong type, '
-            f'got: {raster_p} ({type(raster_p)} at dictionary index {i}'
+            f'got: {raster_p} ({type(raster_p)}'
         )
+
     if not os.path.exists(raster_p):
         raise ValueError(f'Source file at {raster_p} does not exsit')
+
 
     if not config_p or not isinstance(config_p, str):
         raise ValueError(
             f'Required value for [name] missing or of wrong type, '
-            f'got: {config_p} ({type(config_p)} at dictionary index {i}'
+            f'got: {config_p} ({type(config_p)}'
         )
+
     if not os.path.exists(config_p):
         raise ValueError(f'Source file at {config_p} does not exsit')
 
-    return name, raster_p, config_p
+    # read data config json via controller
+    ctrl = artifacts.Controller[DatasetConfigItem].load_json_or_fail(config_p)
+    ctrl.hash(overwrite=False) # has once
+    cfg = ctrl.fetch()
+
+    return name, raster_p, cfg
 
 
-def _resolve_label_specs(
-    name: str,
-    label_specs: geo_core.LabelSpecs | None
-) -> geo_core.LabelSpecs | None:
-    '''Resolve label specs with validation.'''
-    if label_specs is None:
-        return None
-
-    num_cls = label_specs.get('num_cls')
-    if not isinstance(num_cls, int) or num_cls < 1:
+def _resolve_category(cat: typing.Any) -> AllowedCategory:
+    '''Validate and return `category` value from a config entry.'''
+    if not cat or not isinstance(cat, str):
         raise ValueError(
-            f'Invalid "num_cls" in label_specs for "{name}": {num_cls}'
-            f', note number of classes must be at least 1'
+            f'Required value for [name] missing or of wrong type, '
+            f'got: {cat} ({type(cat)}'
         )
 
-    if not 'taxonomy' in label_specs:
-        return label_specs
+    if not cat in AllowedCategory:
+        raise ValueError(
+            f'Invalid data category: {cat}, '
+            f'must be one of {AllowedCategory}'
+        )
 
-    if label_specs['taxonomy']:
-        profile = label_specs['taxonomy'].get('profile')
+    return typing.cast(AllowedCategory, cat)
+
+
+def _resolve_band_mapping(mapping: typing.Any) -> dict[int, str]:
+    '''Validate and return `band_mapping` dict from a config entry.'''
+    _mapping: dict[int, str] = {}
+    if not isinstance(mapping, dict):
+        raise ValueError(
+            f'Band mapping must be a dictionary, got: {type(mapping)}'
+        )
+
+    for k, v in mapping.items():
+        try:
+            int(k)
+        except ValueError as e:
+            raise ValueError(
+                f'Invalid band_mapping key: {k}, must be valid integer'
+            ) from e
+
+        if not isinstance(v, str):
+            raise ValueError(
+                f'Invalid band_mapping value {v} with type: {type(v)} '
+                f'must be a string'
+            )
+        _mapping[int(k)] = v
+
+    if set(_mapping.keys()) != set(range(1, len(_mapping) + 1)):
+        raise ValueError(
+            f'Band mapping dict keys should be contiguous integers from 1, '
+            f'got: {sorted(_mapping.keys())}'
+        )
+
+    return _mapping
+
+
+def _resolve_label_specs(lbl_specs: typing.Any) -> geo_core.LabelSpecs | None:
+    '''Resolve label specs with validation.'''
+    if lbl_specs is None:
+        return None
+
+    num_cls = lbl_specs.get('num_cls')
+    if not isinstance(num_cls, int) or num_cls < 1:
+        raise ValueError(f'"num_cls" in label_specs: {num_cls} < 1')
+
+    if not 'taxonomy' in lbl_specs:
+        return lbl_specs
+
+    if lbl_specs['taxonomy']:
+        profile = lbl_specs['taxonomy'].get('profile')
 
         if not profile:
-            raise ValueError(
-                f'Profile not provided for "taxonomy" for label {name}'
-            )
+            raise ValueError('Profile not provided for "taxonomy"')
 
-        if not ('class_name' in label_specs and label_specs['class_name']):
-            raise ValueError(
-                'Class names not provided for taxonomy lookup'
-            )
+        if not ('class_name' in lbl_specs and lbl_specs['class_name']):
+            raise ValueError('Class names not provided for taxonomy lookup')
 
         try:
             canonical_indices = taxonomy.validate_taxonomy_specs(
                 profile,
-                label_specs['class_name'],
+                lbl_specs['class_name'],
                 num_cls
             )
-            label_specs['taxonomy']['canonical_indices'] = canonical_indices
+            lbl_specs['taxonomy']['canonical_indices'] = canonical_indices
         except ValueError as e:
             raise e
 
-        return label_specs
+        return lbl_specs
 
-    return label_specs
+    return lbl_specs
