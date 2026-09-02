@@ -134,6 +134,8 @@ def _translate_data_prepare(
 ) -> None:
     '''Map data-prepare settings to preparation fields.'''
     mapping = {
+        'features': ['data.preparation.features'],
+        'targets': ['data.preparation.targets'],
         'val_ratio': ['data.preparation.partition.val_ratio'],
         'test_ratio': ['data.preparation.partition.test_ratio'],
         'buffer_step': ['data.preparation.partition.buffer_step'],
