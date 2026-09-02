@@ -119,12 +119,16 @@ def test_data_preparation_configurator(tmp_path):
     '''
     Given: Parameters for data preparation pipeline.
     When: Chaining methods on `DataPreparationConfigurator`.
-    Then: Correctly populate partition and oversampling settings.
+    Then: Correctly populate partition, oversampling, and scheme settings.
     '''
     cfg_builder = configurators.DataPreparationConfigurator(
         experiment_root=str(tmp_path),
     )
-    cfg_builder.set_partition(
+    cfg_builder.set_features(
+        features={'sentinel2': 'rgb_nir'}
+    ).set_targets(
+        targets={'landcover': 'binary'}
+    ).set_partition(
         validation_blocks_ratio=0.15,
         test_holdout_blocks_ratio=0.05
     ).set_oversampling(
@@ -136,6 +140,8 @@ def test_data_preparation_configurator(tmp_path):
 
     root = cfg_builder.running_root_config
     assert root.pipeline.name == 'data-prepare'
+    assert root.data.preparation.features == {'sentinel2': 'rgb_nir'}
+    assert root.data.preparation.targets == {'landcover': 'binary'}
     assert root.data.preparation.partition.val_ratio == 0.15
     assert root.data.preparation.partition.test_ratio == 0.05
     assert root.data.preparation.catalog.focal_target == 'class_head'
