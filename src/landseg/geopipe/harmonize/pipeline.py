@@ -41,31 +41,6 @@ class ProcessedRasters:
     finalized: dict[str, str] = dataclasses.field(default_factory=dict)
 
 
-@dataclasses.dataclass
-class _AlignedRasters:
-    '''Container for aligned rasters (`.vrt` file paths) by category.'''
-    domains: dict[str, str] = dataclasses.field(default_factory=dict)
-    features: dict[str, str] = dataclasses.field(default_factory=dict)
-    labels: dict[str, str] = dataclasses.field(default_factory=dict)
-
-    def add_raster(
-        self,
-        category: str,
-        name: str,
-        filepath: str,
-    ) -> None:
-        '''Add raster by category.'''
-        match category:
-            case 'domains' | 'domain':
-                self.domains.update({name: filepath})
-            case 'features' | 'feature':
-                self.features.update({name: filepath})
-            case 'labels' | 'label':
-                self.labels.update({name: filepath})
-            case _:
-                raise ValueError(f'Unknown raster category: {category}')
-
-
 # note: input label rasters must be single banded
 def process_source(
     compiled_sources: dict[str, manifest.DatasetConfigItem],
@@ -76,7 +51,8 @@ def process_source(
     continuous_resampling: str,
 ) -> typing.Generator[str, None, ProcessedRasters]:
     '''Process one data source.'''
-    aligned = _AlignedRasters()
+    features: list[str] = []
+    labels: list[str] = []
     processed = ProcessedRasters()
 
     # iterate through raster source
@@ -85,9 +61,8 @@ def process_source(
         if not cfg:
             raise ValueError(f'No configuration found for raster {path}')
 
-        name = cfg['name']
         category = cfg['category']
-        tagged_name = f'{category}_{name}'
+        tagged_name = f'{category}_{cfg['name']}'
         is_categorical = category in ['domains', 'domain', 'labels', 'label']
         resampling = (
             categorical_resampling
@@ -96,49 +71,47 @@ def process_source(
         )
 
         processed.provenance.update({tagged_name: path})
-        out_path = os.path.join(output_dir, f'{tagged_name}.vrt')
+        outp = os.path.join(output_dir, f'{tagged_name}.vrt')
 
-        yield (
-            f'Harmonizing {category} layer [{name}] -> {out_path} '
-            f'(resampling: {resampling})'
-        )
+        yield f'Harmonizing raster {path} -> {outp} (resampling: {resampling})'
 
         warped = rasters.warp_to_grid(
             input_path=path,
-            output_path=out_path,
+            output_path=outp,
             world_grid=world_grid,
             is_categorical=is_categorical,
             resampling_method=resampling,
         )
 
-        if category in ['domains', 'domain']:
-            processed.harmonized.update({tagged_name: warped})
-            processed.finalized.update({tagged_name: warped})
-            continue # fast tracking domain rasters
-
         rasters.add_band_description_to_vrt(warped, cfg['band_mapping'])
 
-        if cfg['label_specs']:
-            rasters.add_tag_to_vrt(
-                warped,
-                num_cls=cfg['label_specs']['num_cls'],
-                ignore_cls=cfg['label_specs']['ignore_cls'],
-                class_name=cfg['label_specs'].get('class_name', {}),
-                reclass=cfg['label_specs'].get('reclass', {}),
-                reclass_name=cfg['label_specs'].get('reclass_name', {}),
-                color_map=cfg['label_specs'].get('color_map', {}),
-                taxonomy=cfg['label_specs'].get('taxonomy', {}),
-            )
+        rasters.add_tag_to_vrt(warped, index_base=cfg['index_base'])
 
-        aligned.add_raster(category, tagged_name, out_path)
-        processed.harmonized.update({tagged_name: warped})
+        match category:
+            case 'domains' | 'domain':
+                processed.harmonized.update({tagged_name: warped})
+                processed.finalized.update({tagged_name: warped}) # no further
+            case 'features' | 'feature':
+                processed.harmonized.update({tagged_name: warped})
+                features.append(warped) # for stacking
+            case 'labels' | 'labels':
+                processed.harmonized.update({tagged_name: warped})
+                lbl_specs = cfg.get('label_specs')
+                assert lbl_specs, f'missing label specs for {tagged_name}'
+                rasters.add_tag_to_vrt(
+                    warped,
+                    num_cls=lbl_specs['num_cls'],
+                    ignore_cls=lbl_specs['ignore_cls'],
+                    class_name=lbl_specs.get('class_name', {}),
+                    reclass=lbl_specs.get('reclass', {}),
+                    reclass_name=lbl_specs.get('reclass_name', {}),
+                    color_map=lbl_specs.get('color_map', {}),
+                    taxonomy=lbl_specs.get('taxonomy', {}),
+                )
+                labels.append(warped) # for stacking
 
     stacked: dict[str, str] = {}
-    gen = rasters.stack_rasters(
-        list(aligned.features.values()),
-        list(aligned.labels.values()),
-        output_dir
-    )
+    gen = rasters.stack_rasters(features, labels, output_dir)
     while True:
         try:
             yield next(gen)
