@@ -113,8 +113,25 @@ def prepare(config: configs.RootConfig):
 
         # normalize
         logger.log('INFO', '[START] Block normalization')
+        data_schema = artifacts.Controller[dict].load_json_or_fail(
+            artifact_paths.data_ingestion.data_blocks.schema
+        ).fetch()
+        image_band_map = data_schema.get('io_conventions', {}).get(
+            'image_band_map', {}
+        )
+        label_names = data_schema.get('labels', {}).get('label_names', {})
+
+        _, selected_indices = prepare_data.resolve_feature_channels(
+            image_band_map, config.data.preparation.features
+        )
+        target_reclass = prepare_data.resolve_target_reclass(
+            label_names, config.data.preparation.targets
+        )
+
         prepare_data.run_normalize_blocks(
             paths,
+            channel_indices=selected_indices,
+            target_reclass=target_reclass,
             policy=policy,
             logger=logger
         )

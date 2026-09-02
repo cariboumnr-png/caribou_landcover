@@ -35,22 +35,21 @@ import math
 import landseg.geopipe.core as geo_core
 
 
-# ----- `aggregate_image_stats` implementation
 def aggregate_image_stats(
-    input_blocks: set[str]
+    input_blocks: set[str],
+    channel_indices: list[int] | None = None,
 ) -> dict[str, geo_core.ImageBandStats]:
     '''
     Aggregate per-band image statistics across the input blocks.
 
     Args:
         input_blocks: List of file paths to block artifacts to scan.
-        stats_fpath: Output JSON path for the aggregated statistics.
-        logger: Logger for progress messages and diagnostics.
-        recompute: If True, force recompute stats from blocks.
+        channel_indices: Optional list of 0-based channel indices to
+            select for aggregation.
 
     Returns:
-        dict: A mapping of band keys to statistics, including
-            "total_count", "current_mean", "accum_m2", and "std".
+        A mapping of band keys to statistics, including total_count,
+        current_mean, accum_m2, and std.
     '''
     if not input_blocks:
         raise ValueError(
@@ -59,7 +58,11 @@ def aggregate_image_stats(
 
     # get image channel count from the first block
     sample = geo_core.DataBlock.load(next(iter(input_blocks))).data
-    num_bands = sample.image.shape[0]
+    num_bands = (
+        len(channel_indices)
+        if channel_indices is not None
+        else sample.image.shape[0]
+    )
 
     # define a return dict
     stats_dict: dict[str, geo_core.ImageBandStats] = {
@@ -73,15 +76,27 @@ def aggregate_image_stats(
 
     # iterate through provided block files
     for fpath in input_blocks:
-        # prep
-        stats = geo_core.DataBlock.load(fpath).manifest['image_stats']
-        # return dict and stats dict have the same keys
-        for key, value_dict in stats.items():
-            stats_dict[key] = _welfords_online(value_dict, stats_dict[key])
+        manifest_stats = geo_core.DataBlock.load(fpath).manifest['image_stats']
+        if channel_indices is not None:
+            for new_idx, orig_idx in enumerate(channel_indices):
+                orig_key = f'band_{orig_idx}'
+                if orig_key in manifest_stats:
+                    stats_dict[f'band_{new_idx}'] = _welfords_online(
+                        manifest_stats[orig_key], stats_dict[f'band_{new_idx}']
+                    )
+        else:
+            for key, value_dict in manifest_stats.items():
+                if key in stats_dict:
+                    stats_dict[key] = _welfords_online(
+                        value_dict, stats_dict[key]
+                    )
 
     # deviation to std
     for v in stats_dict.values():
-        v['std'] = math.sqrt((v['accum_m2'] / (v['total_count']-1)))
+        if v['total_count'] > 1:
+            v['std'] = math.sqrt((v['accum_m2'] / (v['total_count'] - 1)))
+        else:
+            v['std'] = 1.0
 
     # return
     return stats_dict

@@ -64,6 +64,8 @@ ImageStatsCtrl = artifacts.Controller[dict[str, geo_core.ImageBandStats]]
 def run_normalize_blocks(
     paths: _PipelinePaths,
     *,
+    channel_indices: list[int] | None = None,
+    target_reclass: dict[str, typing.Any] | None = None,
     policy: artifacts.LifecyclePolicy,
     logger: common.PreparationLogger
 ):
@@ -77,6 +79,10 @@ def run_normalize_blocks(
 
     Args:
         paths: Transform paths container.
+        channel_indices: Optional list of 0-based channel indices to
+            select for the normalized blocks.
+        target_reclass: Optional dictionary of target reclassification
+            settings per label layer.
         policy: Lifecycle policy guiding rebuild behavior.
         logger: Logger for progress and diagnostic output.
     '''
@@ -97,7 +103,9 @@ def run_normalize_blocks(
     if policy != artifacts.LifecyclePolicy.REBUILD and aggregated_stats:
         logger.log('INFO', '[CHECKPOINT] Loaded image stats from training split')
     else:
-        aggregated_stats = stats.aggregate_image_stats(train)
+        aggregated_stats = stats.aggregate_image_stats(
+            train, channel_indices=channel_indices
+        )
         ctrl.persist(aggregated_stats)
         logger.log('INFO', '[CHECKPOINT] Created image stats from training split')
 
@@ -114,6 +122,8 @@ def run_normalize_blocks(
             (train, val, test),
             aggregated_stats,
             paths,
+            channel_indices=channel_indices,
+            target_reclass=target_reclass,
             logger=logger
         )
         ctrl.persist(transform)
@@ -137,6 +147,8 @@ def _normalize(
     aggregated_stats: dict[str, geo_core.ImageBandStats],
     paths: _PipelinePaths,
     *,
+    channel_indices: list[int] | None = None,
+    target_reclass: dict[str, typing.Any] | None = None,
     logger: common.PreparationLogger
 ):
     '''Normalize each split.'''
@@ -146,7 +158,9 @@ def _normalize(
     train_norm, purged = normalize.normalize_blocks(
         train_split,
         aggregated_stats,
-        paths.train_blocks
+        paths.train_blocks,
+        channel_indices=channel_indices,
+        target_reclass=target_reclass,
     )
     if purged:
         purged_total += purged
@@ -154,7 +168,9 @@ def _normalize(
     val_norm, purged = normalize.normalize_blocks(
         val_split,
         aggregated_stats,
-        paths.val_blocks
+        paths.val_blocks,
+        channel_indices=channel_indices,
+        target_reclass=target_reclass,
     )
     if purged:
         purged_total += purged
@@ -162,7 +178,9 @@ def _normalize(
     test_norm, purged = normalize.normalize_blocks(
         test_split,
         aggregated_stats,
-        paths.test_blocks
+        paths.test_blocks,
+        channel_indices=channel_indices,
+        target_reclass=target_reclass,
     )
     if purged:
         purged_total += purged

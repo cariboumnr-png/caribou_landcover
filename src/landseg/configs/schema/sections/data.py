@@ -29,6 +29,7 @@ Data config schema
 # standard imports
 import dataclasses
 import re
+import typing
 # local imports
 import landseg.configs.schema.utils as utils
 
@@ -213,6 +214,8 @@ class _Hydration:
 
 @dataclasses.dataclass
 class _PreparationCfg:
+    features: dict[str, typing.Any] = field(default_factory=dict)
+    targets: dict[str, typing.Any] = field(default_factory=dict)
     catalog: _CatalogView = field(default_factory=_CatalogView)
     partition: _Partition = field(default_factory=_Partition)
     scoring: _Scoring = field(default_factory=_Scoring)
@@ -225,6 +228,20 @@ class _PreparationCfg:
         self.partition.validate()
         self.scoring.validate()
         self.hydration.validate()
+
+        for k, v in self.features.items():
+            if not isinstance(k, str) or not isinstance(v, (str, list)):
+                raise ValueError(
+                    f'Invalid features config for "{k}": '
+                    f'expected string or list of strings'
+                )
+
+        for k, v in self.targets.items():
+            if not isinstance(k, str) or not isinstance(v, (str, dict)):
+                raise ValueError(
+                    f'Invalid targets config for "{k}": '
+                    f'expected string or dict'
+                )
 
 
 # ----- data specs

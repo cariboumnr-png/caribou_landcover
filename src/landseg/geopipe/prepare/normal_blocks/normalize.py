@@ -29,6 +29,7 @@ maintains split-indexed file mappings for downstream schema generation.
 
 # standard imports
 import os
+import typing
 # third-party imports
 import numpy
 # local imports
@@ -43,6 +44,8 @@ def normalize_blocks(
     stats: dict[str, geo_core.ImageBandStats],
     output_dir: str,
     *,
+    channel_indices: list[int] | None = None,
+    target_reclass: dict[str, typing.Any] | None = None,
     rebuild: bool = False,
 ) -> tuple[dict[str, str], int]:
     '''
@@ -57,6 +60,10 @@ def normalize_blocks(
         stats: Per-band global image statistics derived from training
             data.
         output_dir: Directory where normalized block files are written.
+        channel_indices: Optional list of 0-based channel indices to
+            select for the normalized blocks.
+        target_reclass: Optional dictionary of target reclassification
+            settings per label layer.
         rebuild: If True, reprocess all input blocks regardless of
             existence.
 
@@ -80,7 +87,14 @@ def normalize_blocks(
 
     # normalize blocks
     os.makedirs(output_dir, exist_ok=True)
-    jobs = [(_normalize_one_block, (b, stats, output_dir), {}) for b in work]
+    jobs = [
+        (
+            _normalize_one_block,
+            (b, stats, output_dir, channel_indices, target_reclass),
+            {}
+        )
+        for b in work
+    ]
     if jobs:
         utils.ParallelExecutor(desc=' - Normalize data blocks').run(jobs)
 
@@ -98,22 +112,104 @@ def normalize_blocks(
 def _normalize_one_block(
     block_fpath: str,
     global_stats: dict[str, geo_core.ImageBandStats],
-    target_dpath: str
+    target_dpath: str,
+    channel_indices: list[int] | None = None,
+    target_reclass: dict[str, typing.Any] | None = None,
 ):
     '''Normalize a single data block and write it to disk.'''
     # read block
-    data = geo_core.DataBlock.load(block_fpath).data
+    block = geo_core.DataBlock.load(block_fpath)
+    data = block.data
+
+    raw_image = data.image
+    if channel_indices is not None:
+        raw_image = raw_image[channel_indices]
+
+    raw_label = data.label_stack
+    if target_reclass and any(target_reclass.values()):
+        layer_names = list(block.manifest.get('label_names', {}).keys())
+        raw_label = _reclassify_label_stack(
+            data.label,
+            layer_names,
+            target_reclass,
+            ignore_index=block.manifest['ignore_index']
+        )
 
     # prep dict of arrays to write
     to_write = {
-        'image': _normalize_image(data.image, data.valid_mask, global_stats),
-        'label': data.label_stack
+        'image': _normalize_image(raw_image, data.valid_mask, global_stats),
+        'label': raw_label
     }
 
     # use the same file name
     filename = os.path.basename(block_fpath)
     save_fpath = os.path.join(target_dpath, filename)
     numpy.savez_compressed(save_fpath, **to_write)
+
+
+def _reclassify_label_stack(
+    raw_labels: numpy.ndarray | typing.Sequence[numpy.ndarray],
+    label_layer_names: typing.Sequence[str],
+    target_reclass: typing.Mapping[str, typing.Mapping[str, typing.Any] | None],
+    ignore_index: int,
+) -> numpy.ndarray:
+    '''
+    Build a multi-head label stack applying active target reclassifications.
+
+    Args:
+        raw_labels: 3D array of shape [L, H, W] or list of 2D arrays.
+        label_layer_names: Names corresponding to each base label layer.
+        target_reclass: Mapping of label layer name to reclass config.
+        ignore_index: Integer index for invalid/masked pixels (e.g. 255).
+
+    Returns:
+        A 3D numpy array of shape [L, H, W] containing the transformed stack.
+    '''
+    if isinstance(raw_labels, numpy.ndarray):
+        if raw_labels.ndim == 3:
+            label_list = [raw_labels[i] for i in range(raw_labels.shape[0])]
+        elif raw_labels.ndim == 2:
+            label_list = [raw_labels]
+        else:
+            raise ValueError(
+                f'Expected 2D or 3D label array, got shape {raw_labels.shape}'
+            )
+    else:
+        label_list = list(raw_labels)
+
+    stack: list[numpy.ndarray] = []
+
+    for i, arr in enumerate(label_list):
+        name = (
+            label_layer_names[i]
+            if i < len(label_layer_names)
+            else f'label_{i}'
+        )
+        reclass_cfg = target_reclass.get(name)
+
+        if not reclass_cfg or not reclass_cfg.get('reclass'):
+            stack.append(arr)
+            continue
+
+        reclass = reclass_cfg['reclass']
+        # 1. Base layer
+        stack.append(arr)
+
+        # 2. Child slices
+        group_layer = numpy.full_like(arr, ignore_index, dtype=arr.dtype)
+        for group_id, classes in reclass.items():
+            mask = numpy.isin(arr, classes)
+            group_layer[mask] = int(group_id)
+
+            child_arr = numpy.where(mask, arr, ignore_index)
+            for k, cls_id in enumerate(classes, 1):
+                child_arr[child_arr == cls_id] = int(k)
+            stack.append(child_arr)
+
+        # 3. Grouping layer
+        stack.append(group_layer)
+
+    return numpy.stack(stack, axis=0)
 
 
 def _normalize_image(

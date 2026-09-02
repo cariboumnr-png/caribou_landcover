@@ -38,6 +38,8 @@ __all__ = [
     # functions
     'build_schema',
     'data_blocks_adapter',
+    'resolve_feature_channels',
+    'resolve_target_reclass',
     'run_datablocks_partition',
     'run_normalize_blocks',
     # types
@@ -50,6 +52,7 @@ if typing.TYPE_CHECKING:
     from .common import PreparationLogger
     from .data_partition import PartitionParameters, run_datablocks_partition
     from .normal_blocks import run_normalize_blocks
+    from .resolver import resolve_feature_channels, resolve_target_reclass
     from .schema import build_schema
 
 
@@ -66,6 +69,9 @@ def __getattr__(name: str):
 
     if name in {'run_normalize_blocks'}:
         return getattr(importlib.import_module('.normal_blocks', __package__), name)
+
+    if name in {'resolve_feature_channels', 'resolve_target_reclass'}:
+        return getattr(importlib.import_module('.resolver', __package__), name)
 
     if name in {'build_schema'}:
         return getattr(importlib.import_module('.schema', __package__), name)

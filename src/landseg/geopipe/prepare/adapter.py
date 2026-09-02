@@ -175,6 +175,7 @@ def data_blocks_adapter(
     )
 
 
+# ----- private helpers
 def _parse(
     fpath: str,
     block_size: tuple[int, int],
