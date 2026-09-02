@@ -140,9 +140,9 @@ configuration de métadonnées :
 
 ### Rasters de caractéristiques (Optique / MNA)
 
-Les rasters de caractéristiques représentent des variables continues (bandes
-satellitaires, élévation, radar). Leur configuration JSON définit un mappage
-de bandes indexé à 1 :
+Les rasters de caractéristiques représentent les entrées continues (bandes
+satellitaires, altitude, radar). Leur fichier de configuration JSON définit le
+mappage de bandes indexé à 1 et des schémas nommés optionnels :
 
 **Exemple : Optique multi-bandes (`sample_dev_sentinel2.json`)**
 ```json
@@ -162,7 +162,12 @@ de bandes indexé à 1 :
     "9": "swir1",
     "10": "swir2"
   },
-  "label_specs": null
+  "categorical_specs": null,
+  "schemes": {
+    "rgb": ["blue", "green", "red"],
+    "rgb_nir": ["blue", "green", "red", "nir"],
+    "surface": ["blue", "green", "red", "nir", "swir1", "swir2"]
+  }
 }
 ```
 
@@ -175,7 +180,8 @@ de bandes indexé à 1 :
   "band_mapping": {
     "1": "dem"
   },
-  "label_specs": null
+  "categorical_specs": null,
+  "schemes": null
 }
 ```
 
@@ -194,29 +200,38 @@ pour entraîner des réseaux multi-tâches.
   "path": "./experiment/input/raw_data/sample_dev_landcover.tif",
   "category": "labels",
   "band_mapping": null,
-  "label_specs": {
-    "num_cls": 2,
+  "categorical_specs": {
+    "index_base": 1,
+    "num_cls": 3,
     "ignore_cls": [255],
     "class_name": {
       "1": "coniferous",
-      "2": "deciduous"
+      "2": "deciduous",
+      "3": "water"
     },
     "color_map": {
       "1": [34, 139, 34],
-      "2": [218, 165, 32]
-    },
-    "reclass": {
-      "1": [1],
-      "2": [2]
-    },
-    "reclass_name": {
-      "1": "Forest"
+      "2": [218, 165, 32],
+      "3": [0, 0, 255]
+    }
+  },
+  "schemes": {
+    "binary": {
+      "reclass": {
+        "1": [1, 2],
+        "2": [3]
+      },
+      "reclass_name": {
+        "1": "forest",
+        "2": "water"
+      }
     }
   }
 }
 ```
 
-#### Champs du schéma `label_specs`
+#### Champs du schéma `categorical_specs`
+- **`index_base`** (*requis, `int`*) : Index de base des classes du raster (généralement `0` ou `1`).
 - **`num_cls`** (*requis, `int`*) : Nombre total de classes de prédiction actives
   (excluant les indices ignorés).
 - **`ignore_cls`** (*requis, `list[int]`*) : Liste des valeurs de pixels brutes
@@ -227,10 +242,15 @@ pour entraîner des réseaux multi-tâches.
   de classe vers des triplets de couleur RVB `[R, V, B]` (0–255). Cette palette
   est transmise à travers l'ingestion jusqu'au schéma du dataset et utilisée
   par les callbacks de session pour le rendu visuel des prédictions.
-- **`reclass`** (*optionnel, `dict[str, list[int]]`*) : Regroupement hiérarchique
-  parent-enfant associant des classes parentes aux classes brutes filles.
-- **`reclass_name`** (*optionnel, `dict[str, str]`*) : Noms lisibles pour les
-  groupes reclassifiés parents.
+- **`taxonomy`** (*optionnel, `dict[str, str]`*) : Mappage reliant les noms
+  locaux aux clés de taxonomie écologique standard.
+
+#### Champs du schéma `schemes`
+- **Caractéristiques** : Dictionnaire associant des noms de schémas (par ex. `"rgb"`, `"rgb_nir"`)
+  à des listes de noms de bandes.
+- **Étiquettes** : Dictionnaire associant des noms de schémas (par ex. `"binary"`, `"coarse"`)
+  à des configurations de reclassification contenant `reclass` et `reclass_name`.
+- **Domaines** : Doit être `null` (ou vide).
 
 ---
 
@@ -247,8 +267,55 @@ conditionnement du modèle.
   "path": "./experiment/input/raw_data/sample_domain_1.tif",
   "category": "domains",
   "band_mapping": null,
-  "label_specs": null
+  "categorical_specs": {
+    "index_base": 1,
+    "num_cls": 4,
+    "ignore_cls": [255],
+    "class_name": {
+      "1": "EcoDistrict_1",
+      "2": "EcoDistrict_2",
+      "3": "EcoDistrict_3",
+      "4": "EcoDistrict_4"
+    }
+  },
+  "schemes": null
 }
+```
+
+---
+
+### Configuration de la préparation (`configs/user.yaml`)
+
+Lors de `data-prepare`, l'utilisateur peut sélectionner des canaux d'entrée
+spécifiques et des hiérarchies de reclassification des cibles :
+
+```yaml
+data-prepare:
+  output_dpath: ./experiment/artifacts/prepared_data
+
+  # 1. Sélection des caractéristiques par jeu de données (null utilise toutes les bandes)
+  features:
+    sentinel2: rgb_nir          # Schéma nommé du sidecar
+    dem: all                    # Toutes les bandes du MNA
+    # Ou en ligne :
+    # sentinel2: [blue, green, red, nir]
+
+  # 2. Reclassification des cibles par étiquette (null utilise les classes de base)
+  targets:
+    landcover: binary           # Schéma nommé du sidecar
+    leadspc: raw                # Classes de base
+    # Ou dictionnaire en ligne :
+    # landcover:
+    #   reclass:
+    #     "1": [1, 2]
+    #   reclass_name:
+    #     "1": "forest"
+
+  # 3. Ratios de partitionnement et découpage
+  val_ratio: 0.20
+  test_ratio: 0.00
+  buffer_step: 0
+  rebuild: true
 ```
 
 ---

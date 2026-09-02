@@ -120,6 +120,7 @@ src/landseg/
 |   |   |-- data_partition/       Split, filter, hydrate, and scoring pipeline
 |   |   |-- normal_blocks/        Normalization stats and normalization pipeline
 |   |   |-- adapter.py            Catalog data blocks adapter
+|   |   |-- resolver.py           Feature channels and target schemes resolver
 |   |   `-- schema.py             Preparation schema compiler
 |   |-- factory.py                DataSpecs factory
 |   `-- utils/                    Raster context and coordinate string helpers
