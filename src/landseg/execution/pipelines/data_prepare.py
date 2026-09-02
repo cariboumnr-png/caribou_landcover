@@ -120,12 +120,17 @@ def prepare(config: configs.RootConfig):
             'image_band_map', {}
         )
         label_names = data_schema.get('labels', {}).get('label_names', {})
+        raster_schemes = data_schema.get('dataset', {}).get('schemes', {})
 
         _, selected_indices = prepare_data.resolve_feature_channels(
-            image_band_map, config.data.preparation.features
+            image_band_map,
+            config.data.preparation.features,
+            raster_schemes=raster_schemes
         )
         target_reclass = prepare_data.resolve_target_reclass(
-            label_names, config.data.preparation.targets
+            label_names,
+            config.data.preparation.targets,
+            raster_schemes=raster_schemes
         )
 
         prepare_data.run_normalize_blocks(

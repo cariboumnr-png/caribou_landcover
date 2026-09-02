@@ -83,7 +83,8 @@ def process_source(
             resampling_method=resampling,
         )
 
-        rasters.add_band_description_to_vrt(warped, cfg['band_mapping'])
+        if cfg.get('band_mapping'):
+            rasters.add_band_description_to_vrt(warped, cfg['band_mapping'])
 
         cat_specs = cfg.get('categorical_specs')
         if cat_specs and 'index_base' in cat_specs:
@@ -91,7 +92,7 @@ def process_source(
 
         schemes = cfg.get('schemes')
         if schemes:
-            rasters.add_tag_to_vrt(warped, schemes=schemes)
+            rasters.add_tag_to_vrt(warped, schemes={cfg['name']: schemes})
 
         match category:
             case 'domains' | 'domain':

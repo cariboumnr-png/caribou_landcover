@@ -41,6 +41,9 @@ class _GridParams:
     crs_string: str = 'EPSG:3161'
     tile_size: tuple[int, int] = (16, 16)
     tile_stride: tuple[int, int] = (8, 8)
+    origin: tuple[float, float] | None = None
+    pixel_size: tuple[float, float] | None = None
+    extent_in_crs_units: tuple[float, float] | None = None
 
 
 # ----- `process_source` tests
@@ -72,21 +75,21 @@ def test_process_source_features_and_labels(tmp_path, dummy_geotiff_factory):
             'path': str(s2_path),
             'category': 'features',
             'band_mapping': {1: 'blue', 2: 'green', 3: 'red'},
-            'label_specs': None,
+            'categorical_specs': None,
         },
         str(dem_path): {
             'name': 'dem',
             'path': str(dem_path),
             'category': 'features',
             'band_mapping': {1: 'elevation'},
-            'label_specs': None,
+            'categorical_specs': None,
         },
         str(lbl_path): {
             'name': 'landcover',
             'path': str(lbl_path),
             'category': 'labels',
             'band_mapping': None,
-            'label_specs': {'num_cls': 2, 'ignore_cls': [255]},
+            'categorical_specs': {'num_cls': 2, 'ignore_cls': [255]},
         },
     }
 
@@ -143,7 +146,7 @@ def test_process_source_domains(tmp_path, dummy_geotiff_factory):
             'path': str(dom_path),
             'category': 'domains',
             'band_mapping': None,
-            'label_specs': None,
+            'categorical_specs': None,
         },
     }
 

@@ -76,6 +76,7 @@ class _DatasetInfo(typing.TypedDict):
     dataprep_commit: str
     mapped_grids: list[str]
     data_source: _DataSource
+    schemes: dict[str, typing.Any]
 
 class _DataSource(typing.TypedDict):
     '''Input data source paths for images and labels.'''

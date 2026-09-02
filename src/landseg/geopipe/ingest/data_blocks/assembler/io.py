@@ -39,6 +39,7 @@ Public APIs:
 import ast
 import dataclasses
 import json
+import typing
 import zipfile
 import zlib
 # third-party imports
@@ -147,17 +148,21 @@ def read_label_specs(fpath: str | None) -> dict[str, geo_core.LabelSpecs]:
         ):
             return {}
 
+        base_val = 0
+        if 'index_base' in tags:
+            try:
+                parsed_base = _parse_vrt_tag(tags['index_base'])
+                if isinstance(parsed_base, int):
+                    base_val = parsed_base
+            except (ValueError, SyntaxError, json.JSONDecodeError):
+                pass
+
         spec: geo_core.LabelSpecs = {
             'num_cls': num_cls,
             'ignore_cls': ignore_cls,
+            'index_base': base_val,
         }
-        if 'index_base' in tags:
-            try:
-                base_val = _parse_vrt_tag(tags['index_base'])
-                if isinstance(base_val, int):
-                    spec['index_base'] = base_val
-            except (ValueError, SyntaxError, json.JSONDecodeError):
-                pass
+
         for key in ('class_name', 'reclass', 'reclass_name', 'color_map'):
             if key not in tags:
                 continue
@@ -196,6 +201,35 @@ def read_label_specs(fpath: str | None) -> dict[str, geo_core.LabelSpecs]:
         specs[name] = spec
 
     return specs
+
+
+def read_schemes(fpath: str | None) -> dict[str, typing.Any]:
+    '''Return schemes dictionary embedded in a raster, or {}.'''
+    if fpath is None:
+        return {}
+
+    try:
+        with rasterio.open(fpath) as src:
+            all_schemes: dict[str, typing.Any] = {}
+            # check dataset-level tags
+            dataset_tags = src.tags()
+            if 'schemes' in dataset_tags:
+                val = _parse_vrt_tag(dataset_tags['schemes'])
+                if isinstance(val, dict):
+                    all_schemes.update(val)
+
+            # check per-band tags (for composite stacked VRTs)
+            for b in src.indexes:
+                band_tags = src.tags(b)
+                if 'schemes' in band_tags:
+                    val = _parse_vrt_tag(band_tags['schemes'])
+                    if isinstance(val, dict):
+                        all_schemes.update(val)
+
+            return all_schemes
+    except (rasterio.errors.RasterioError, ValueError, SyntaxError):
+        return {}
+
 
 def _parse_vrt_tag(value: str) -> object:
     '''Decode GDAL metadata serialized as JSON or a Python literal.'''

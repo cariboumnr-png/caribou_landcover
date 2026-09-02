@@ -35,6 +35,7 @@ import datetime
 # local imports
 import landseg._constants as c
 import landseg.geopipe.core as geo_core
+import landseg.geopipe.ingest.data_blocks.assembler as assembler
 
 # -------------------------------Public Function-------------------------------
 def build_schema(
@@ -76,6 +77,11 @@ def build_schema(
     # parse sources
     source_image, source_label = sources
 
+    # parse schemes from sources
+    image_schemes = assembler.read_schemes(source_image)
+    label_schemes = assembler.read_schemes(source_label) if source_label else {}
+    schemes = {**image_schemes, **label_schemes}
+
     # update route
     if original:
         # aliases
@@ -90,6 +96,8 @@ def build_schema(
             images.append(source_image)
         if source_label and not source_label in labels:
             labels.append(source_label)
+        original['dataset'].setdefault('schemes', {})
+        original['dataset']['schemes'].update(schemes)
         return original
 
     # read from the sample block
@@ -109,6 +117,7 @@ def build_schema(
                 'image_paths': [source_image],
                 'label_paths': [source_label] if source_label else [],
             },
+            'schemes': schemes,
         },
 
         'io_conventions': {

@@ -51,7 +51,6 @@ def test_prepare_domain_maps_build_and_load(tmp_path, mocker):
         input_fpath='dummy_input.tif',
         domain_fpath=str(tmp_path / 'domain_map.json'),
         tiles_fpath=str(tmp_path / 'tiles.npz'),
-        index_base=0,
         valid_threshold=0.5,
         target_variance=0.9
     )
