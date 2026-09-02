@@ -151,6 +151,13 @@ def read_label_specs(fpath: str | None) -> dict[str, geo_core.LabelSpecs]:
             'num_cls': num_cls,
             'ignore_cls': ignore_cls,
         }
+        if 'index_base' in tags:
+            try:
+                base_val = _parse_vrt_tag(tags['index_base'])
+                if isinstance(base_val, int):
+                    spec['index_base'] = base_val
+            except (ValueError, SyntaxError, json.JSONDecodeError):
+                pass
         for key in ('class_name', 'reclass', 'reclass_name', 'color_map'):
             if key not in tags:
                 continue

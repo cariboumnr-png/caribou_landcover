@@ -99,6 +99,7 @@ class LabelSpecs(typing.TypedDict):
     num_cls: int
     ignore_cls: list[int]
     # optional
+    index_base: typing.NotRequired[int]
     class_name: typing.NotRequired[dict[str, str]]
     reclass: typing.NotRequired[dict[str, list[int]]]
     reclass_name: typing.NotRequired[dict[str, str]]
@@ -521,11 +522,13 @@ class DataBlock:
         # iterate label specs
         for i, spec in enumerate(self.lbl_specs.values()):
             arr = self.data.label[i]
+            index_base = spec.get('index_base', 1)
 
             # append base layer from original Class IDs with masking)
             to_ignore = list(spec['ignore_cls']) + [ignore_index]
             mask = ~numpy.isin(arr, to_ignore)
-            stack.append(numpy.where(mask, arr, ignore_index))
+            shifted_arr = arr + (1 - index_base)
+            stack.append(numpy.where(mask, shifted_arr, ignore_index))
 
             # skip if no reclass is defined for this label
             reclass = spec.get('reclass')
@@ -566,6 +569,7 @@ class DataBlock:
         # iterate label specs
         for name, spec in self.lbl_specs.items():
             cls_name = spec.get('class_name', {})
+            index_base = spec.get('index_base', 1)
 
             # base
             num_cls[name] = spec['num_cls']
@@ -573,7 +577,7 @@ class DataBlock:
             parent_map[name] = None
             parent_cls_map[name] = None
             label_names[name] = [
-                cls_name.get(str(j + 1), f'cls_{j + 1}')
+                cls_name.get(str(j + index_base), f'cls_{j + 1}')
                 for j in range(spec['num_cls'])
             ]
 

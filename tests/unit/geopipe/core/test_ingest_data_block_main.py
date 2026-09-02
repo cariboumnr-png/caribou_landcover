@@ -200,6 +200,39 @@ def test_datablock_label_stack_no_reclass():
     assert block.manifest['label_names'] == {'base': ['WAT', 'FOR', 'WET', 'UCL']}
 
 
+def test_datablock_label_stack_zero_based_index():
+    '''
+    Given: 0-based label array (0, 1, 2, 3) and index_base=0 specs.
+    When: Building a DataBlock.
+    Then: Shift base layer to canonical 1-based indexing (1, 2, 3, 4)
+        and map names correctly.
+    '''
+    zero_based_array = numpy.repeat([0, 1, 2, 3], 16384).reshape((1, 256, 256))
+    zero_based_specs: dict[str, geo_core.LabelSpecs] = {
+        'base': {
+            'num_cls': 4,
+            'ignore_cls': [3], # class 3 is ignore
+            'index_base': 0,
+            'class_name': {'0': 'WAT', '1': 'FOR', '2': 'WET', '3': 'UCL'},
+        }
+    }
+    cfg = _make_config()
+    inputs = _make_inputs(
+        label_array=zero_based_array,
+        label_specs=zero_based_specs
+    )
+    block = geo_core.DataBlock.build(inputs, cfg)
+
+    # stack has shifted array (0 -> 1, 1 -> 2, 2 -> 3, ignore 3 -> 255)
+    stack_base = block.data.label_stack[0]
+    assert set(numpy.unique(stack_base)) == {1, 2, 3, 255}
+    assert block.manifest['label_num_cls'] == {'base': 4}
+    assert block.manifest['label_ignore_cls'] == {'base': [3]}
+    assert block.manifest['label_names'] == {'base': ['WAT', 'FOR', 'WET', 'UCL']}
+    # label counts for classes 1, 2, 3 (each has 16384 pixels)
+    assert block.manifest['label_count']['base'] == [16384, 16384, 16384, 0]
+
+
 def test_datablocks_label_stack_w_reclass():
     '''
     Given: Label inputs requesting category reclassification.
