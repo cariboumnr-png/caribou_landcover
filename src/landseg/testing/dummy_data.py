@@ -229,6 +229,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'num_cls': 4,
             'ignore_cls': [255],
         },
+        'schemes': None,
     })
 
     print(f'Creating domain knowledge [mock_soil]: {paths.domain_2}')
@@ -258,6 +259,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'num_cls': 9,
             'ignore_cls': [255],
         },
+        'schemes': None,
     })
 
     # ----- create feature and label rasters
@@ -305,6 +307,14 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             10: 'swir2',
         },
         'categorical_specs': None,
+        'schemes': {
+            'rgb': ['blue', 'green', 'red'],
+            'rgb_nir': ['blue', 'green', 'red', 'nir'],
+            'surface': [
+                'blue', 'green', 'red', 'red_edge1', 'red_edge2',
+                'red_edge3', 'nir', 'narrow_nir', 'swir1', 'swir2'
+            ],
+        },
     })
 
     print(f'Creating raw feature [DEM]: {paths.dem}')
@@ -328,6 +338,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             1: 'dem',
         },
         'categorical_specs': None,
+        'schemes': None,
     })
 
     print(f'Creating raw label [Landcover]: {paths.landcover}')
@@ -361,6 +372,12 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             'color_map': {
                 '1': [34, 139, 34],
                 '2': [218, 165, 32],
+            },
+        },
+        'schemes': {
+            'binary': {
+                'reclass': {'1': [1, 2]},
+                'reclass_name': {'1': 'forest'},
             },
         },
     })
@@ -401,6 +418,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
                 'profile': 'ontario_tree_species_grouped_profiles',
             },
         },
+        'schemes': None,
     })
 
     _write_jsons(data_configs, paths.manifest)
