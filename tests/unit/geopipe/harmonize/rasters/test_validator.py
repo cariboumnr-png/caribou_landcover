@@ -45,7 +45,7 @@ def test_compile_dataset_manifest_success(tmp_path):
     cfg_data = {
         'category': 'features',
         'band_mapping': {1: 'red'},
-        'label_specs': None,
+        'categorical_specs': None,
     }
     cfg_file.write_text(json.dumps(cfg_data))
 
@@ -63,6 +63,7 @@ def test_compile_dataset_manifest_success(tmp_path):
     assert str(raster_file) in compiled
     assert compiled[str(raster_file)]['name'] == 's2_sample'
     assert compiled[str(raster_file)]['category'] == 'features'
+    assert compiled[str(raster_file)]['categorical_specs'] is None
 
 
 def test_compile_dataset_manifest_invalid_json(tmp_path):
@@ -78,11 +79,11 @@ def test_compile_dataset_manifest_invalid_json(tmp_path):
         validator.compile_dataset_manifest(str(manifest_file))
 
 
-def test_compile_dataset_manifest_categorical_index_base(tmp_path):
+def test_compile_dataset_manifest_categorical_specs(tmp_path):
     '''
     Given: Manifest with categorical domain having index_base=0.
     When: `compile_dataset_manifest` is executed.
-    Then: Correctly parse and populate index_base in compiled item.
+    Then: Correctly parse and populate categorical_specs in compiled item.
     '''
     raster_file = tmp_path / 'domain.tif'
     raster_file.write_text('dummy raster')
@@ -90,8 +91,11 @@ def test_compile_dataset_manifest_categorical_index_base(tmp_path):
     cfg_data = {
         'category': 'domains',
         'band_mapping': {1: 'soil'},
-        'index_base': 0,
-        'label_specs': None,
+        'categorical_specs': {
+            'index_base': 0,
+            'num_cls': 5,
+            'ignore_cls': [],
+        },
     }
     cfg_file.write_text(json.dumps(cfg_data))
 
@@ -107,29 +111,108 @@ def test_compile_dataset_manifest_categorical_index_base(tmp_path):
 
     compiled = validator.compile_dataset_manifest(str(manifest_file))
     assert str(raster_file) in compiled
-    assert compiled[str(raster_file)]['index_base'] == 0
+    cat_specs = compiled[str(raster_file)]['categorical_specs']
+    assert cat_specs is not None
+    assert cat_specs['index_base'] == 0
+    assert cat_specs['num_cls'] == 5
+    assert cat_specs['ignore_cls'] == []
 
 
-def test_resolve_index_base():
+def test_compile_dataset_manifest_label_specs(tmp_path):
     '''
-    Given: Various index_base values and categories.
-    When: Running `_resolve_index_base`.
-    Then: Correctly validate integer index bases for categorical data.
+    Given: Manifest with categorical label having complete specs.
+    When: `compile_dataset_manifest` is executed.
+    Then: Correctly parse and populate categorical_specs in compiled item.
     '''
-    # categorical valid
-    assert validator._resolve_index_base(0, 'domain') == 0
-    assert validator._resolve_index_base(1, 'labels') == 1
+    raster_file = tmp_path / 'landcover.tif'
+    raster_file.write_text('dummy raster')
+    cfg_file = tmp_path / 'landcover.json'
+    cfg_data = {
+        'category': 'labels',
+        'band_mapping': {1: 'landcover'},
+        'categorical_specs': {
+            'index_base': 1,
+            'num_cls': 2,
+            'ignore_cls': [255],
+            'class_name': {'1': 'coniferous', '2': 'deciduous'},
+            'color_map': {'1': [34, 139, 34], '2': [218, 165, 32]},
+        },
+    }
+    cfg_file.write_text(json.dumps(cfg_data))
+
+    manifest_file = tmp_path / 'manifest.json'
+    manifest_data = [
+        {
+            'name': 'landcover',
+            'path': str(raster_file),
+            'config': str(cfg_file),
+        }
+    ]
+    manifest_file.write_text(json.dumps(manifest_data))
+
+    compiled = validator.compile_dataset_manifest(str(manifest_file))
+    cat_specs = compiled[str(raster_file)]['categorical_specs']
+    assert cat_specs is not None
+    assert cat_specs['index_base'] == 1
+    assert cat_specs['num_cls'] == 2
+    assert cat_specs['ignore_cls'] == [255]
+    assert cat_specs.get('class_name') == {
+        '1': 'coniferous',
+        '2': 'deciduous'
+    }
+
+
+def test_resolve_categorical_specs():
+    '''
+    Given: Various categorical_specs values and categories.
+    When: Running `_resolve_categorical_specs`.
+    Then: Correctly validate categorical specifications.
+    '''
+    # categorical domain valid
+    dom_res = validator._resolve_categorical_specs(
+        {'index_base': 0, 'num_cls': 5, 'ignore_cls': []}, 'domain'
+    )
+    assert dom_res == {
+        'index_base': 0,
+        'num_cls': 5,
+        'ignore_cls': [],
+    }
+
+    # categorical labels valid
+    lbl_res = validator._resolve_categorical_specs(
+        {
+            'index_base': 1,
+            'num_cls': 2,
+            'ignore_cls': [255],
+        },
+        'labels'
+    )
+    assert lbl_res is not None
+    assert lbl_res['index_base'] == 1
+    assert lbl_res['num_cls'] == 2
+    assert lbl_res['ignore_cls'] == [255]
 
     # non-categorical returns None regardless
-    assert validator._resolve_index_base(None, 'features') is None
-    assert validator._resolve_index_base(1, 'feature') is None
+    assert validator._resolve_categorical_specs(None, 'features') is None
+    assert validator._resolve_categorical_specs(
+        {'index_base': 1, 'num_cls': 2, 'ignore_cls': []}, 'features'
+    ) is None
 
     # categorical invalid
-    with pytest.raises(ValueError, match='non-negative index base'):
-        validator._resolve_index_base(None, 'domain')
+    with pytest.raises(ValueError, match='categorical_specs'):
+        validator._resolve_categorical_specs(None, 'domain')
 
-    with pytest.raises(ValueError, match='non-negative index base'):
-        validator._resolve_index_base(-1, 'labels')
+    with pytest.raises(ValueError, match='non-negative "index_base"'):
+        validator._resolve_categorical_specs(
+            {'index_base': -1, 'num_cls': 1, 'ignore_cls': []}, 'domain'
+        )
 
-    with pytest.raises(ValueError, match='non-negative index base'):
-        validator._resolve_index_base('0', 'domain')
+    with pytest.raises(ValueError, match='num_cls'):
+        validator._resolve_categorical_specs(
+            {'index_base': 1, 'num_cls': 0, 'ignore_cls': []}, 'labels'
+        )
+
+    with pytest.raises(ValueError, match='ignore_cls'):
+        validator._resolve_categorical_specs(
+            {'index_base': 1, 'num_cls': 2, 'ignore_cls': 'invalid'}, 'domain'
+        )

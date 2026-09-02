@@ -85,7 +85,9 @@ def process_source(
 
         rasters.add_band_description_to_vrt(warped, cfg['band_mapping'])
 
-        rasters.add_tag_to_vrt(warped, index_base=cfg['index_base'])
+        cat_specs = cfg.get('categorical_specs')
+        if cat_specs and 'index_base' in cat_specs:
+            rasters.add_tag_to_vrt(warped, index_base=cat_specs['index_base'])
 
         match category:
             case 'domains' | 'domain':
@@ -96,17 +98,16 @@ def process_source(
                 features.append(warped) # for stacking
             case 'labels' | 'labels':
                 processed.harmonized.update({tagged_name: warped})
-                lbl_specs = cfg.get('label_specs')
-                assert lbl_specs, f'missing label specs for {tagged_name}'
+                assert cat_specs, f'missing categorical specs for {tagged_name}'
                 rasters.add_tag_to_vrt(
                     warped,
-                    num_cls=lbl_specs['num_cls'],
-                    ignore_cls=lbl_specs['ignore_cls'],
-                    class_name=lbl_specs.get('class_name', {}),
-                    reclass=lbl_specs.get('reclass', {}),
-                    reclass_name=lbl_specs.get('reclass_name', {}),
-                    color_map=lbl_specs.get('color_map', {}),
-                    taxonomy=lbl_specs.get('taxonomy', {}),
+                    num_cls=cat_specs['num_cls'],
+                    ignore_cls=cat_specs['ignore_cls'],
+                    class_name=cat_specs.get('class_name', {}),
+                    reclass=cat_specs.get('reclass', {}),
+                    reclass_name=cat_specs.get('reclass_name', {}),
+                    color_map=cat_specs.get('color_map', {}),
+                    taxonomy=cat_specs.get('taxonomy', {}),
                 )
                 labels.append(warped) # for stacking
 

@@ -224,8 +224,11 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: "mock_geology"
         },
-        'index_base': 1,
-        'label_specs': None,
+        'categorical_specs': {
+            'index_base': 1,
+            'num_cls': 4,
+            'ignore_cls': [255],
+        },
     })
 
     print(f'Creating domain knowledge [mock_soil]: {paths.domain_2}')
@@ -250,8 +253,11 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: "mock_soil"
         },
-        'index_base': 1,
-        'label_specs': None,
+        'categorical_specs': {
+            'index_base': 1,
+            'num_cls': 9,
+            'ignore_cls': [255],
+        },
     })
 
     # ----- create feature and label rasters
@@ -298,8 +304,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             9: 'swir1',
             10: 'swir2',
         },
-        'index_base': None,
-        'label_specs': None,
+        'categorical_specs': None,
     })
 
     print(f'Creating raw feature [DEM]: {paths.dem}')
@@ -322,8 +327,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: 'dem',
         },
-        'index_base': None,
-        'label_specs': None,
+        'categorical_specs': None,
     })
 
     print(f'Creating raw label [Landcover]: {paths.landcover}')
@@ -346,8 +350,8 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: 'landcover'
         },
-        'index_base': 1,
-        'label_specs': {
+        'categorical_specs': {
+            'index_base': 1,
             'num_cls': 2,
             'ignore_cls': [255],
             'class_name': {
@@ -381,20 +385,20 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: 'leadspc'
         },
-        'index_base': 1,
-        'label_specs': {
+        'categorical_specs': {
+            'index_base': 1,
             'num_cls': 2,
             'ignore_cls': [255],
-            'taxonomy': {
-                'profile': 'ontario_tree_species_grouped_profiles',
-            },
-            'class_name': { # names here need to match corresponding profile
+            'class_name': {
                 '1': 'SB_BLACK_SPRUCE',
                 '2': 'PJ_JACK_PINE',
             },
             'color_map': {
                 '1': [0, 100, 0],
                 '2': [107, 142, 35],
+            },
+            'taxonomy': {
+                'profile': 'ontario_tree_species_grouped_profiles',
             },
         },
     })
