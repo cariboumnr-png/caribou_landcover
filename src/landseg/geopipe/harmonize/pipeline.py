@@ -89,6 +89,10 @@ def process_source(
         if cat_specs and 'index_base' in cat_specs:
             rasters.add_tag_to_vrt(warped, index_base=cat_specs['index_base'])
 
+        schemes = cfg.get('schemes')
+        if schemes:
+            rasters.add_tag_to_vrt(warped, schemes=schemes)
+
         match category:
             case 'domains' | 'domain':
                 processed.harmonized.update({tagged_name: warped})
@@ -104,8 +108,6 @@ def process_source(
                     num_cls=cat_specs['num_cls'],
                     ignore_cls=cat_specs['ignore_cls'],
                     class_name=cat_specs.get('class_name', {}),
-                    reclass=cat_specs.get('reclass', {}),
-                    reclass_name=cat_specs.get('reclass_name', {}),
                     color_map=cat_specs.get('color_map', {}),
                     taxonomy=cat_specs.get('taxonomy', {}),
                 )

@@ -216,3 +216,78 @@ def test_resolve_categorical_specs():
         validator._resolve_categorical_specs(
             {'index_base': 1, 'num_cls': 2, 'ignore_cls': 'invalid'}, 'domain'
         )
+
+
+def test_resolve_schemes_features():
+    '''
+    Given: Feature schemes with valid and invalid band names.
+    When: Running `_resolve_schemes` on feature category.
+    Then: Correctly validate band names against band_mapping.
+    '''
+    band_map = {1: 'blue', 2: 'green', 3: 'red', 4: 'nir'}
+    schemes = {
+        'rgb': ['blue', 'green', 'red'],
+        'rgb_nir': ['blue', 'green', 'red', 'nir'],
+    }
+    resolved = validator._resolve_schemes(schemes, 'features', band_map, None)
+    assert resolved == schemes
+
+    # invalid band name
+    with pytest.raises(ValueError, match='not in band_mapping'):
+        validator._resolve_schemes(
+            {'bad': ['blue', 'swir1']}, 'features', band_map, None
+        )
+
+    # empty bands list
+    with pytest.raises(ValueError, match='non-empty list'):
+        validator._resolve_schemes({'empty': []}, 'features', band_map, None)
+
+
+def test_resolve_schemes_labels():
+    '''
+    Given: Label schemes with valid and invalid class IDs.
+    When: Running `_resolve_schemes` on label category.
+    Then: Correctly validate class IDs against index_base and num_cls.
+    '''
+    cat_specs: validator.CategoricalSpecs = {
+        'index_base': 1,
+        'num_cls': 3,
+        'ignore_cls': [255],
+    }
+    schemes = {
+        'binary': {
+            'reclass': {'1': [1], '2': [2, 3]},
+            'reclass_name': {'1': 'WAT', '2': 'VEG'},
+        }
+    }
+    resolved = validator._resolve_schemes(
+        schemes, 'labels', {1: 'landcover'}, cat_specs
+    )
+    assert resolved == schemes
+
+    # class ID out of range
+    with pytest.raises(ValueError, match='outside valid class range'):
+        validator._resolve_schemes(
+            {
+                'invalid': {
+                    'reclass': {'1': [4]},
+                    'reclass_name': {'1': 'OUT'},
+                }
+            },
+            'labels',
+            {1: 'landcover'},
+            cat_specs,
+        )
+
+
+def test_resolve_schemes_domains():
+    '''
+    Given: Domain category with schemes defined.
+    When: Running `_resolve_schemes`.
+    Then: Raise ValueError as domains should not have schemes.
+    '''
+    assert validator._resolve_schemes(None, 'domain', {1: 'soil'}, None) is None
+    with pytest.raises(ValueError, match='should not define "schemes"'):
+        validator._resolve_schemes(
+            {'dummy': ['soil']}, 'domain', {1: 'soil'}, None
+        )

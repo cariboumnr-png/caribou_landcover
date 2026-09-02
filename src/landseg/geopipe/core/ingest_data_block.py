@@ -98,8 +98,8 @@ class LabelSpecs(typing.TypedDict):
     # required
     num_cls: int
     ignore_cls: list[int]
+    index_base: int
     # optional
-    index_base: typing.NotRequired[int]
     class_name: typing.NotRequired[dict[str, str]]
     reclass: typing.NotRequired[dict[str, list[int]]]
     reclass_name: typing.NotRequired[dict[str, str]]

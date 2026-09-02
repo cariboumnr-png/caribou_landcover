@@ -52,9 +52,19 @@ class CategoricalSpecs(typing.TypedDict):
     class_name: typing.NotRequired[dict[str, str]]
     color_map: typing.NotRequired[dict[str, list[int]]]
     taxonomy: typing.NotRequired[dict[str, typing.Any]]
-    #
-    reclass: typing.NotRequired[dict[str, list[int]]]
-    reclass_name: typing.NotRequired[dict[str, str]]
+
+
+FeatureSchemes = dict[str, list[str]]
+
+
+class LabelScheme(typing.TypedDict):
+    '''Named reclassification scheme for label raster.'''
+    reclass: dict[str, list[int]]
+    reclass_name: dict[str, str]
+
+
+LabelSchemes = dict[str, LabelScheme]
+Schemes = FeatureSchemes | LabelSchemes
 
 
 class DatasetConfigItem(typing.TypedDict):
@@ -64,6 +74,7 @@ class DatasetConfigItem(typing.TypedDict):
     category: AllowedCategory
     band_mapping: dict[int, str]
     categorical_specs: CategoricalSpecs | None
+    schemes: Schemes | None
 
 
 # ----- public functions
@@ -106,12 +117,21 @@ def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
         except ValueError as e:
             raise ValueError(f'Invalid categorical specs at index {i}') from e
 
+        schemes = cfg.get('schemes')
+        try:
+            schemes = _resolve_schemes(
+                schemes, category, band_map, cat_specs
+            )
+        except ValueError as e:
+            raise ValueError(f'Invalid schemes at index {i}') from e
+
         compiled.append({
             'name': name,
             'path': raster_p,
             'category': category,
             'band_mapping': band_map,
             'categorical_specs': cat_specs,
+            'schemes': schemes,
         })
 
     # return a dict indexed by file path
@@ -259,7 +279,7 @@ def _resolve_categorical_specs(
     }
 
     if is_label:
-        for key in ('class_name', 'color_map', 'reclass', 'reclass_name'):
+        for key in ('class_name', 'color_map'):
             val = cat_specs.get(key)
             if val is not None:
                 if not isinstance(val, dict):
@@ -291,3 +311,121 @@ def _resolve_categorical_specs(
             resolved['taxonomy'] = tax_dict
 
     return resolved
+
+
+def _resolve_schemes(
+    schemes: typing.Any,
+    cat: AllowedCategory,
+    band_mapping: dict[int, str],
+    cat_specs: CategoricalSpecs | None,
+) -> Schemes | None:
+    '''Resolve and validate named schemes dictionary.'''
+    is_domain = cat in ['domain', 'domains']
+    is_feature = cat in ['feature', 'features']
+    is_label = cat in ['label', 'labels']
+
+    if is_domain:
+        if schemes is not None and len(schemes) > 0:
+            raise ValueError('Domain rasters should not define "schemes"')
+        return None
+
+    if schemes is None:
+        return None
+
+    if not isinstance(schemes, dict):
+        raise ValueError(
+            f'Schemes must be a dictionary, got: {type(schemes)}'
+        )
+
+    if not schemes:
+        return None
+
+    if is_feature:
+        valid_bands = set(band_mapping.values())
+        resolved_feat: FeatureSchemes = {}
+        for sname, bands in schemes.items():
+            if not isinstance(sname, str) or not sname.strip():
+                raise ValueError(
+                    f'Feature scheme name must be non-empty string, '
+                    f'got: {sname}'
+                )
+            if not isinstance(bands, list) or not bands:
+                raise ValueError(
+                    f'Feature scheme "{sname}" must be non-empty list of '
+                    f'band names, got: {bands}'
+                )
+            for b in bands:
+                if not isinstance(b, str) or b not in valid_bands:
+                    raise ValueError(
+                        f'Band "{b}" in feature scheme "{sname}" is not in '
+                        f'band_mapping: {sorted(valid_bands)}'
+                    )
+            resolved_feat[sname] = list(bands)
+        return resolved_feat
+
+    if is_label:
+        if cat_specs is None:
+            raise ValueError('Label schemes require categorical_specs')
+        index_base = cat_specs['index_base']
+        num_cls = cat_specs['num_cls']
+        valid_range = set(range(index_base, index_base + num_cls))
+        resolved_lbl: LabelSchemes = {}
+
+        for sname, sdata in schemes.items():
+            if not isinstance(sname, str) or not sname.strip():
+                raise ValueError(
+                    f'Label scheme name must be non-empty string, '
+                    f'got: {sname}'
+                )
+            if not isinstance(sdata, dict):
+                raise ValueError(
+                    f'Label scheme "{sname}" must be a dictionary, '
+                    f'got: {type(sdata)}'
+                )
+
+            reclass = sdata.get('reclass')
+            reclass_name = sdata.get('reclass_name')
+            if not isinstance(reclass, dict) or not reclass:
+                raise ValueError(
+                    f'Label scheme "{sname}" must contain a non-empty '
+                    f'"reclass" dictionary'
+                )
+            if not isinstance(reclass_name, dict) or not reclass_name:
+                raise ValueError(
+                    f'Label scheme "{sname}" must contain a non-empty '
+                    f'"reclass_name" dictionary'
+                )
+
+            for grp_id, cls_ids in reclass.items():
+                if not isinstance(cls_ids, list) or not cls_ids:
+                    raise ValueError(
+                        f'Group "{grp_id}" in label scheme "{sname}" must '
+                        f'be non-empty list of ints, got: {cls_ids}'
+                    )
+                for cid in cls_ids:
+                    if not isinstance(cid, int) or cid not in valid_range:
+                        raise ValueError(
+                            f'Class ID {cid} in label scheme "{sname}" group '
+                            f'"{grp_id}" is outside valid class range '
+                            f'[{index_base}..{index_base + num_cls - 1}]'
+                        )
+
+            for grp_id, gname in reclass_name.items():
+                if grp_id not in reclass:
+                    raise ValueError(
+                        f'Group "{grp_id}" in reclass_name does not exist in '
+                        f'reclass of label scheme "{sname}"'
+                    )
+                if not isinstance(gname, str) or not gname.strip():
+                    raise ValueError(
+                        f'Group name for "{grp_id}" in label scheme '
+                        f'"{sname}" must be a non-empty string'
+                    )
+
+            resolved_lbl[sname] = {
+                'reclass': reclass,
+                'reclass_name': reclass_name,
+            }
+        return resolved_lbl
+
+    return None
