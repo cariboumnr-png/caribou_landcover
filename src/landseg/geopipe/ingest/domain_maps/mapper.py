@@ -39,8 +39,6 @@ import landseg.utils as utils
 def map_domain_to_grid(
     world_grid: geo_core.GridLayout,
     raster_path: str,
-    *,
-    index_base: int,
 ) -> alias.RasterTileDict:
     '''
     Map a domain raster onto a world grid and re-index labels.
@@ -67,7 +65,7 @@ def map_domain_to_grid(
     '''
 
     # read domain raster and get arrays indexed to the grid tiles
-    tiles, nodata = _read_raster(world_grid, raster_path)
+    tiles, nodata, index_base = _read_raster(world_grid, raster_path)
 
     # global mapping: raw i..K  ->  0..K-1 ----
     idx_map = _get_index_mapping(tiles, nodata, index_base)
@@ -86,28 +84,30 @@ def map_domain_to_grid(
 def _read_raster(
     grid: geo_core.GridLayout,
     fpath: str,
-) -> tuple[alias.RasterTileDict, int]:
+) -> tuple[alias.RasterTileDict, int, int]:
     '''Read a raster over all grid windows.'''
 
     # open domain raster
     with geo_utils.open_rasters(fpath) as (src,):
         assert src
-        # offset the world grid to align with input raster
         grid.offset_from(src)
-        # infer dtype and nodata
+
         dtype = numpy.dtype(src.dtypes[0])
         assert numpy.issubdtype(dtype, numpy.integer) # sanity check: int only
+
         nodata = src.nodata
         if nodata is None:
             nodata = -1 # default value
         assert abs(nodata - round(nodata)) < 1e-9 # sanity check: nodata is int
+
+        index_base = src.tags().get('index_base', 1) # default 1
 
     # read through all windows via multiprocessing
     jobs = [(_read, (k, v, fpath, grid.tile_size), {})for k, v in grid.items()]
     results: list[alias.RasterTile]
     results = utils.ParallelExecutor().run(jobs, ' - Mapping domain tiles')
     all_tiles = [(_, t) for (_, t) in results if t.size > 0] # filter empty arrays
-    return dict(all_tiles), nodata
+    return dict(all_tiles), nodata, index_base
 
 def _read(
     raster_window_id: tuple[int, int],

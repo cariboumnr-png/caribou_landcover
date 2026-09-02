@@ -49,6 +49,7 @@ class DatasetConfigItem(typing.TypedDict):
     path: str
     category: AllowedCategory
     band_mapping: dict[int, str]
+    index_base: int | None
     label_specs: geo_core.LabelSpecs | None
 
 
@@ -78,7 +79,13 @@ def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
         try:
             category = _resolve_category(category)
         except ValueError as e:
-            raise ValueError(f'Invalid category value at index {i}') from e
+            raise ValueError(f'Invalid category at index {i}') from e
+
+        index_base = cfg.get('index_base')
+        try:
+            index_base = _resolve_index_base(index_base, category)
+        except ValueError as e:
+            raise ValueError(f'Invalid index base at index {i}') from e
 
         band_map = cfg.get('band_mapping')
         try:
@@ -97,6 +104,7 @@ def compile_dataset_manifest(manifest_fp: str) -> dict[str, DatasetConfigItem]:
             'path': raster_p,
             'category': category,
             'band_mapping': band_map,
+            'index_base': index_base,
             'label_specs': label_specs
         })
 
@@ -165,6 +173,19 @@ def _resolve_category(cat: typing.Any) -> AllowedCategory:
         )
 
     return typing.cast(AllowedCategory, cat)
+
+
+def _resolve_index_base(base: typing.Any, cat: AllowedCategory) -> int | None:
+    '''Validate and return `index base` for categorical data source.'''
+    is_categorical = cat in ['domain', 'domains', 'label', 'labels']
+    if is_categorical:
+        if not isinstance(base, int) and base >= 0:
+            raise ValueError(
+                'Categorical raster should have a non-negative index base, '
+                f'got: {base} with type {type(base)}'
+            )
+        return base
+    return None # ignore non-categorical data sources
 
 
 def _resolve_band_mapping(mapping: typing.Any) -> dict[int, str]:

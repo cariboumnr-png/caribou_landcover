@@ -93,7 +93,6 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
                     input_fpath=path,
                     domain_fpath=ingestion_paths.domains.domain_map_fpath(name),
                     tiles_fpath=ingestion_paths.domains.mapped_tiles_fpath(name, gid),
-                    index_base=1,
                     valid_threshold=domain_cfg.valid_threshold,
                     target_variance=domain_cfg.target_variance,
                 ) for name, path in harmonized.domains.items()

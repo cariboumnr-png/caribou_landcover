@@ -47,7 +47,6 @@ class DomainBuildingParameters:
     input_fpath: str
     domain_fpath: str
     tiles_fpath: str
-    index_base: int
     valid_threshold: float
     target_variance: float
 
@@ -164,11 +163,7 @@ def _prep_mapping(
     # create a new mapping if not valid
     if not mapped:
         try:
-            mapped = domain_maps.map_domain_to_grid(
-                grid,
-                config.input_fpath,
-                index_base=config.index_base,
-            )
+            mapped = domain_maps.map_domain_to_grid(grid, config.input_fpath)
             ctrl.persist(mapped)
         except ValueError as e:
             raise ValueError(

@@ -224,6 +224,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: "mock_geology"
         },
+        'index_base': 1,
         'label_specs': None,
     })
 
@@ -249,6 +250,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: "mock_soil"
         },
+        'index_base': 1,
         'label_specs': None,
     })
 
@@ -296,6 +298,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
             9: 'swir1',
             10: 'swir2',
         },
+        'index_base': None,
         'label_specs': None,
     })
 
@@ -319,6 +322,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: 'dem',
         },
+        'index_base': None,
         'label_specs': None,
     })
 
@@ -342,6 +346,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: 'landcover'
         },
+        'index_base': 1,
         'label_specs': {
             'num_cls': 2,
             'ignore_cls': [255],
@@ -376,6 +381,7 @@ def generate_dummy_data(input_root: str = './experiment/input') -> TIFFPaths:
         'band_mapping': {
             1: 'leadspc'
         },
+        'index_base': 1,
         'label_specs': {
             'num_cls': 2,
             'ignore_cls': [255],
