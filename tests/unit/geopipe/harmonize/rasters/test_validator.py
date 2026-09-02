@@ -19,6 +19,8 @@
 #                       and limitations under the License.                    #
 # =========================================================================== #
 
+# pylint: disable=protected-access
+
 '''Unit tests for dataset manifest validation (validator.py).'''
 
 # standard imports
@@ -74,3 +76,60 @@ def test_compile_dataset_manifest_invalid_json(tmp_path):
 
     with pytest.raises(ValueError, match='expected to read as a list'):
         validator.compile_dataset_manifest(str(manifest_file))
+
+
+def test_compile_dataset_manifest_categorical_index_base(tmp_path):
+    '''
+    Given: Manifest with categorical domain having index_base=0.
+    When: `compile_dataset_manifest` is executed.
+    Then: Correctly parse and populate index_base in compiled item.
+    '''
+    raster_file = tmp_path / 'domain.tif'
+    raster_file.write_text('dummy raster')
+    cfg_file = tmp_path / 'domain.json'
+    cfg_data = {
+        'category': 'domains',
+        'band_mapping': {1: 'soil'},
+        'index_base': 0,
+        'label_specs': None,
+    }
+    cfg_file.write_text(json.dumps(cfg_data))
+
+    manifest_file = tmp_path / 'manifest.json'
+    manifest_data = [
+        {
+            'name': 'soil_domain',
+            'path': str(raster_file),
+            'config': str(cfg_file),
+        }
+    ]
+    manifest_file.write_text(json.dumps(manifest_data))
+
+    compiled = validator.compile_dataset_manifest(str(manifest_file))
+    assert str(raster_file) in compiled
+    assert compiled[str(raster_file)]['index_base'] == 0
+
+
+def test_resolve_index_base():
+    '''
+    Given: Various index_base values and categories.
+    When: Running `_resolve_index_base`.
+    Then: Correctly validate integer index bases for categorical data.
+    '''
+    # categorical valid
+    assert validator._resolve_index_base(0, 'domain') == 0
+    assert validator._resolve_index_base(1, 'labels') == 1
+
+    # non-categorical returns None regardless
+    assert validator._resolve_index_base(None, 'features') is None
+    assert validator._resolve_index_base(1, 'feature') is None
+
+    # categorical invalid
+    with pytest.raises(ValueError, match='non-negative index base'):
+        validator._resolve_index_base(None, 'domain')
+
+    with pytest.raises(ValueError, match='non-negative index base'):
+        validator._resolve_index_base(-1, 'labels')
+
+    with pytest.raises(ValueError, match='non-negative index base'):
+        validator._resolve_index_base('0', 'domain')

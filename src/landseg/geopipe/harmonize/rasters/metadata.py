@@ -45,8 +45,11 @@ def add_band_description_to_vrt(
 
 def add_tag_to_vrt(vrt_fpath: str, **kwargs):
     '''Simple helper to add metadata to a `.vrt` raster file.'''
+    tags = {k: v for k, v in kwargs.items() if v is not None}
+    if not tags:
+        return
     with rasterio.open(vrt_fpath, 'r+') as vrt:
-        vrt.update_tags(**kwargs)
+        vrt.update_tags(**tags)
 
 
 # def validate_domain_raster_index(

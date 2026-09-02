@@ -166,10 +166,11 @@ def _resolve_category(cat: typing.Any) -> AllowedCategory:
             f'got: {cat} ({type(cat)}'
         )
 
-    if not cat in AllowedCategory:
+    allowed = typing.get_args(AllowedCategory)
+    if cat not in allowed:
         raise ValueError(
             f'Invalid data category: {cat}, '
-            f'must be one of {AllowedCategory}'
+            f'must be one of {allowed}'
         )
 
     return typing.cast(AllowedCategory, cat)
@@ -179,7 +180,7 @@ def _resolve_index_base(base: typing.Any, cat: AllowedCategory) -> int | None:
     '''Validate and return `index base` for categorical data source.'''
     is_categorical = cat in ['domain', 'domains', 'label', 'labels']
     if is_categorical:
-        if not isinstance(base, int) and base >= 0:
+        if not (isinstance(base, int) and base >= 0):
             raise ValueError(
                 'Categorical raster should have a non-negative index base, '
                 f'got: {base} with type {type(base)}'

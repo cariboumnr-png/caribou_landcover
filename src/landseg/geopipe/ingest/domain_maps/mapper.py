@@ -100,7 +100,8 @@ def _read_raster(
             nodata = -1 # default value
         assert abs(nodata - round(nodata)) < 1e-9 # sanity check: nodata is int
 
-        index_base = src.tags().get('index_base', 1) # default 1
+        raw_index_base = src.tags().get('index_base', 1)
+        index_base = int(raw_index_base) if raw_index_base is not None else 1
 
     # read through all windows via multiprocessing
     jobs = [(_read, (k, v, fpath, grid.tile_size), {})for k, v in grid.items()]

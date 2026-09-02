@@ -58,6 +58,7 @@ def test_map_domain_to_grid_success(dummy_geotiff_factory):
         arr[...] = 10
         arr[0:8, 0:8] = 11
         arr[8:16, 8:16] = nodata_val
+        dst.update_tags(index_base=10)
         dst.write(arr, 1)
         file_crs = dst.crs.to_string()
 
@@ -71,7 +72,7 @@ def test_map_domain_to_grid_success(dummy_geotiff_factory):
     )
     grid = geo_core.GridLayout(spec)
 
-    result = domain_mapper.map_domain_to_grid(grid, raster_path, index_base=10)
+    result = domain_mapper.map_domain_to_grid(grid, raster_path)
 
     # checks
     assert len(result) == 5 # 4 grid tiles + (-999, -999) max_idx marker
@@ -104,6 +105,7 @@ def test_map_domain_to_grid_wrong_base(dummy_geotiff_factory):
     with rasterio.open(raster_path, 'r+') as dst:
         arr = dst.read(1)
         arr[...] = 10
+        dst.update_tags(index_base=11)
         dst.write(arr, 1)
         file_crs = dst.crs.to_string()
 
@@ -118,7 +120,7 @@ def test_map_domain_to_grid_wrong_base(dummy_geotiff_factory):
     grid = geo_core.GridLayout(spec)
 
     with pytest.raises(ValueError, match='Min value 10 != base 11'):
-        domain_mapper.map_domain_to_grid(grid, raster_path, index_base=11)
+        domain_mapper.map_domain_to_grid(grid, raster_path)
 
 
 def test_map_domain_to_grid_empty(dummy_geotiff_factory):
@@ -155,4 +157,4 @@ def test_map_domain_to_grid_empty(dummy_geotiff_factory):
     grid = geo_core.GridLayout(spec)
 
     with pytest.raises(ValueError, match='No valid domain values found'):
-        domain_mapper.map_domain_to_grid(grid, raster_path, index_base=10)
+        domain_mapper.map_domain_to_grid(grid, raster_path)
