@@ -37,7 +37,7 @@ __all__ = [
     'compile_dataset_manifest',
     'process_source',
     'get_available_profiles',
-    'validate_taxonomy_specs',
+    'validate_specs',
     # typing
     'HarmonizationReportSchema',
     'ProvenanceRecord',
@@ -68,7 +68,7 @@ if typing.TYPE_CHECKING:
 
     from .taxonomy import(
         get_available_profiles,
-        validate_taxonomy_specs,
+        validate_specs,
     )
 
 
@@ -108,7 +108,7 @@ def __getattr__(name: str):
 
     if name in {
         'get_available_profiles',
-        'validate_taxonomy_specs',
+        'validate_specs',
     }:
         return getattr(
             importlib.import_module('.taxonomy', __package__), name

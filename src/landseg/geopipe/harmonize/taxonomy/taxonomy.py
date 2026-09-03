@@ -31,6 +31,7 @@ integer classes to deterministic embedding matrix indices.
 import json
 import os
 # local imports
+import landseg.geopipe.core as geo_core
 import landseg.knowledge as knowledge
 
 
@@ -60,12 +61,12 @@ def get_available_profiles(
     return sorted(profiles)
 
 
-def validate_taxonomy_specs(
+def validate_specs(
     profile: str,
     species_mapping: dict[str, str],
     num_cls: int,
     knowledge_root: str = './knowledge',
-) -> dict[str, int]:
+) -> geo_core.TaxonomySpecs:
     '''
     Validate a label layer taxonomy specification against knowledge base.
 
@@ -108,7 +109,11 @@ def validate_taxonomy_specs(
 
         canonical_indices[class_idx] = entry['index']
 
-    return canonical_indices
+    _specs: geo_core.TaxonomySpecs = {
+        'profile': profile,
+        'canonical_indices': canonical_indices
+    }
+    return _specs
 
 
 def _resolve_taxonomy_metadata(
