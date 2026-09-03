@@ -43,7 +43,7 @@ class ProcessedRasters:
 
 # note: input label rasters must be single banded
 def process_source(
-    compiled_sources: dict[str, manifest.DatasetConfigItem],
+    compiled_sources: dict[str, manifest.ManifestEntry],
     output_dir: str,
     world_grid: geo_core.GridLayout,
     *,
