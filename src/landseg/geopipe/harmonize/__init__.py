@@ -35,7 +35,7 @@ __all__ = [
     # functions
     'unify_nodata_mask',
     'compile_dataset_manifest',
-    'process_source',
+    'harmonize_sources',
     'get_available_profiles',
     'validate_specs',
     # typing
@@ -57,9 +57,9 @@ if typing.TYPE_CHECKING:
         compile_dataset_manifest,
     )
 
-    from .pipeline import (
+    from .processor import (
         ProcessedRasters,
-        process_source,
+        harmonize_sources,
     )
 
     from .rasters import (
@@ -100,10 +100,10 @@ def __getattr__(name: str):
 
     if name in {
         'ProcessedRasters',
-        'process_source',
+        'harmonize_sources',
     }:
         return getattr(
-            importlib.import_module('.pipeline', __package__), name
+            importlib.import_module('.processor', __package__), name
         )
 
     if name in {

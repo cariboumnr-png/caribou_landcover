@@ -74,7 +74,7 @@ def exec_harmonize_data(config: configs.RootConfig) -> None:
         logger.log('INFO', f'[START] Harmonizing data onto grid: {gid}')
         cfg = config.data.harmonization
         compiled = harmonize.compile_dataset_manifest(cfg.dataset_manifest)
-        gen = harmonize.process_source(
+        gen = harmonize.harmonize_sources(
             compiled,
             paths.effective_root,
             world_grid,

@@ -32,7 +32,7 @@ import rasterio
 # local imports
 import landseg.geopipe.grid as grid
 import landseg.geopipe.harmonize.manifest as manifest
-import landseg.geopipe.harmonize.pipeline as processor
+import landseg.geopipe.harmonize.processor as processor
 
 
 @dataclasses.dataclass
@@ -46,11 +46,13 @@ class _GridParams:
     extent_in_crs_units: tuple[float, float] | None = None
 
 
-# ----- `process_source` tests
-def test_process_source_features_and_labels(tmp_path, dummy_geotiff_factory):
+# ----- `harmonize_sources` tests
+def test_harmonize_sources_features_and_labels(
+    tmp_path, dummy_geotiff_factory
+):
     '''
     Given: Two feature rasters and one label raster.
-    When: `process_source` is executed.
+    When: `harmonize_sources` is executed.
     Then: Warp rasters to grid and stack multiple features into one VRT.
     '''
     ref_path = dummy_geotiff_factory(
@@ -103,7 +105,7 @@ def test_process_source_features_and_labels(tmp_path, dummy_geotiff_factory):
     out_dir = str(tmp_path / 'harmonized')
     os.makedirs(out_dir, exist_ok=True)
 
-    gen = processor.process_source(
+    gen = processor.harmonize_sources(
         compiled,
         out_dir,
         world_grid,
@@ -131,10 +133,10 @@ def test_process_source_features_and_labels(tmp_path, dummy_geotiff_factory):
         assert src.count == 4
 
 
-def test_process_source_domains(tmp_path, dummy_geotiff_factory):
+def test_harmonize_sources_domains(tmp_path, dummy_geotiff_factory):
     '''
     Given: A domain categorical raster.
-    When: `process_source` is executed.
+    When: `harmonize_sources` is executed.
     Then: Fast-track domain raster into finalized without stacking.
     '''
     ref_path = dummy_geotiff_factory(
@@ -161,7 +163,7 @@ def test_process_source_domains(tmp_path, dummy_geotiff_factory):
     out_dir = str(tmp_path / 'harmonized')
     os.makedirs(out_dir, exist_ok=True)
 
-    gen = processor.process_source(
+    gen = processor.harmonize_sources(
         compiled,
         out_dir,
         world_grid,
