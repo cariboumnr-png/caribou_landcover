@@ -37,6 +37,7 @@ Public APIs:
 import dataclasses
 import os
 # local imports
+import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.ingest.common.alias as alias
 import landseg.geopipe.ingest.data_blocks.assembler as assembler
@@ -87,6 +88,8 @@ def build_blocks(
     inputs: BlockBuildingInput,
     context: BlockBuildingContext,
     config: BlockBuildingConfig,
+    *,
+    policy: artifacts.LifecyclePolicy
 ) -> BlockBuildingOutput:
     '''
     Validate on-disk blocks, clear corrupt ones, and build missing.
@@ -110,7 +113,7 @@ def build_blocks(
 
     # inspect existing blocks
     coords_todo, removed_count, on_disk_before = _structural_validation(
-        blks_dir, valid_coords
+        blks_dir, valid_coords, policy=policy
     )
 
     # create blocks if missing
@@ -173,36 +176,44 @@ def _prepare_block_windows(
 
 def _structural_validation(
     blks_dir: str,
-    valid_coords: set[tuple[int, int]]
+    valid_coords: set[tuple[int, int]],
+    *,
+    policy: artifacts.LifecyclePolicy
 ) -> tuple[list[tuple[int, int]], int, int]:
     '''Verify existing block file integrity; remove damaged ones.'''
-    blks_to_check = {
-        c: os.path.join(blks_dir, f'{geo_utils.xy_name(c)}.npz')
-        for c in valid_coords
-    }
-
-    jobs = [
-        (assembler.check_npz_integrity, (c, fp), {})
-        for c, fp in blks_to_check.items()
-    ]
-
-    results = utils.ParallelExecutor().run(jobs, ' - Checking datablocks')
-    parsed = {k: v for rr in results for k, v in rr.items()}
-
-    coords_todo = []
     removed_count = 0
     on_disk_before = 0
+    match policy:
+        case artifacts.LifecyclePolicy.REBUILD:
+            coords_todo = list(valid_coords) # force build all
 
-    for c, valid in parsed.items():
-        if not valid:
-            coords_todo.append(c)
-            try:
-                os.remove(blks_to_check[c])
-                removed_count += 1
-            except FileNotFoundError:
-                pass
-        else:
-            on_disk_before += 1
+        case artifacts.LifecyclePolicy.BUILD_IF_MISSING:
+            blks_to_check = {
+                c: os.path.join(blks_dir, f'{geo_utils.xy_name(c)}.npz')
+                for c in valid_coords
+            }
+
+            jobs = [
+                (assembler.check_npz_integrity, (c, fp), {})
+                for c, fp in blks_to_check.items()
+            ]
+
+            rsts = utils.ParallelExecutor().run(jobs, ' - Checking datablocks')
+            parsed = {k: v for r in rsts for k, v in r.items()}
+
+            coords_todo = []
+            for c, valid in parsed.items():
+                if not valid:
+                    coords_todo.append(c)
+                    try:
+                        os.remove(blks_to_check[c])
+                        removed_count += 1
+                    except FileNotFoundError:
+                        pass
+                else:
+                    on_disk_before += 1
+
+        case _: raise ValueError(f'Unsupported policy: {policy}')
 
     return coords_todo, removed_count, on_disk_before
 

@@ -105,16 +105,16 @@ def run_blocks_building(
 
     # build data blocks
     result = assembler.build_blocks(
-        inputs=assembler.BlockBuildingInput(
+        assembler.BlockBuildingInput(
             output_root=artfact_paths.blocks,
             image_fpath=config.image_fpath,
             label_fpath=config.label_fpath,
         ),
-        context=assembler.BlockBuildingContext(
+        assembler.BlockBuildingContext(
             image=ras_windows.image,
             label=ras_windows.label,
         ),
-        config=assembler.BlockBuildingConfig(
+        assembler.BlockBuildingConfig(
             ignore_index=config.ignore_index,
             dem_pad_px=config.dem_pad,
             block_size=ras_windows.tile_shape,
@@ -123,6 +123,7 @@ def run_blocks_building(
             add_spectral=config.add_spectral,
             add_topo=config.add_topo,
         ),
+        policy=policy,
     )
 
     # create/update catalog and metadata JSON

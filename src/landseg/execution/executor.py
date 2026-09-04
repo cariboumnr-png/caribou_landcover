@@ -180,11 +180,14 @@ def _validate_upstream_pipelines(config: configs.RootConfig) -> None:
                 raise
 
             current_config = dataclasses.asdict(config.data.preparation)
-            if saved_config['data']['preparation'] == current_config:
+            if (
+                saved_config['data']['preparation'] == current_config
+                and not config.data.preparation.rebuild
+            ):
 
                 print('\n' + '=' * 80)
                 print(
-                    f'[WARNING] Preparing data using the same configuration'
+                    f'[WARNING] Preparing data using the same configuration '
                     f'as recorded in: {paths_prepare.config}\n'
                     f'[NOTE] Current preparation "rebuild" flag is set to '
                     f'[{config.data.preparation.rebuild}]\n'
