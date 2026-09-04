@@ -65,6 +65,8 @@ class BlockBuildingParameters:
     label_fpath: str | None
     dem_pad: int
     ignore_index: int
+    add_spectral: list[str] | None = None
+    add_topo: bool = False
 
 
 # -------------------------------Public Function-------------------------------
@@ -101,28 +103,26 @@ def run_blocks_building(
         policy=policy,
     )
 
-    # create a data block builder inputs, context, and config
-    building_input = assembler.BlockBuildingInput(
-        output_root=artfact_paths.blocks,
-        image_fpath=config.image_fpath,
-        label_fpath=config.label_fpath,
-    )
-    building_context = assembler.BlockBuildingContext(
-        image=ras_windows.image,
-        label=ras_windows.label,
-    )
-    building_config = assembler.BlockBuildingConfig(
-        ignore_index=config.ignore_index,
-        dem_pad_px=config.dem_pad,
-        block_size=ras_windows.tile_shape,
-        image_band_map=assembler.read_band_map(config.image_fpath),
-        label_specs=assembler.read_label_specs(config.label_fpath),
-    )
     # build data blocks
     result = assembler.build_blocks(
-        inputs=building_input,
-        context=building_context,
-        config=building_config,
+        inputs=assembler.BlockBuildingInput(
+            output_root=artfact_paths.blocks,
+            image_fpath=config.image_fpath,
+            label_fpath=config.label_fpath,
+        ),
+        context=assembler.BlockBuildingContext(
+            image=ras_windows.image,
+            label=ras_windows.label,
+        ),
+        config=assembler.BlockBuildingConfig(
+            ignore_index=config.ignore_index,
+            dem_pad_px=config.dem_pad,
+            block_size=ras_windows.tile_shape,
+            image_band_map=assembler.read_band_map(config.image_fpath),
+            label_specs=assembler.read_label_specs(config.label_fpath),
+            add_spectral=config.add_spectral,
+            add_topo=config.add_topo,
+        ),
     )
 
     # create/update catalog and metadata JSON

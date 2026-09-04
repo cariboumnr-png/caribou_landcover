@@ -90,12 +90,18 @@ def test_translate_user_config_data_ingest():
         'data-ingest': {
             'harmonization_run': 1,
             'output_dpath': '/path/exp/artifacts/foundation',
+            'add_topo': True,
+            'add_spectral': ['ndvi', 'ndmi'],
         },
     })
     result = translate_mod.translate_user_config(user_cfg)
 
     assert result.data.ingestion.harmonization_run == 1
-    assert result.data.ingestion.output_dpath == '/path/exp/artifacts/foundation'
+    assert result.data.ingestion.output_dpath == (
+        '/path/exp/artifacts/foundation'
+    )
+    assert result.data.ingestion.datablocks.add_topo is True
+    assert result.data.ingestion.datablocks.add_spectral == ['ndvi', 'ndmi']
 
 
 def test_translate_user_config_data_prepare():

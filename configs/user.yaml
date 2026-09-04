@@ -57,6 +57,18 @@ data-ingest:
   # Force rebuild even if ingested blocks exist
   rebuild: true
 
+  # ---------------------------------------------------------------------------
+  # Feature Engineering for Ingested Data Blocks (Optional)
+  # ---------------------------------------------------------------------------
+  # Compute and append derived topographic layers (slope, cos/sin
+  # aspect, tpi). Requires DEM channel in input features:
+  add_topo: false
+
+  # Derived spectral indices to compute and append to data blocks.
+  # Supported: [ndvi, ndmi, nbr] (requires red, nir, swir1/swir2 bands):
+  #   add_spectral: [ndvi, ndmi]
+  add_spectral: null
+
 
 data-prepare:
   output_dpath: ./experiment/artifacts/prepared_data

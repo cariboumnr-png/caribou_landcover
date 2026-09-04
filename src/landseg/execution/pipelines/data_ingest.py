@@ -123,6 +123,8 @@ def exec_ingest_data(config: configs.RootConfig) -> None:
                 label_fpath=harmonized.labels,
                 dem_pad=config.data.ingestion.datablocks.image_dem_pad,
                 ignore_index=config.data.ingestion.datablocks.ignore_index,
+                add_spectral=config.data.ingestion.datablocks.add_spectral,
+                add_topo=config.data.ingestion.datablocks.add_topo,
             )
             ingest.run_blocks_building(
                 world_grid,

@@ -134,3 +134,21 @@ def test_pipeline_run_canonical_blocks(tmp_path, dummy_geotiff_factory):
     assert logger.summary['data_blocks'] is not None
     assert logger.summary['data_blocks']['image_filepath'] == str(img)
     assert logger.summary['data_blocks']['label_filepath'] == str(lbl)
+
+
+def test_pipeline_block_building_parameters_features():
+    '''
+    Given: Custom feature arguments for `BlockBuildingParameters`.
+    When: Instantiating `BlockBuildingParameters`.
+    Then: Hold configured add_topo and add_spectral values.
+    '''
+    params = data_blocks.BlockBuildingParameters(
+        image_fpath='img.tif',
+        label_fpath='lbl.tif',
+        dem_pad=8,
+        ignore_index=255,
+        add_spectral=['ndvi', 'ndmi'],
+        add_topo=True,
+    )
+    assert params.add_topo is True
+    assert params.add_spectral == ['ndvi', 'ndmi']

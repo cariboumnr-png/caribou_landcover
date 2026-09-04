@@ -124,6 +124,8 @@ def _translate_data_ingest(
         'harmonization_run': ['data.ingestion.harmonization_run'],
         'rebuild': ['data.ingestion.rebuild'],
         'output_dpath': ['data.ingestion.output_dpath'],
+        'add_topo': ['data.ingestion.datablocks.add_topo'],
+        'add_spectral': ['data.ingestion.datablocks.add_spectral'],
     }
     _apply_mapping(ingestion, translated, mapping)
 

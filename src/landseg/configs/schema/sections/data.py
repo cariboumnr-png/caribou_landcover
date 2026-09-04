@@ -131,9 +131,30 @@ class _Domains:
 class _DataBlocks:
     ignore_index: int = 255
     image_dem_pad: int = 8
+    add_topo: bool = False
+    add_spectral: list[str] | None = None
 
     def validate(self) -> None:
-        pass
+        if not isinstance(self.add_topo, bool):
+            raise TypeError(
+                f'add_topo must be a bool, got {type(self.add_topo)}'
+            )
+        if self.add_spectral is not None:
+            if not isinstance(self.add_spectral, (list, tuple)):
+                raise TypeError(
+                    f'add_spectral must be a list, '
+                    f'got {type(self.add_spectral)}'
+                )
+            for item in self.add_spectral:
+                if not isinstance(item, str):
+                    raise TypeError(
+                        f'Spectral index must be a string, got {type(item)}'
+                    )
+                if item.lower() not in ('ndvi', 'ndmi', 'nbr'):
+                    raise ValueError(
+                        f'Invalid spectral index "{item}". '
+                        'Supported indices are: ndvi, ndmi, nbr.'
+                    )
 
 
 @dataclasses.dataclass
