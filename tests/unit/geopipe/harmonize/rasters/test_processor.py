@@ -31,7 +31,7 @@ import typing
 import rasterio
 # local imports
 import landseg.geopipe.grid as grid
-import landseg.geopipe.harmonize as harmonize
+import landseg.geopipe.harmonize.manifest as manifest
 import landseg.geopipe.harmonize.pipeline as processor
 
 
@@ -69,13 +69,14 @@ def test_process_source_features_and_labels(tmp_path, dummy_geotiff_factory):
     grid_params = _GridParams(ref_fpath=str(ref_path))
     world_grid = grid.build_grid('ref', grid_params)
 
-    compiled: dict[str, harmonize.DatasetConfigItem] = {
+    compiled: dict[str, manifest.ManifestEntry] = {
         str(s2_path): {
             'name': 's2',
             'path': str(s2_path),
             'category': 'features',
             'band_mapping': {1: 'blue', 2: 'green', 3: 'red'},
             'categorical_specs': None,
+            'schemes': None,
         },
         str(dem_path): {
             'name': 'dem',
@@ -83,13 +84,19 @@ def test_process_source_features_and_labels(tmp_path, dummy_geotiff_factory):
             'category': 'features',
             'band_mapping': {1: 'elevation'},
             'categorical_specs': None,
+            'schemes': None,
         },
         str(lbl_path): {
             'name': 'landcover',
             'path': str(lbl_path),
             'category': 'labels',
-            'band_mapping': None,
-            'categorical_specs': {'num_cls': 2, 'ignore_cls': [255]},
+            'band_mapping': {1: 'landcover'},
+            'categorical_specs': {
+                'index_base': 1,
+                'num_cls': 2,
+                'ignore_cls': [255],
+            },
+            'schemes': None,
         },
     }
 
@@ -140,13 +147,14 @@ def test_process_source_domains(tmp_path, dummy_geotiff_factory):
     grid_params = _GridParams(ref_fpath=str(ref_path))
     world_grid = grid.build_grid('ref', grid_params)
 
-    compiled: dict[str, harmonize.DatasetConfigItem] = {
+    compiled: dict[str, manifest.ManifestEntry] = {
         str(dom_path): {
             'name': 'ecodistrict',
             'path': str(dom_path),
             'category': 'domains',
-            'band_mapping': None,
+            'band_mapping': {1: 'ecodistrict'},
             'categorical_specs': None,
+            'schemes': None,
         },
     }
 
