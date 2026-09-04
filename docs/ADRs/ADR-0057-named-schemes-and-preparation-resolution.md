@@ -39,21 +39,29 @@ Layer** across `landseg.geopipe`.
   Stripped `reclass` and `reclass_name` out of `CategoricalSpecs` (renamed from
   `LabelSpecs`) so that it strictly describes physical GeoTIFF raster properties
   (`index_base`, `num_cls`, `ignore_cls`, `class_name`, `color_map`, `taxonomy`).
+  Taxonomy specifications validate against standard profiles and return a typed
+  `TaxonomySpecs` dictionary (`profile`, optional `canonical_indices`).
 - **Explicit `index_base` Support**:
   Unified 0-based and 1-based raster indexing across label and domain
   categorical rasters, enforcing strict validation against class index bounds.
 
-### 2.2. Named Schemes in Dataset Sidecars
+### 2.2. Named Schemes in Dataset Sidecars and Harmonization Processing
+- **Root Manifest and Sidecar Submodule**:
+  Root `manifest.json` entries map raw rasters to sidecar files via the
+  `"manifest"` key. Manifest validation and compilation are modularized in
+  `landseg.geopipe.harmonize.manifest` (`schema.py`, `normalizer.py`,
+  `compiler.py`).
 - **Manifest Sidecar Schema (`schemes`)**:
-  Sidecars now declare optional, semantically close named schemes:
+  Sidecars declare optional, semantically close named schemes:
   - **`FeatureSchemes`**: Named band groupings (e.g.,
     `rgb: ["blue", "green", "red"]`, `rgb_nir: ["blue", "green", "red", "nir"]`).
   - **`LabelSchemes`**: Named hierarchical target reclassifications (e.g.,
     `binary: {reclass: {"1": [1, 2], "2": [3]}, reclass_name: {"1": "forest", "2": "water"}}`).
   - **Domain Rasters**: Strictly enforced to have `schemes: null`.
 - **Harmonized VRT Tagging & Ingestion Schema Propagation**:
-  - `data-harmonize`: Writes resolved schemes into the harmonized VRT dataset
-    metadata tags (`schemes={cfg['name']: schemes}`).
+  - `data-harmonize`: Coordinated by `harmonize.processor.harmonize_sources`,
+    which writes resolved schemes into harmonized VRT dataset metadata tags
+    (`schemes={cfg['name']: schemes}`).
   - `data-ingest`: Reads embedded schemes from the source VRTs via
     `io.read_schemes()` and records them into the dataset `schema.json`
     artifact under `dataset.schemes`.
@@ -89,17 +97,78 @@ Layer** across `landseg.geopipe`.
   Added fluent `set_features()` and `set_targets()` methods for notebook and
   script environments.
 
+### 2.6. Ingestion Feature Engineering & Preparation Cohesion
+- **Exposed Ingestion Feature Engineering**:
+  Exposed `add_topo: bool = False` and `add_spectral: list[str] | None = None`
+  across `_DataBlocks` schema, Hydra defaults (`default.yaml`),
+  `BlockBuildingParameters`, `data_ingest.py`, and `user.yaml` (`data-ingest:`).
+  This enables optional on-the-fly calculation of topographic metrics (slope,
+  aspect sine/cosine, TPI) and spectral indices (NDVI, NDMI, NBR) during block
+  construction.
+- **Engineered Pseudo-Datasets in Preparation Resolution**:
+  Extended `geopipe.prepare.resolver.resolve_feature_channels` to recognize
+  `topo` and `spectral` pseudo-datasets directly within `features:`. Supports:
+  - Global group selection via `'all'`, `True`, or descriptive keywords
+    (`'use topo layers'`, `'use spectral indices'`).
+  - Selective granular slicing via band lists (e.g., `topo: [slope, tpi]`,
+    `spectral: [ndvi]`).
+  - Explicit exclusion via `False`.
+- **Actionable Diagnostic Messaging**:
+  Added explicit validation that detects when users select engineered groups
+  in `data-prepare: features:` that were not materialized during ingestion,
+  raising informative `ValueError`s directing the user to enable `add_topo` or
+  `add_spectral` in the ingestion configuration.
+
 ---
 
-## 3. Consequences & Benefits
+## 3. Consequences
 
+### Positive
 - **Semantic Proximity**: Domain experts define reusable band combinations
-  and reclassification hierarchies directly alongside the raw dataset sidecars.
+  and reclassification hierarchies alongside the raw dataset sidecars.
 - **Experiment Agility**: Data scientists can test different feature subsets
   and target definitions in `user.yaml` or notebooks without re-running data
   harmonization or ingestion.
+- **Ingestion-Preparation Cohesion**: Unified configuration ergonomics
+  between materializing derived layers during ingestion (`data-ingest`)
+  and selecting subsets for training in `data-prepare: features:`.
 - **Immutability of Ingested Blocks**: Ingested `.npz` blocks remain pure,
   canonical representations of the underlying geospatial layers.
 - **Single Responsibility & Cohesion**: Clear separation between metadata
   resolution (`resolver.py`), catalog filtering (`adapter.py`), and tensor
   operations (`normal_blocks/`).
+- **Fail-Fast Configuration Validation**: Explicit resolver checks detect
+  misconfigurations early (e.g., selecting unmaterialized derived layers
+  or non-existent sidecar schemes) before block normalization begins.
+
+### Negative / Migration
+- **Sidecar Schema Migration**: Existing dataset manifests and sidecars must
+  separate `reclass` and `reclass_name` into `schemes.LabelSchemes` and remove
+  them from intrinsic `categorical_specs`.
+- **Target Head Selection**: Downstream model heads must specify targets that
+  match either canonical raw classes or declared scheme names.
+
+---
+
+## 4. Implementation Summary
+
+1. **Purified Categorical Specs**: Decoupled `reclass` and `reclass_name` from
+   `CategoricalSpecs` in manifest definitions and added taxonomy profiling.
+2. **Dataset Sidecar Schemes**: Implemented `FeatureSchemes` and `LabelSchemes`
+   in sidecars, embedding schemes into harmonized VRT metadata and persisting
+   them into `schema.json`.
+3. **Dedicated Resolution Engine**: Created `geopipe.prepare.resolver` with
+   `resolve_feature_channels()` and `resolve_target_reclass()` to dynamically
+   evaluate schemes, inline lists, and reclass mappings.
+4. **Dynamic Normalization Pipeline**: Updated block normalization and global
+   Welford statistics calculation to slice and normalize only selected
+   feature channels on the fly.
+5. **Ingestion Feature Engineering**: Exposed `add_topo` and `add_spectral` in
+   dataclass schemas, Hydra defaults, execution pipelines, CLI translators,
+   and `user.yaml`.
+6. **Preparation Channel Cohesion**: Extended channel resolution with
+   pseudo-dataset support for `topo` and `spectral` groups, supporting 'all',
+   boolean toggles, descriptive phrases, and granular band lists.
+7. **Quality Assurance**: Added full unit test suites for schema validation,
+   manifest verification, CLI translation, channel resolution, and pipeline
+   execution.
