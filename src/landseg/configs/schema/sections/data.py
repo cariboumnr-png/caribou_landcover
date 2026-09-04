@@ -117,6 +117,7 @@ class _HarmonizationCfg:
     def validate(self) -> None:
         pass
 
+
 # ----- data ingestion
 @dataclasses.dataclass
 class _Domains:
@@ -186,7 +187,6 @@ class _IngestionCfg:
                 )
 
 
-
 # ----- data preparation
 @dataclasses.dataclass
 class _CatalogView:
@@ -199,6 +199,7 @@ class _CatalogView:
     def validate(self):
         for k, v in self.valid_pxs.items():
             utils.must_within(v, f'{k} valid threshold', 0, 1)
+
 
 @dataclasses.dataclass
 class _Partition:
@@ -226,12 +227,14 @@ class _Scoring:
         utils.must_within(self.alpha, 'scoring alpha', 0)
         utils.must_within(self.beta, 'scoring beta', 0)
 
+
 @dataclasses.dataclass
 class _Hydration:
     max_skew_rate: float = 10.0
 
     def validate(self):
         utils.must_within(self.max_skew_rate, 'hydration skew ratio', 0)
+
 
 @dataclasses.dataclass
 class _PreparationCfg:
@@ -251,10 +254,10 @@ class _PreparationCfg:
         self.hydration.validate()
 
         for k, v in self.features.items():
-            if not isinstance(k, str) or not isinstance(v, (str, list)):
+            if not isinstance(k, str) or not isinstance(v, (str, list, bool)):
                 raise ValueError(
                     f'Invalid features config for "{k}": '
-                    f'expected string or list of strings'
+                    f'expected string, list of strings, or boolean'
                 )
 
         for k, v in self.targets.items():

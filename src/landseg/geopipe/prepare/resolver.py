@@ -31,10 +31,101 @@ input feature channels and multi-head target hierarchies.
 import typing
 
 
+# ------------------------------private constants------------------------------
+_ENGINEERED_GROUPS: dict[str, tuple[tuple[str, ...], str]] = {
+    'topo': (
+        ('slope', 'cos_aspect', 'sin_aspect', 'tpi'),
+        'add_topo: true',
+    ),
+    'topography': (
+        ('slope', 'cos_aspect', 'sin_aspect', 'tpi'),
+        'add_topo: true',
+    ),
+    'spectral': (
+        ('ndvi', 'ndmi', 'nbr'),
+        'add_spectral',
+    ),
+    'spectral_indices': (
+        ('ndvi', 'ndmi', 'nbr'),
+        'add_spectral',
+    ),
+    'indices': (
+        ('ndvi', 'ndmi', 'nbr'),
+        'add_spectral',
+    ),
+}
+
+
+# ------------------------------private functions------------------------------
+def _resolve_engineered_group(
+    group_name: str,
+    selection: typing.Any,
+    available_band_map: typing.Mapping[str, int],
+) -> list[str]:
+    '''
+    Resolve bands for engineered pseudo-datasets (topo or spectral).
+    '''
+    known_bands, ingest_hint = _ENGINEERED_GROUPS[group_name]
+    if selection is False:
+        return []
+
+    is_all = (
+        selection is None
+        or selection is True
+        or (
+            isinstance(selection, str)
+            and selection.lower() in (
+                'all',
+                'use topo layers',
+                'use spectral indices',
+            )
+        )
+    )
+    if is_all:
+        matched = [b for b in available_band_map if b in known_bands]
+        if not matched:
+            raise ValueError(
+                f'Engineered features requested for "{group_name}", but '
+                f'no matching bands ({list(known_bands)}) exist in data '
+                f'blocks. Ensure "{ingest_hint}" was set during data '
+                'ingestion.'
+            )
+        return matched
+
+    if isinstance(selection, str):
+        band = selection.lower()
+        if band in available_band_map and band in known_bands:
+            return [band]
+        available_known = [
+            b for b in available_band_map if b in known_bands
+        ]
+        raise ValueError(
+            f'Band "{selection}" for "{group_name}" not found in data '
+            f'blocks. Available: {available_known}'
+        )
+
+    if isinstance(selection, list):
+        result: list[str] = []
+        for item in selection:
+            band = str(item).lower()
+            if band not in available_band_map:
+                raise ValueError(
+                    f'Band "{band}" for "{group_name}" not found in data '
+                    f'blocks. Ensure "{ingest_hint}" was set during '
+                    'data ingestion.'
+                )
+            result.append(band)
+        return result
+
+    return []
+
+
 # ----- public functions
 def resolve_feature_channels(
     available_band_map: typing.Mapping[str, int],
-    user_features_cfg: typing.Mapping[str, str | list[str]] | None = None,
+    user_features_cfg: (
+        typing.Mapping[str, str | list[str] | bool] | None
+    ) = None,
     raster_schemes: (
         typing.Mapping[str, typing.Mapping[str, list[str]]] | None
     ) = None,
@@ -49,7 +140,8 @@ def resolve_feature_channels(
         available_band_map: Mapping of lower-case band names to 0-based
             channel indices in the ingested data blocks.
         user_features_cfg: Mapping of raster dataset name to scheme name
-            (e.g. 'rgb_nir', 'all') or inline list of band names.
+            (e.g. 'rgb_nir', 'all'), inline list of band names, or
+            engineered pseudo-dataset toggles ('topo', 'spectral').
         raster_schemes: Mapping of raster dataset name to its named
             schemes dictionary from dataset manifest metadata.
 
@@ -57,15 +149,24 @@ def resolve_feature_channels(
         A tuple of (selected_band_names, selected_channel_indices).
     '''
     if not user_features_cfg:
-        sorted_bands = sorted(
+        names = sorted(
             available_band_map.keys(), key=lambda k: available_band_map[k]
         )
-        return sorted_bands, [available_band_map[b] for b in sorted_bands]
+        return names, [available_band_map[b] for b in names]
 
     selected_names: list[str] = []
     schemes_dict = raster_schemes or {}
 
     for raster_name, selection in user_features_cfg.items():
+        r_lower = raster_name.lower()
+        if r_lower in _ENGINEERED_GROUPS:
+            selected_names.extend(
+                _resolve_engineered_group(
+                    r_lower, selection, available_band_map
+                )
+            )
+            continue
+
         if selection is None or selection == 'all':
             # select all bands that contain raster prefix or match
             matched = [
@@ -99,12 +200,9 @@ def resolve_feature_channels(
                 selected_names.append(band)
 
     # deduplicate while preserving order
-    seen: set[str] = set()
-    deduped_names: list[str] = []
-    for name in selected_names:
-        if name not in seen and name in available_band_map:
-            seen.add(name)
-            deduped_names.append(name)
+    deduped_names = [
+        b for b in dict.fromkeys(selected_names) if b in available_band_map
+    ]
 
     if not deduped_names:
         # fallback to all available if selection matched nothing

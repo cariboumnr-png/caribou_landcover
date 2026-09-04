@@ -96,6 +96,64 @@ def test_resolve_feature_channels_invalid():
         resolver.resolve_feature_channels(band_map, {'custom': ['unknown']})
 
 
+def test_resolve_feature_channels_engineered_groups():
+    '''
+    Given: Available band map with base, topo, and spectral bands.
+    When: User requests engineered pseudo-datasets.
+    Then: Resolve matching topo and spectral bands.
+    '''
+    band_map = {
+        'blue': 0, 'green': 1, 'red': 2, 'nir': 3,
+        'slope': 4, 'cos_aspect': 5, 'sin_aspect': 6, 'tpi': 7,
+        'ndvi': 8, 'ndmi': 9,
+    }
+    user_cfg = {
+        'custom': ['blue', 'red'],
+        'topo': 'all',
+        'spectral': ['ndvi'],
+    }
+    names, indices = resolver.resolve_feature_channels(band_map, user_cfg)
+    assert names == [
+        'blue', 'red', 'slope', 'cos_aspect', 'sin_aspect', 'tpi', 'ndvi'
+    ]
+    assert indices == [0, 2, 4, 5, 6, 7, 8]
+
+
+def test_resolve_feature_channels_engineered_toggles():
+    '''
+    Given: Available band map with base and topo bands.
+    When: User provides boolean toggles and descriptive strings.
+    Then: Resolve or omit bands according to configuration.
+    '''
+    band_map = {
+        'blue': 0, 'green': 1,
+        'slope': 2, 'cos_aspect': 3, 'sin_aspect': 4, 'tpi': 5,
+    }
+    # boolean true and phrase toggle
+    user_cfg = {'custom': ['blue'], 'topo': True, 'spectral': False}
+    names, indices = resolver.resolve_feature_channels(band_map, user_cfg)
+    assert names == ['blue', 'slope', 'cos_aspect', 'sin_aspect', 'tpi']
+    assert indices == [0, 2, 3, 4, 5]
+
+    phrase_cfg = {'custom': ['green'], 'topo': 'use topo layers'}
+    names, _ = resolver.resolve_feature_channels(band_map, phrase_cfg)
+    assert names == ['green', 'slope', 'cos_aspect', 'sin_aspect', 'tpi']
+
+
+def test_resolve_feature_channels_engineered_missing_raises():
+    '''
+    Given: Band map without engineered bands.
+    When: User config requests topo or spectral features.
+    Then: Raise ValueError detailing missing bands and ingestion hints.
+    '''
+    band_map = {'blue': 0, 'green': 1}
+    with pytest.raises(ValueError, match='Ensure "add_topo: true"'):
+        resolver.resolve_feature_channels(band_map, {'topo': 'all'})
+
+    with pytest.raises(ValueError, match='Ensure "add_spectral"'):
+        resolver.resolve_feature_channels(band_map, {'spectral': 'all'})
+
+
 # ----- `resolve_target_reclass` tests
 def test_resolve_target_reclass():
     '''

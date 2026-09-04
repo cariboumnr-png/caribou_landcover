@@ -76,11 +76,17 @@ data-prepare:
   # Feature Channels & Target Schemes (Optional)
   # ---------------------------------------------------------------------------
   # Select input feature channels by dataset name (null uses all bands).
-  # Accepts named schemes defined in sidecars or inline list of bands:
+  # Accepts named schemes defined in sidecars, inline lists of bands,
+  # or engineered pseudo-datasets ('topo', 'spectral'):
   #   features:
   #     sentinel2: rgb_nir          # Named scheme from sidecar
   #     dem: all                    # Use all bands from DEM
-  #     # Or inline:
+  #     topo: all                   # Include engineered topo layers
+  #     spectral: all               # Include engineered spectral bands
+  #     # Or specific derived bands:
+  #     # topo: [slope, tpi]
+  #     # spectral: [ndvi, ndmi]
+  #     # Or inline arbitrary band list:
   #     # sentinel2: [blue, green, red, nir]
   features: null
 
