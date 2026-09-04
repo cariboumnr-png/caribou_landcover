@@ -74,13 +74,17 @@ class ManifestEntryNormalizer:
 
         category = self._normalize_category()
 
-        if category in ['domain', 'domains', 'label', 'labels']:
+        if category in ['domain', 'domains']:
+            categorical_specs = self._normalize_categorical_specs()
+            if self.schemes:
+                raise ValueError('Domain rasters should not define "schemes"')
+            schemes = None
+        elif category in ['label', 'labels']:
             categorical_specs = self._normalize_categorical_specs()
             if self.schemes:
                 schemes = self._normalize_label_schemes(categorical_specs)
             else:
                 schemes = None
-
         else:
             categorical_specs = None
             if self.schemes:
@@ -104,13 +108,14 @@ class ManifestEntryNormalizer:
 
     def _normalize_band_mapping(self) -> dict[int, str]:
         mapping = _require_dict_w_str_values(self.band_mapping)
-        if set(mapping.keys()) != set(range(1, len(mapping) + 1)):
+        normalized = {_require_int_w_min(k, 1): v for k, v in mapping.items()}
+        if set(normalized.keys()) != set(range(1, len(normalized) + 1)):
             raise ValueError(
                 f'Band mapping keys should be contiguous integers from 1, '
-                f'got: {sorted(mapping.keys())}'
+                f'got: {sorted(normalized.keys())}'
             )
 
-        return {_require_int_w_min(k, 1):v for k, v in mapping.items()}
+        return normalized
 
     def _normalize_category(self) -> manifest.AllowedCategory:
         cat = _require_string(self.category)
@@ -141,7 +146,8 @@ class ManifestEntryNormalizer:
         color_map = specs.get('color_map')
         if color_map is not None:
             _specs['color_map'] = _require_dict(color_map)
-            _require_int_list(list(_specs['color_map'].values()), 3) # RGB
+            for rgb in _specs['color_map'].values():
+                _require_int_list(rgb, 3) # rgb values
 
         taxa = specs.get('taxonomy')
         if taxa is not None:

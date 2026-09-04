@@ -102,34 +102,34 @@ This outputs a canonical grid artifact under:
 
 The data harmonization pipeline (`data-harmonize`) reads a central
 `manifest.json` file. Each raw raster referenced in the manifest is
-accompanied by an individual metadata configuration JSON file.
+accompanied by an individual raster manifest JSON file (sidecar).
 
 ### Root Dataset Manifest (`manifest.json`)
 
-The manifest is an array of objects mapping each raw raster to its metadata
-configuration:
+The manifest is an array of objects mapping each raw raster to its raster
+manifest:
 
 ```json
 [
   {
     "name": "sentinel2",
     "path": "./experiment/input/raw_data/sample_dev_sentinel2.tif",
-    "config": "./experiment/input/raw_data/sample_dev_sentinel2.json"
+    "manifest": "./experiment/input/raw_data/sample_dev_sentinel2.json"
   },
   {
     "name": "dem",
     "path": "./experiment/input/raw_data/sample_dev_dem.tif",
-    "config": "./experiment/input/raw_data/sample_dev_dem.json"
+    "manifest": "./experiment/input/raw_data/sample_dev_dem.json"
   },
   {
     "name": "landcover",
     "path": "./experiment/input/raw_data/sample_dev_landcover.tif",
-    "config": "./experiment/input/raw_data/sample_dev_landcover.json"
+    "manifest": "./experiment/input/raw_data/sample_dev_landcover.json"
   },
   {
     "name": "domain_1",
     "path": "./experiment/input/raw_data/sample_domain_1.tif",
-    "config": "./experiment/input/raw_data/sample_domain_1.json"
+    "manifest": "./experiment/input/raw_data/sample_domain_1.json"
   }
 ]
 ```
@@ -197,7 +197,9 @@ leading tree species).
   "name": "landcover",
   "path": "./experiment/input/raw_data/sample_dev_landcover.tif",
   "category": "labels",
-  "band_mapping": null,
+  "band_mapping": {
+    "1": "landcover"
+  },
   "categorical_specs": {
     "index_base": 1,
     "num_cls": 3,
@@ -265,7 +267,9 @@ stratification.
   "name": "domain_1",
   "path": "./experiment/input/raw_data/sample_domain_1.tif",
   "category": "domains",
-  "band_mapping": null,
+  "band_mapping": {
+    "1": "domain_1"
+  },
   "categorical_specs": {
     "index_base": 1,
     "num_cls": 4,

@@ -104,34 +104,34 @@ Cela génère l'artefact canonique sous :
 
 Le pipeline d'harmonisation (`data-harmonize`) lit un fichier central
 `manifest.json`. Chaque raster brut référencé dans le manifeste est
-accompagné d'un fichier de configuration JSON individuel.
+accompagné d'un fichier manifeste de raster JSON individuel (sidecar).
 
 ### Manifeste central (`manifest.json`)
 
-Le manifeste est un tableau d'objets associant chaque raster brut à sa
-configuration de métadonnées :
+Le manifeste est un tableau d'objets associant chaque raster brut à son
+manifeste de raster :
 
 ```json
 [
   {
     "name": "sentinel2",
     "path": "./experiment/input/raw_data/sample_dev_sentinel2.tif",
-    "config": "./experiment/input/raw_data/sample_dev_sentinel2.json"
+    "manifest": "./experiment/input/raw_data/sample_dev_sentinel2.json"
   },
   {
     "name": "dem",
     "path": "./experiment/input/raw_data/sample_dev_dem.tif",
-    "config": "./experiment/input/raw_data/sample_dev_dem.json"
+    "manifest": "./experiment/input/raw_data/sample_dev_dem.json"
   },
   {
     "name": "landcover",
     "path": "./experiment/input/raw_data/sample_dev_landcover.tif",
-    "config": "./experiment/input/raw_data/sample_dev_landcover.json"
+    "manifest": "./experiment/input/raw_data/sample_dev_landcover.json"
   },
   {
     "name": "domain_1",
     "path": "./experiment/input/raw_data/sample_domain_1.tif",
-    "config": "./experiment/input/raw_data/sample_domain_1.json"
+    "manifest": "./experiment/input/raw_data/sample_domain_1.json"
   }
 ]
 ```
@@ -199,7 +199,9 @@ pour entraîner des réseaux multi-tâches.
   "name": "landcover",
   "path": "./experiment/input/raw_data/sample_dev_landcover.tif",
   "category": "labels",
-  "band_mapping": null,
+  "band_mapping": {
+    "1": "landcover"
+  },
   "categorical_specs": {
     "index_base": 1,
     "num_cls": 3,
@@ -266,7 +268,9 @@ conditionnement du modèle.
   "name": "domain_1",
   "path": "./experiment/input/raw_data/sample_domain_1.tif",
   "category": "domains",
-  "band_mapping": null,
+  "band_mapping": {
+    "1": "domain_1"
+  },
   "categorical_specs": {
     "index_base": 1,
     "num_cls": 4,

@@ -433,7 +433,12 @@ def _get_transform(x: float, y: float, res: float) -> rasterio.transform.Affine:
 
 
 def _write_jsons(src: list[dict[str, typing.Any]], manifest: str) -> None:
-    '''Write per file config JSON and manifest JSON.'''
+    '''Write per file sidecar JSON and manifest JSON.'''
+    # clear existing hash record if regenerating
+    hash_fpath = os.path.join(os.path.dirname(manifest), '_hash.json')
+    if os.path.exists(hash_fpath):
+        os.remove(hash_fpath)
+
     manifest_list: list[dict[str, typing.Any]] = []
     for cfg in src:
         json_fpath = cfg['path'].replace('tif', 'json')
@@ -442,7 +447,7 @@ def _write_jsons(src: list[dict[str, typing.Any]], manifest: str) -> None:
         manifest_list.append({
             'name': cfg['name'],
             'path': cfg['path'],
-            'config': json_fpath,
+            'manifest': json_fpath,
         })
     with open(manifest, 'w', encoding='utf-8') as f:
         json.dump(manifest_list, f, indent=4)
