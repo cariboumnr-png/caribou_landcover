@@ -106,19 +106,22 @@ def harmonize_sources(
 def _tag_domain_metadata(warped: str, mfst: manifest.ManifestEntry) -> None:
     cat_specs = mfst.get('categorical_specs')
     if not cat_specs:
-        raise ValueError('Missing categorical specs for label raster')
+        return
 
-    rasters.add_tag_to_vrt(
-        warped,
-        index_base=cat_specs['index_base'],
-    )
+    if 'index_base' in cat_specs:
+        rasters.add_tag_to_vrt(
+            warped,
+            index_base=cat_specs['index_base'],
+        )
 
 
 def _tag_feature_metadata(warped: str, mfst: manifest.ManifestEntry) -> None:
-    rasters.add_tag_to_vrt(
-        warped,
-        schemes=mfst.get('schemes')
-    )
+    schemes = mfst.get('schemes')
+    if schemes:
+        rasters.add_tag_to_vrt(
+            warped,
+            schemes={mfst['name']: schemes},
+        )
 
 
 def _tag_label_metadata(warped: str, mfst: manifest.ManifestEntry) -> None:
@@ -126,6 +129,7 @@ def _tag_label_metadata(warped: str, mfst: manifest.ManifestEntry) -> None:
     if not cat_specs:
         raise ValueError('Missing categorical specs for label raster')
 
+    schemes = mfst.get('schemes')
     rasters.add_tag_to_vrt(
         warped,
         index_base=cat_specs['index_base'],
@@ -134,5 +138,5 @@ def _tag_label_metadata(warped: str, mfst: manifest.ManifestEntry) -> None:
         class_name=cat_specs.get('class_name', {}),
         color_map=cat_specs.get('color_map', {}),
         taxonomy=cat_specs.get('taxonomy', {}),
-        schemes=mfst.get('schemes', {})
+        schemes={mfst['name']: schemes} if schemes else {},
     )

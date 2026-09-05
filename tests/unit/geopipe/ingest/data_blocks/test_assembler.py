@@ -29,6 +29,7 @@ import numpy
 import pytest
 import rasterio
 # local imports
+import landseg.artifacts as artifacts
 import landseg.geopipe.core as geo_core
 import landseg.geopipe.ingest.common.alias as alias
 import landseg.geopipe.ingest.data_blocks.assembler as assembler
@@ -139,7 +140,8 @@ def test_build_single_block_success(dummy_geotiff_factory):
     label_specs: dict[str, geo_core.LabelSpecs] = {
         'class_head': {
             'num_cls': 2,
-            'ignore_cls': [255]
+            'ignore_cls': [255],
+            'index_base': 0,
         }
     }
 
@@ -188,7 +190,8 @@ def test_build_single_block_defaults(dummy_geotiff_factory):
     label_specs: dict[str, geo_core.LabelSpecs] = {
         'class_head': {
             'num_cls': 2,
-            'ignore_cls': [255]
+            'ignore_cls': [255],
+            'index_base': 0,
         }
     }
 
@@ -257,7 +260,8 @@ def test_build_blocks_orchestrator(
     label_specs: dict[str, geo_core.LabelSpecs] = {
         'class_head': {
             'num_cls': 2,
-            'ignore_cls': [255]
+            'ignore_cls': [255],
+            'index_base': 0,
         }
     }
 
@@ -280,7 +284,8 @@ def test_build_blocks_orchestrator(
     result = assembler.build_blocks(
         inputs=inputs,
         context=context,
-        config=config
+        config=config,
+        policy=artifacts.LifecyclePolicy.REBUILD,
     )
 
     assert len(result.coords_created) == 4
@@ -318,7 +323,8 @@ def test_build_test_block_success(dummy_geotiff_factory, tmp_path):
     label_specs: dict[str, geo_core.LabelSpecs] = {
         'class_head': {
             'num_cls': 2,
-            'ignore_cls': [255]
+            'ignore_cls': [255],
+            'index_base': 1,
         }
     }
 
@@ -335,7 +341,7 @@ def test_build_test_block_success(dummy_geotiff_factory, tmp_path):
         image_dem_pad_px=2,
         label_fpath=lbl_path,
         label_window=window,
-        label_specs=label_specs # type: ignore
+        label_specs=label_specs,
     )
 
     inputs = {'test_block': read_input}
@@ -350,3 +356,52 @@ def test_build_test_block_success(dummy_geotiff_factory, tmp_path):
 
     assert fpath is not None
     assert os.path.exists(fpath)
+
+
+# ----- `read_label_specs` and `read_schemes` tests
+def test_read_label_specs_dataset_level_tags(dummy_geotiff_factory):
+    '''
+    Given: A single-band label raster with dataset-level metadata tags.
+    When: Reading label specs via assembler.
+    Then: Return parsed label specifications dictionary.
+    '''
+    lbl_path = str(dummy_geotiff_factory(
+        filename='single_lbl.tif', width=16, height=16, bands=1
+    ))
+    with rasterio.open(lbl_path, 'r+') as src:
+        src.set_band_description(1, 'landcover')
+        src.update_tags(
+            num_cls='2',
+            ignore_cls='[255]',
+            index_base='1',
+            class_name="{'1': 'forest', '2': 'water'}",
+        )
+
+    specs = assembler.read_label_specs(lbl_path)
+    assert 'landcover' in specs
+    assert specs['landcover']['num_cls'] == 2
+    assert specs['landcover']['ignore_cls'] == [255]
+    assert specs['landcover']['index_base'] == 1
+    assert specs['landcover'].get('class_name') == {
+        '1': 'forest',
+        '2': 'water',
+    }
+
+
+def test_read_schemes_nested_and_flat(dummy_geotiff_factory):
+    '''
+    Given: A raster with dataset-level and band-level schemes tags.
+    When: Reading schemes via assembler.
+    Then: Correctly parse and merge schemes dictionaries.
+    '''
+    feat_path = str(dummy_geotiff_factory(
+        filename='feat_schemes.tif', width=16, height=16, bands=1
+    ))
+    with rasterio.open(feat_path, 'r+') as src:
+        src.update_tags(
+            schemes="{'s2': {'rgb': ['blue', 'green', 'red']}}"
+        )
+
+    schemes = assembler.read_schemes(feat_path)
+    assert 's2' in schemes
+    assert schemes['s2']['rgb'] == ['blue', 'green', 'red']

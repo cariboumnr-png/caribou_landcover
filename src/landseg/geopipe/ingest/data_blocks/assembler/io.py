@@ -110,7 +110,10 @@ def read_label_specs(fpath: str | None) -> dict[str, geo_core.LabelSpecs]:
         with rasterio.open(fpath) as src:
             descriptions = src.descriptions
             band_tags = {
-                index: src.tags(index)
+                index: {
+                    **(src.tags() if src.count == 1 else {}),
+                    **src.tags(index),
+                }
                 for index in src.indexes
             }
     except rasterio.errors.RasterioError:
@@ -208,6 +211,13 @@ def read_schemes(fpath: str | None) -> dict[str, typing.Any]:
     if fpath is None:
         return {}
 
+    def _merge_dict(target: dict, source: dict) -> None:
+        for k, v in source.items():
+            if isinstance(v, dict) and isinstance(target.get(k), dict):
+                target[k].update(v)
+            else:
+                target[k] = v
+
     try:
         with rasterio.open(fpath) as src:
             all_schemes: dict[str, typing.Any] = {}
@@ -216,7 +226,7 @@ def read_schemes(fpath: str | None) -> dict[str, typing.Any]:
             if 'schemes' in dataset_tags:
                 val = _parse_vrt_tag(dataset_tags['schemes'])
                 if isinstance(val, dict):
-                    all_schemes.update(val)
+                    _merge_dict(all_schemes, val)
 
             # check per-band tags (for composite stacked VRTs)
             for b in src.indexes:
@@ -224,7 +234,7 @@ def read_schemes(fpath: str | None) -> dict[str, typing.Any]:
                 if 'schemes' in band_tags:
                     val = _parse_vrt_tag(band_tags['schemes'])
                     if isinstance(val, dict):
-                        all_schemes.update(val)
+                        _merge_dict(all_schemes, val)
 
             return all_schemes
     except (rasterio.errors.RasterioError, ValueError, SyntaxError):

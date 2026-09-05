@@ -181,6 +181,8 @@ def resolve_feature_channels(
         if isinstance(selection, str):
             # look up named scheme in raster schemes
             r_schemes = schemes_dict.get(raster_name, {})
+            if not r_schemes and selection in schemes_dict:
+                r_schemes = schemes_dict
             if selection not in r_schemes:
                 raise ValueError(
                     f'Named feature scheme "{selection}" not found for '
@@ -250,6 +252,8 @@ def resolve_target_reclass(
 
         if isinstance(cfg, str):
             r_schemes = schemes_dict.get(label_name, {})
+            if not r_schemes and cfg in schemes_dict:
+                r_schemes = schemes_dict
             if cfg not in r_schemes:
                 raise ValueError(
                     f'Named target scheme "{cfg}" not found for label '

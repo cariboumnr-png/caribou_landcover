@@ -118,7 +118,7 @@ def _build_stacked_vrt_xml(
 
     root = _create_vrt_root(width, height, crs, transform)
 
-    merged_schemes: dict[str, list[str]] = {}
+    merged_schemes: dict[str, typing.Any] = {}
     band_idx = 1
 
     for path in source_paths:
@@ -302,30 +302,47 @@ def _add_nodata(
 
 
 def _merge_feature_schemes(
-    merged: dict[str, list[str]],
+    merged: dict[str, typing.Any],
     schemes_as_str: str | None,
 ) -> None:
     if schemes_as_str is None:
         return
 
-    schemes_dict: dict[str, list[str]] = ast.literal_eval(schemes_as_str)
-    for name, bands in schemes_dict.items():
-        existing = merged.get(name)
+    try:
+        schemes_dict = ast.literal_eval(schemes_as_str)
+    except (ValueError, SyntaxError):
+        return
 
-        if existing is None:
-            merged[name] = bands
-        elif existing != bands:
-            raise ValueError(
-                f'Conflicting definitions for feature scheme "{name}": '
-                f'{existing!r} != {bands!r}'
-            )
+    if not isinstance(schemes_dict, dict):
+        return
+
+    for key, val in schemes_dict.items():
+        if isinstance(val, dict):
+            target = merged.setdefault(key, {})
+            for scheme_name, bands in val.items():
+                existing = target.get(scheme_name)
+                if existing is not None and existing != bands:
+                    raise ValueError(
+                        f'Conflicting definitions for feature scheme '
+                        f'"{scheme_name}" under raster "{key}": '
+                        f'{existing!r} != {bands!r}'
+                    )
+                target[scheme_name] = bands
+        elif isinstance(val, list):
+            existing = merged.get(key)
+            if existing is not None and existing != val:
+                raise ValueError(
+                    f'Conflicting definitions for feature scheme "{key}": '
+                    f'{existing!r} != {val!r}'
+                )
+            merged[key] = val
 
 
 def _add_dataset_schemes(
     root: xml.etree.ElementTree.Element,
-    schemes: dict[str, list[str]],
+    schemes: dict[str, typing.Any],
 ) -> None:
-    """Add merged feature schemes as VRT dataset metadata."""
+    '''Add merged feature schemes as VRT dataset metadata.'''
     if not schemes:
         return
 

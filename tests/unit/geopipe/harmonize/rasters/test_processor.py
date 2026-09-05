@@ -33,6 +33,8 @@ import rasterio
 import landseg.geopipe.grid as grid
 import landseg.geopipe.harmonize.manifest as manifest
 import landseg.geopipe.harmonize.processor as processor
+import landseg.geopipe.ingest.data_blocks.assembler as assembler
+import landseg.geopipe.prepare.resolver as resolver
 
 
 @dataclasses.dataclass
@@ -181,3 +183,100 @@ def test_harmonize_sources_domains(tmp_path, dummy_geotiff_factory):
     assert isinstance(res, processor.ProcessedRasters)
     assert 'domains_ecodistrict' in res.finalized
     assert os.path.exists(res.finalized['domains_ecodistrict'])
+
+
+def test_harmonize_sources_schemes_and_label_specs(
+    tmp_path, dummy_geotiff_factory
+):
+    '''
+    Given: Features and labels with sidecar schemes and
+        categorical specs.
+    When: Running `harmonize_sources`.
+    Then: VRT tags propagate properly to downstream readers.
+    '''
+    s2_path = str(dummy_geotiff_factory(
+        filename='s2.tif', width=16, height=16, bands=3
+    ))
+    lbl_path = str(dummy_geotiff_factory(
+        filename='lbl.tif', width=16, height=16, bands=1
+    ))
+    world_grid = grid.build_grid(
+        'ref',
+        _GridParams(ref_fpath=str(dummy_geotiff_factory(
+            filename='ref.tif', width=16, height=16, bands=1
+        ))),
+    )
+
+    compiled: dict[str, manifest.ManifestEntry] = {
+        s2_path: {
+            'name': 's2',
+            'path': s2_path,
+            'category': 'features',
+            'band_mapping': {1: 'blue', 2: 'green', 3: 'red'},
+            'categorical_specs': None,
+            'schemes': {'rgb': ['blue', 'green', 'red']},
+        },
+        lbl_path: {
+            'name': 'landcover',
+            'path': lbl_path,
+            'category': 'labels',
+            'band_mapping': {1: 'landcover'},
+            'categorical_specs': {
+                'index_base': 1,
+                'num_cls': 2,
+                'ignore_cls': [255],
+                'class_name': {'1': 'forest', '2': 'water'},
+            },
+            'schemes': {
+                'binary': {
+                    'reclass': {'1': [1, 2]},
+                    'reclass_name': {'1': 'veg'},
+                }
+            },
+        },
+    }
+
+    os.makedirs(str(tmp_path / 'harmonized'), exist_ok=True)
+    gen = processor.harmonize_sources(
+        compiled,
+        str(tmp_path / 'harmonized'),
+        world_grid,
+        categorical_resampling='nearest',
+        continuous_resampling='bilinear',
+    )
+
+    res: typing.Any = None
+    try:
+        while True:
+            next(gen)
+    except StopIteration as s:
+        res = s.value
+
+    # verify single-label specs are readable downstream
+    specs = assembler.read_label_specs(res.finalized['labels'])
+    assert 'landcover' in specs
+    assert specs['landcover']['num_cls'] == 2
+    assert specs['landcover']['ignore_cls'] == [255]
+
+    # verify schemes have dataset-level namespacing
+    feat_schemes = assembler.read_schemes(res.finalized['features'])
+    lbl_schemes = assembler.read_schemes(res.finalized['labels'])
+    assert 's2' in feat_schemes
+    assert feat_schemes['s2']['rgb'] == ['blue', 'green', 'red']
+    assert 'landcover' in lbl_schemes
+    assert 'binary' in lbl_schemes['landcover']
+
+    # verify resolver consumes these schemes directly
+    resolved = resolver.resolve_feature_channels(
+        {'blue': 0, 'green': 1, 'red': 2},
+        {'s2': 'rgb'},
+        {**feat_schemes, **lbl_schemes},
+    )
+    assert resolved == (['blue', 'green', 'red'], [0, 1, 2])
+
+    target_res = resolver.resolve_target_reclass(
+        {'landcover': ['forest', 'water']},
+        {'landcover': 'binary'},
+        {**feat_schemes, **lbl_schemes},
+    )
+    assert target_res['landcover'] == lbl_schemes['landcover']['binary']
