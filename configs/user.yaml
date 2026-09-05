@@ -62,12 +62,12 @@ data-ingest:
   # ---------------------------------------------------------------------------
   # Compute and append derived topographic layers (slope, cos/sin
   # aspect, tpi). Requires DEM channel in input features:
-  add_topo: false
+  add_topo: true
 
   # Derived spectral indices to compute and append to data blocks.
   # Supported: [ndvi, ndmi, nbr] (requires red, nir, swir1/swir2 bands):
   #   add_spectral: [ndvi, ndmi]
-  add_spectral: null
+  add_spectral: [ndvi, ndmi, nbr]
 
 
 data-prepare:
@@ -88,7 +88,8 @@ data-prepare:
   #     # spectral: [ndvi, ndmi]
   #     # Or inline arbitrary band list:
   #     # sentinel2: [blue, green, red, nir]
-  features: null
+  features: {}
+  # {} selects all bands
 
   # Select target reclassification by label name (null uses base classes).
   # Accepts named schemes defined in sidecars or inline reclass dict:
@@ -101,7 +102,8 @@ data-prepare:
   #     #     "1": [1, 2]
   #     #   reclass_name:
   #     #     "1": "forest"
-  targets: null
+  targets: {}
+  # {} uses canonical base classes
 
   # ---------------------------------------------------------------------------
   # Geographic AOI Block Selection (Optional)
