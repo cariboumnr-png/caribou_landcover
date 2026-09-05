@@ -50,29 +50,3 @@ def add_tag_to_vrt(vrt_fpath: str, **kwargs):
         return
     with rasterio.open(vrt_fpath, 'r+') as vrt:
         vrt.update_tags(**tags)
-
-
-# def validate_domain_raster_index(
-#     input_path: str,
-#     min_allowed: int = 1
-# ) -> None:
-#     '''
-#     Validate that a domain raster contains 1-based indices.
-
-#     Args:
-#         input_path: Path to the input domain raster file.
-#         min_allowed: Minimum allowed index value (default: 1).
-
-#     Raises:
-#         ValueError: If valid pixel values contain any values < min_allowed.
-#     '''
-#     with rasterio.open(input_path) as src:
-#         data = src.read(1)
-#         nodata = src.nodata
-#         valid_data = data[data != nodata] if nodata is not None else data
-#         if valid_data.size > 0 and int(valid_data.min()) < min_allowed:
-#             raise ValueError(
-#                 f'Domain raster [{input_path}] contains index values '
-#                 f'< {min_allowed} (minimum found: {valid_data.min()}). '
-#                 'Categorical domain rasters must use 1-based indexing.'
-#             )
